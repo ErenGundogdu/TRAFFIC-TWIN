@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "history:import": "tsx src/cli/import-history.ts",
+    "maintenance:retention": "tsx src/cli/run-retention.ts"
   },
   "dependencies": {
     "@traffic-twin/contracts": "workspace:*",

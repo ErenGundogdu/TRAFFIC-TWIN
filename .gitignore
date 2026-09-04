@@ -6,6 +6,7 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+data/raw/
 
 # Environment and local state
 .env

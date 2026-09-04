@@ -6,8 +6,11 @@ import { createApp } from "./app/create-app.js";
 import { parseEnv } from "./config/env.js";
 import { createDatabase } from "./infrastructure/database/client.js";
 import { PostgresStationCatalogRepository } from "./modules/asset-catalog/station-catalog-repository.js";
+import { HistoryRepository } from "./modules/analytics/history-repository.js";
+import { HistoryService } from "./modules/analytics/history-service.js";
 import { StationCatalogService } from "./modules/asset-catalog/station-catalog-service.js";
 import { FintrafficClient } from "./modules/providers/fintraffic/client.js";
+import { ReplayService } from "./modules/replay/replay-service.js";
 import { PostgresTrafficObservationRepository } from "./modules/telemetry/traffic-observation-repository.js";
 import { LiveTrafficPoller } from "./modules/ingestion/live-traffic-poller.js";
 import { PostgresOperatorNoteRepository } from "./modules/operator-notes/operator-note-repository.js";
@@ -37,13 +40,26 @@ const stationCatalogService = new StationCatalogService(
 const operatorNoteService = new OperatorNoteService(
   new PostgresOperatorNoteRepository(db),
 );
+const historyService = new HistoryService(
+  stationRepository,
+  new HistoryRepository(db),
+);
+const replayService = new ReplayService(
+  stationRepository,
+  new HistoryRepository(db),
+);
 const httpServer = createServer(
-  createApp(env, { stationCatalogService, operatorNoteService }),
+  createApp(env, {
+    stationCatalogService,
+    operatorNoteService,
+    historyService,
+  }),
 );
 const realtimeServer = createRealtimeServer(
   httpServer,
   env.CLIENT_ORIGIN,
   operatorNoteService,
+  replayService,
 );
 const liveTrafficPoller = new LiveTrafficPoller(
   "helsinki",

@@ -56,15 +56,15 @@ Bir sonraki aşama, mevcut aşamanın çıkış kriterleri doğrulanmadan otomat
 
 ## Aşama 4 — Geçmiş, Analitik ve Replay
 
-- Ham dosya artifact arşivi ve manifest
-- Sınırlı Helsinki geçmiş backfill'i
-- Dakika/saat/gün toplulaştırmaları
-- Tarih/metrik/yön filtre formu
-- `/analytics` rotası ve ortak grafik bileşenleri
-- Dönem/varlık karşılaştırması
-- Socket.IO replay oturumu ve senkron zaman imleci
+- [x] Ham dosya artifact arşivi ve manifest
+- [x] Sınırlı Helsinki geçmiş backfill'i
+- [x] Dakika/saat/gün toplulaştırmaları
+- [x] Tarih/metrik/yön filtre formu
+- [x] `/analytics` rotası ve ortak grafik bileşeni
+- [x] Varlık karşılaştırması
+- [x] Socket.IO replay oturumu ve senkron zaman imleci
 
-Çıkış kriteri: Gerçek geçmiş veri günlük/aylık/yıllık görüntülenir, iki seçim karşılaştırılır ve yakın dönem akışı replay edilebilir.
+Çıkış kriteri: **Tamamlandı.** Fintraffic'in 3 Eylül 2026 tarihli iki gerçek TMS artifact'i checksum ve kaynak kökeniyle arşivlendi; 95.206 geçerli araç kaydı 5.104 dakika, 96 saat ve 4 gün özetine dönüştürüldü. `/analytics` gün/ay/yıl/özel aralık, metrik, yön ve otomatik çözünürlük filtrelerini URL'de taşır; iki istasyonu aynı grafikte karşılaştırır ve eksik günleri açıkça gösterir. Yakın dönem dakika serisi Socket.IO üzerinden oynatılabilir, duraklatılabilir, hızı değiştirilebilir; grafik zaman imleci ve harita değerleri aynı replay karesini kullanır.
 
 ## Aşama 5 — Kavşak ve AI İçgörüsü
 

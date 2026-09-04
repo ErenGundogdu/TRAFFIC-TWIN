@@ -2,7 +2,7 @@
 
 ## Durum ve İlkeler
 
-Bu belge hedef mimariyi tanımlar. Aşama 3 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Geçmiş import, analitik, replay, kavşak ve anomali bölümleri hedef durumdur.
+Bu belge hedef mimariyi tanımlar. Aşama 4 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Kavşak ve anomali bölümleri hedef durumdur.
 
 Mimari şu ilkeleri korur:
 
@@ -91,7 +91,7 @@ Klasörler ihtiyaç ortaya çıktığında oluşturulur. Her feature/modül kend
 - `apps/web`: Next.js App Router istemcisi, varsayılan port 3000.
 - `apps/server`: Node.js/Express REST ve Socket.IO sunucusu, varsayılan port 4000.
 - `postgres`: PostgreSQL + PostGIS Docker servisi.
-- `raw-data`: Fintraffic kaynak dosyaları için Git dışı kalıcı Docker volume.
+- `data/raw`: Fintraffic kaynak dosyaları için Git dışı yerel arşiv. Server container hâline getirildiğinde aynı yol kalıcı volume olarak bağlanacaktır.
 
 İlk hedef `docker compose` ile yerel çalışmadır. Web ve server ayrı deploy edilebilir kalır; çevrim içi demo zorunlu değildir.
 
@@ -152,6 +152,10 @@ Socket payload'ları `packages/contracts` içindeki Zod şemalarından tür tür
 
 İlk varsayılan yakın dönem 90 gündür; retention değeri kod sabiti değil konfigürasyondur. Yıllık sorgu ham satırları taramaz, uygun toplulaştırma tablosunu seçer.
 
+Import, her istasyon ve kaynak günü için resmî CSV'yi akış hâlinde indirip `.csv.gz` olarak arşivler; SHA-256, byte boyutu, kaynak URL'si, kayıt sayıları ve işlem durumu `ingestion_artifacts` manifest'ine yazılır. Hatalı kaynak kayıtları özetlere katılmaz. Tek transaction dakika/saat/gün özetlerini artifact kökeniyle değiştirir; aynı checksum ve işlem sürümü yeniden geldiğinde sonuç çoğaltılmaz.
+
+`traffic_observations` canlı yakın dönem serisidir. `traffic_aggregates` geçmiş dakika/saat/gün serisini tutar. Bakım komutu çalıştırıldığında varsayılan olarak canlı observation ve dakika özetlerini 90 günden sonra siler; saat ve gün özetleriyle artifact manifest'i kalır. Bu komut MVP'de zamanlanmış değildir. Sıkıştırılmış ham arşivin yaşam döngüsü veritabanından ayrıdır ve bilinçli bir arşiv politikası değişikliği olmadan otomatik silinmez.
+
 ## Kavşak Türetme
 
 OSM yol grafiği kapsama alanı bazında senkronlanıp PostGIS'e yazılır. İstasyon; mesafe, yol kimliği/numarası, bearing ve yön uyumuyla yol yaklaşımına aday olur. Eşiklerin tamamı sürümlü eşleştirme politikasıdır. Düşük güvenli eşleşme otomatik olarak kavşak durumuna katılmaz.
@@ -160,7 +164,9 @@ Kavşak kapsaması `FULL`, `PARTIAL` veya `INSUFFICIENT` olur. Kavşağın durum
 
 ## Analitik ve Anomali
 
-Analitik sorgu varlıklar, dönem, çözünürlük, metrikler, yön ve opsiyonel karşılaştırma dönemi taşır. Server dönem uzunluğuna göre dakika/saat/gün kaynağını seçer. Grafik bileşenleri haritadan bağımsızdır ve hem çalışma alanı panelinde hem `/analytics` rotasında kullanılabilir.
+Analitik sorgu en çok iki varlık, dönem, çözünürlük, metrik ve yön taşır. Server iki güne kadar dakika, 90 güne kadar saat, daha uzun aralıkta gün çözünürlüğünü otomatik seçer; istemci bunu açıkça değiştirebilir. Manifest tarihleri istenen günlerle karşılaştırılarak `COMPLETE`, `PARTIAL` veya `NO_DATA` kapsaması döndürülür. Grafik bileşeni haritadan bağımsızdır ve `/analytics` çalışma alanında kullanılır.
+
+Replay en çok iki günlük dakika özetini yükler. Her Socket.IO bağlantısının ayrı, sunucu taraflı replay oturumu vardır; başlatma, duraklatma, sürdürme, hız değiştirme ve durdurma komutları Zod sözleşmeleriyle doğrulanır. Yayınlanan canonical kare, grafikteki referans çizgisini ve haritadaki istasyon değerlerini aynı zaman damgasıyla günceller.
 
 Anomali motoru aynı yerel haftanın günü/saat dilimi için kayan baseline kullanır. Varsayılan pencere 12 hafta, minimum örnek sayısı 6 ve aktifleşme kalıcılığı iki ardışık sapmadır; bunlar sürümlü politika değerleridir. Median/MAD tabanlı sonuç, kullanılan veri ve güven bilgisiyle saklanır.
 

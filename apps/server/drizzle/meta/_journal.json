@@ -29,6 +29,13 @@
       "when": 1788525313042,
       "tag": "0003_certain_rocket_raccoon",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788526143126,
+      "tag": "0004_right_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

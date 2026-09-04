@@ -1,7 +1,9 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  bigint,
   check,
+  date,
   doublePrecision,
   geometry,
   index,
@@ -20,6 +22,18 @@ export const trafficAssetKind = pgEnum("traffic_asset_kind", [
   "road-segment",
   "corridor",
   "traffic-zone",
+]);
+
+export const artifactStatus = pgEnum("artifact_status", [
+  "DOWNLOADED",
+  "PROCESSED",
+  "FAILED",
+]);
+
+export const aggregateResolution = pgEnum("aggregate_resolution", [
+  "minute",
+  "hour",
+  "day",
 ]);
 
 export const coverageAreas = pgTable("coverage_areas", {
@@ -144,6 +158,94 @@ export const operatorNotes = pgTable(
     check(
       "operator_notes_content_length_check",
       sql`char_length(${table.content}) BETWEEN 3 AND 1000`,
+    ),
+  ],
+);
+
+export const ingestionArtifacts = pgTable(
+  "ingestion_artifacts",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "restrict" }),
+    sourceDate: date("source_date", { mode: "string" }).notNull(),
+    sourceUrl: text("source_url").notNull(),
+    storagePath: text("storage_path").notNull(),
+    checksumSha256: text("checksum_sha256").notNull(),
+    byteSize: bigint("byte_size", { mode: "number" }).notNull(),
+    status: artifactStatus("status").notNull(),
+    processorVersion: text("processor_version").notNull(),
+    recordCount: integer("record_count").notNull().default(0),
+    validRecordCount: integer("valid_record_count").notNull().default(0),
+    errorMessage: text("error_message"),
+    importedAt: timestamp("imported_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("ingestion_artifacts_asset_date_uidx").on(
+      table.provider,
+      table.assetId,
+      table.sourceDate,
+    ),
+    index("ingestion_artifacts_asset_date_idx").on(
+      table.assetId,
+      table.sourceDate,
+    ),
+    check(
+      "ingestion_artifacts_checksum_check",
+      sql`char_length(${table.checksumSha256}) = 64`,
+    ),
+  ],
+);
+
+export const trafficAggregates = pgTable(
+  "traffic_aggregates",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    direction: integer("direction").notNull(),
+    resolution: aggregateResolution("resolution").notNull(),
+    bucketStart: timestamp("bucket_start", { withTimezone: true }).notNull(),
+    averageSpeedKmh: doublePrecision("average_speed_kmh").notNull(),
+    vehicleCount: integer("vehicle_count").notNull(),
+    sampleCount: integer("sample_count").notNull(),
+    artifactId: text("artifact_id")
+      .notNull()
+      .references(() => ingestionArtifacts.id, { onDelete: "restrict" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_aggregates_pk",
+      columns: [
+        table.assetId,
+        table.direction,
+        table.resolution,
+        table.bucketStart,
+      ],
+    }),
+    index("traffic_aggregates_query_idx").on(
+      table.assetId,
+      table.resolution,
+      table.direction,
+      table.bucketStart,
+    ),
+    check(
+      "traffic_aggregates_direction_check",
+      sql`${table.direction} IN (1, 2)`,
+    ),
+    check(
+      "traffic_aggregates_values_check",
+      sql`${table.averageSpeedKmh} >= 0 AND ${table.vehicleCount} >= 0 AND ${table.sampleCount} >= 0`,
     ),
   ],
 );

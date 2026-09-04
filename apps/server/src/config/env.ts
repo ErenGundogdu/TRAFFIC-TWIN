@@ -17,6 +17,13 @@ const envSchema = z.object({
     .min(3)
     .default("TrafficTwin/InternshipProject 0.1"),
   LIVE_POLL_INTERVAL_MS: z.coerce.number().int().min(60_000).default(60_000),
+  RAW_DATA_DIR: z.string().min(1).default("../../data/raw"),
+  LIVE_OBSERVATION_RETENTION_DAYS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(90),
+  HISTORY_MINUTE_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

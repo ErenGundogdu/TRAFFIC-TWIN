@@ -4,6 +4,12 @@ import type { Express } from "express";
 
 import type { AppEnv } from "../config/env.js";
 import { createStationCatalogRouter } from "../modules/asset-catalog/station-catalog-router.js";
+import { createHistoryRouter } from "../modules/analytics/history-router.js";
+import type { HistoryService } from "../modules/analytics/history-service.js";
+import {
+  HistoryAssetNotFoundError,
+  HistoryCoverageAreaNotFoundError,
+} from "../modules/analytics/history-service.js";
 import {
   CoverageAreaNotFoundError,
   type StationCatalogService,
@@ -17,6 +23,7 @@ import { ZodError } from "zod";
 interface AppDependencies {
   stationCatalogService?: StationCatalogService;
   operatorNoteService?: OperatorNoteService;
+  historyService?: HistoryService;
 }
 
 export function createApp(
@@ -51,6 +58,10 @@ export function createApp(
     );
   }
 
+  if (dependencies.historyService) {
+    app.use("/api/analytics", createHistoryRouter(dependencies.historyService));
+  }
+
   app.use(
     (
       error: unknown,
@@ -63,6 +74,16 @@ export function createApp(
       if (error instanceof CoverageAreaNotFoundError) {
         response.status(404).json({
           error: { code: "COVERAGE_AREA_NOT_FOUND", message: error.message },
+        });
+        return;
+      }
+
+      if (
+        error instanceof HistoryCoverageAreaNotFoundError ||
+        error instanceof HistoryAssetNotFoundError
+      ) {
+        response.status(404).json({
+          error: { code: "HISTORY_SCOPE_NOT_FOUND", message: error.message },
         });
         return;
       }

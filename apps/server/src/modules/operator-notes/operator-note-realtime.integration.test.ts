@@ -27,6 +27,21 @@ describe("operator note realtime flow", () => {
     httpServer,
     "http://localhost:3000",
     new OperatorNoteService(new PostgresOperatorNoteRepository(connection.db)),
+    {
+      load: async () => [
+        {
+          timestamp: "2026-09-02T21:00:00Z",
+          values: [
+            {
+              assetId: "fintraffic-tms:20002",
+              averageSpeedKmh: 88,
+              vehicleCount: 3,
+              sampleCount: 3,
+            },
+          ],
+        },
+      ],
+    },
   );
   let url: string;
   const clients: Socket[] = [];
@@ -134,5 +149,38 @@ describe("operator note realtime flow", () => {
     await connection.db
       .delete(operatorNotes)
       .where(eq(operatorNotes.id, firstNote.id));
+  });
+
+  it("acknowledges replay and emits its canonical frame", async () => {
+    const client = await new Promise<Socket>((resolve) => {
+      const socket = createClient(url, { reconnection: false });
+      clients.push(socket);
+      socket.on("connect", () => resolve(socket));
+    });
+    const frame = new Promise((resolve) =>
+      client.once(REALTIME_EVENTS.replayFrame, resolve),
+    );
+    const acknowledgement = new Promise((resolve) =>
+      client.emit(
+        REALTIME_EVENTS.replayStart,
+        {
+          coverageAreaId: "helsinki",
+          assetIds: ["fintraffic-tms:20002"],
+          direction: 1,
+          from: "2026-09-02T21:00:00Z",
+          to: "2026-09-03T21:00:00Z",
+          speed: 32,
+        },
+        resolve,
+      ),
+    );
+
+    await expect(acknowledgement).resolves.toMatchObject({
+      ok: true,
+      frameCount: 1,
+    });
+    await expect(frame).resolves.toMatchObject({
+      timestamp: "2026-09-02T21:00:00Z",
+    });
   });
 });

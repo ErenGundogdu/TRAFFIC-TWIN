@@ -1,0 +1,127 @@
+import {
+  historyQuerySchema,
+  type HistoryQuery,
+  type HistoryResponse,
+  type ResolvedHistoryResolution,
+} from "@traffic-twin/contracts";
+
+import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
+import type { HistoryRepository } from "./history-repository.js";
+
+const DAY_MS = 86_400_000;
+
+export class HistoryCoverageAreaNotFoundError extends Error {}
+export class HistoryAssetNotFoundError extends Error {}
+
+function resolveResolution(query: HistoryQuery): ResolvedHistoryResolution {
+  if (query.resolution !== "auto") return query.resolution;
+  const duration =
+    new Date(query.to).getTime() - new Date(query.from).getTime();
+  if (duration <= 2 * DAY_MS) return "minute";
+  if (duration <= 90 * DAY_MS) return "hour";
+  return "day";
+}
+
+function localDate(value: Date, timeZone: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+}
+
+function enumerateDates(from: Date, to: Date, timeZone: string) {
+  const first = localDate(from, timeZone);
+  const last = localDate(new Date(to.getTime() - 1), timeZone);
+  const dates: string[] = [];
+  let cursor = new Date(`${first}T00:00:00Z`);
+  const end = new Date(`${last}T00:00:00Z`);
+
+  while (cursor <= end) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor = new Date(cursor.getTime() + DAY_MS);
+  }
+
+  return dates;
+}
+
+export class HistoryService {
+  constructor(
+    private readonly stationRepository: StationCatalogRepository,
+    private readonly historyRepository: Pick<
+      HistoryRepository,
+      "getSeries" | "listAvailableDates"
+    >,
+  ) {}
+
+  async query(
+    coverageAreaId: string,
+    input: HistoryQuery,
+  ): Promise<HistoryResponse> {
+    const query = historyQuerySchema.parse(input);
+    const coverageArea =
+      await this.stationRepository.findCoverageArea(coverageAreaId);
+    if (!coverageArea) {
+      throw new HistoryCoverageAreaNotFoundError(
+        `Coverage area '${coverageAreaId}' was not found.`,
+      );
+    }
+
+    const knownAssets = new Set(
+      (await this.stationRepository.listStations(coverageAreaId)).map(
+        (station) => station.id,
+      ),
+    );
+    if (query.assetIds.some((assetId) => !knownAssets.has(assetId))) {
+      throw new HistoryAssetNotFoundError(
+        "One or more traffic assets are outside the coverage area.",
+      );
+    }
+
+    const from = new Date(query.from);
+    const to = new Date(query.to);
+    const requestedDates = enumerateDates(from, to, coverageArea.timeZone);
+    const available = await this.historyRepository.listAvailableDates(
+      query.assetIds,
+      requestedDates[0]!,
+      requestedDates.at(-1)!,
+    );
+    const datesAvailableForEveryAsset = requestedDates.filter((date) =>
+      query.assetIds.every((assetId) =>
+        available.some(
+          (item) => item.assetId === assetId && item.sourceDate === date,
+        ),
+      ),
+    );
+    const missingDates = requestedDates.filter(
+      (date) => !datesAvailableForEveryAsset.includes(date),
+    );
+    const resolution = resolveResolution(query);
+
+    return {
+      query,
+      resolution,
+      timeZone: coverageArea.timeZone,
+      coverage: {
+        status:
+          datesAvailableForEveryAsset.length === 0
+            ? "NO_DATA"
+            : missingDates.length === 0
+              ? "COMPLETE"
+              : "PARTIAL",
+        requestedDays: requestedDates.length,
+        availableDays: datesAvailableForEveryAsset.length,
+        missingDates: missingDates.slice(0, 31),
+      },
+      series: await this.historyRepository.getSeries({
+        assetIds: query.assetIds,
+        direction: query.direction,
+        metric: query.metric,
+        resolution,
+        from,
+        to,
+      }),
+    };
+  }
+}
