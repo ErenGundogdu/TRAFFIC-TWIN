@@ -1,0 +1,31 @@
+{
+  "name": "traffic-twin",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.26.2",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "predev": "pnpm --filter @traffic-twin/contracts build",
+    "dev": "pnpm --parallel --filter @traffic-twin/web --filter @traffic-twin/server run dev",
+    "build": "pnpm -r --if-present run build",
+    "lint": "pnpm -r --if-present run lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:generate": "pnpm --filter @traffic-twin/server db:generate",
+    "db:migrate": "pnpm --filter @traffic-twin/server db:migrate",
+    "test:integration": "pnpm --filter @traffic-twin/server test:integration"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.6"
+  }
+}

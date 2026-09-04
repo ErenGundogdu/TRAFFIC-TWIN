@@ -1,0 +1,48 @@
+{
+  "dataUpdatedTime": "2026-09-04T09:03:45Z",
+  "stations": [
+    {
+      "id": 20002,
+      "tmsNumber": 20002,
+      "dataUpdatedTime": "2026-09-04T09:03:45Z",
+      "sensorValues": [
+        {
+          "id": 5116,
+          "stationId": 20002,
+          "name": "OHITUKSET_5MIN_LIUKUVA_SUUNTA1",
+          "shortName": "kpl/h1",
+          "measuredTime": "2026-09-04T09:03:35Z",
+          "unit": "kpl/h",
+          "value": 1488.0
+        },
+        {
+          "id": 5119,
+          "stationId": 20002,
+          "name": "OHITUKSET_5MIN_LIUKUVA_SUUNTA2",
+          "shortName": "kpl/h2",
+          "measuredTime": "2026-09-04T09:03:35Z",
+          "unit": "kpl/h",
+          "value": 612.0
+        },
+        {
+          "id": 5122,
+          "stationId": 20002,
+          "name": "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA1",
+          "shortName": "km/h1",
+          "measuredTime": "2026-09-04T09:03:35Z",
+          "unit": "km/h",
+          "value": 93.0
+        },
+        {
+          "id": 5125,
+          "stationId": 20002,
+          "name": "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA2",
+          "shortName": "km/h2",
+          "measuredTime": "2026-09-04T09:03:35Z",
+          "unit": "km/h",
+          "value": 103.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "dataUpdatedTime": "2026-09-04T06:55:13Z",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 20002,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [24.637997, 60.220898, 30.0]
+      },
+      "properties": {
+        "id": 20002,
+        "tmsNumber": 20002,
+        "name": "vt1_Espoo_Hirvisuo",
+        "bearing": 298,
+        "collectionStatus": "GATHERING",
+        "dataUpdatedTime": "2023-10-26T06:19:26Z",
+        "state": "OK_FAULT_DOUBT_CANCELLED"
+      }
+    }
+  ]
+}
