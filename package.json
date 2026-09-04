@@ -11,6 +11,7 @@
     "dev": "pnpm --parallel --filter @traffic-twin/web --filter @traffic-twin/server run dev",
     "build": "pnpm -r --if-present run build",
     "lint": "pnpm -r --if-present run lint",
+    "pretypecheck": "pnpm --filter @traffic-twin/contracts build",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "format": "prettier --write .",

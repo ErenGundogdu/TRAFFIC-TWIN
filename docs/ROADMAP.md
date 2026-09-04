@@ -45,14 +45,14 @@ Bir sonraki aşama, mevcut aşamanın çıkış kriterleri doğrulanmadan otomat
 
 ## Aşama 3 — Canlı Socket.IO ve Operatör Notları
 
-- Conditional polling ve idempotent observation yazımı
-- Batch canlı trafik Socket.IO olayı
-- Reconnect ve REST reconciliation
-- RHF + Zod not formu
-- Client → server acknowledgement → broadcast
-- Not kalıcılığı ve iki istemcili integration testi
+- [x] Conditional polling ve idempotent observation yazımı
+- [x] Batch canlı trafik Socket.IO olayı
+- [x] Reconnect ve REST reconciliation
+- [x] RHF + Zod not formu
+- [x] Client → server acknowledgement → broadcast
+- [x] Not kalıcılığı ve iki istemcili integration testi
 
-Çıkış kriteri: Canlı değerler yenilemesiz değişir; iki istemci aynı canonical notu görür; kopma durumunda veri doğruluğu korunur.
+Çıkış kriteri: **Tamamlandı.** Canlı Fintraffic doğrulamasında kaynak zamanı sayfa yenilenmeden `15:31:25` → `15:32:45` değişti ve ölçümler kalıcı zaman serisine yazıldı. Socket istemcisi her bağlantıda REST snapshot/not uzlaşması yapıyor. Gerçek PostGIS ve iki Socket.IO istemcili entegrasyon testi, oluşturma acknowledgement'ı ile iki istemcinin aynı kalıcı canonical notu aldığını doğruluyor.
 
 ## Aşama 4 — Geçmiş, Analitik ve Replay
 

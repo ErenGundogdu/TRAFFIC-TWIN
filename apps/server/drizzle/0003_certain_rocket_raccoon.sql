@@ -1,0 +1,4 @@
+ALTER TABLE "operator_notes" ADD CONSTRAINT "operator_notes_author_length_check" CHECK (char_length("operator_notes"."author") BETWEEN 2 AND 80);--> statement-breakpoint
+ALTER TABLE "operator_notes" ADD CONSTRAINT "operator_notes_content_length_check" CHECK (char_length("operator_notes"."content") BETWEEN 3 AND 1000);--> statement-breakpoint
+ALTER TABLE "traffic_observations" ADD CONSTRAINT "traffic_observations_direction_check" CHECK ("traffic_observations"."direction" IN (1, 2));--> statement-breakpoint
+ALTER TABLE "traffic_observations" ADD CONSTRAINT "traffic_observations_value_check" CHECK (("traffic_observations"."average_speed_kmh" IS NOT NULL AND "traffic_observations"."average_speed_kmh" >= 0) OR ("traffic_observations"."flow_vehicles_per_hour" IS NOT NULL AND "traffic_observations"."flow_vehicles_per_hour" >= 0));

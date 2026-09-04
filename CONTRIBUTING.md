@@ -28,7 +28,7 @@ pnpm test:integration
 pnpm build
 ```
 
-PostGIS integration testi ayrı komutla çalışır. Socket.IO integration testleri ilgili dikey dilim eklendiğinde bu sözleşmeye dahil edilecektir. Komutlar gerçekten eklenip doğrulanmadan README'de kullanılabilir olarak gösterilmemelidir.
+PostGIS ve iki gerçek istemcili Socket.IO integration testleri ayrı `pnpm test:integration` komutuyla çalışır. Komutlar gerçekten eklenip doğrulanmadan README'de kullanılabilir olarak gösterilmemelidir.
 
 ## Pre-commit
 

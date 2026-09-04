@@ -8,6 +8,11 @@ import { createDatabase } from "./infrastructure/database/client.js";
 import { PostgresStationCatalogRepository } from "./modules/asset-catalog/station-catalog-repository.js";
 import { StationCatalogService } from "./modules/asset-catalog/station-catalog-service.js";
 import { FintrafficClient } from "./modules/providers/fintraffic/client.js";
+import { PostgresTrafficObservationRepository } from "./modules/telemetry/traffic-observation-repository.js";
+import { LiveTrafficPoller } from "./modules/ingestion/live-traffic-poller.js";
+import { PostgresOperatorNoteRepository } from "./modules/operator-notes/operator-note-repository.js";
+import { OperatorNoteService } from "./modules/operator-notes/operator-note-service.js";
+import { createRealtimeServer } from "./realtime/create-realtime-server.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -17,27 +22,72 @@ if (existsSync(rootEnvPath)) {
 
 const env = parseEnv();
 const { db, pool } = createDatabase(env.DATABASE_URL);
-const stationCatalogService = new StationCatalogService(
-  new PostgresStationCatalogRepository(db),
-  new FintrafficClient(env.FINTRAFFIC_BASE_URL, env.FINTRAFFIC_USER),
+const stationRepository = new PostgresStationCatalogRepository(db);
+const observationRepository = new PostgresTrafficObservationRepository(db);
+const fintrafficClient = new FintrafficClient(
+  env.FINTRAFFIC_BASE_URL,
+  env.FINTRAFFIC_USER,
 );
-const httpServer = createServer(createApp(env, { stationCatalogService }));
+const stationCatalogService = new StationCatalogService(
+  stationRepository,
+  fintrafficClient,
+  undefined,
+  observationRepository,
+);
+const operatorNoteService = new OperatorNoteService(
+  new PostgresOperatorNoteRepository(db),
+);
+const httpServer = createServer(
+  createApp(env, { stationCatalogService, operatorNoteService }),
+);
+const realtimeServer = createRealtimeServer(
+  httpServer,
+  env.CLIENT_ORIGIN,
+  operatorNoteService,
+);
+const liveTrafficPoller = new LiveTrafficPoller(
+  "helsinki",
+  env.LIVE_POLL_INTERVAL_MS,
+  stationRepository,
+  observationRepository,
+  fintrafficClient,
+  (batch) => realtimeServer.publishTrafficBatch(batch),
+  undefined,
+  (error) => console.error("Live traffic poll failed.", error),
+);
+
+try {
+  const result = await liveTrafficPoller.runOnce();
+  console.log(`Initial live traffic sync: ${result.status}.`);
+} catch (error) {
+  console.error(
+    "Initial live traffic sync failed; persisted data remains available.",
+    error,
+  );
+}
+
+liveTrafficPoller.start();
 
 httpServer.listen(env.PORT, () => {
   console.log(`Traffic Twin server listening on http://localhost:${env.PORT}`);
 });
 
-function shutdown(signal: NodeJS.Signals) {
-  console.log(`Received ${signal}; closing HTTP server.`);
-  httpServer.close(async (error) => {
-    if (error) {
-      console.error(error);
-      process.exitCode = 1;
-    }
+let shuttingDown = false;
 
+async function shutdown(signal: NodeJS.Signals) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`Received ${signal}; closing HTTP server.`);
+  liveTrafficPoller.stop();
+  try {
+    await realtimeServer.close();
     await pool.end();
-  });
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
 }
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+process.on("SIGINT", (signal) => void shutdown(signal));
+process.on("SIGTERM", (signal) => void shutdown(signal));

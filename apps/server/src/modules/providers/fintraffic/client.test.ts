@@ -23,4 +23,40 @@ describe("FintrafficClient", () => {
     expect(headers.get("Accept-Encoding")).toBe("gzip");
     expect(headers.get("Digitraffic-User")).toBe("TrafficTwin/Test");
   });
+
+  it("sends validators and accepts a 304 without parsing a body", async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () =>
+      Promise.resolve(
+        new Response(null, {
+          status: 304,
+          headers: { ETag: '"station-data-v2"' },
+        }),
+      ),
+    );
+    const client = new FintrafficClient(
+      "https://tie.digitraffic.fi/api/tms/v1",
+      "TrafficTwin/Test",
+      fetchImplementation,
+    );
+
+    const result = await client.getCurrentStationDataConditional({
+      etag: '"station-data-v1"',
+      lastModified: "Fri, 04 Sep 2026 09:00:00 GMT",
+    });
+    const headers = new Headers(
+      fetchImplementation.mock.calls[0]?.[1]?.headers,
+    );
+
+    expect(result).toEqual({
+      status: "not-modified",
+      validators: {
+        etag: '"station-data-v2"',
+        lastModified: "Fri, 04 Sep 2026 09:00:00 GMT",
+      },
+    });
+    expect(headers.get("If-None-Match")).toBe('"station-data-v1"');
+    expect(headers.get("If-Modified-Since")).toBe(
+      "Fri, 04 Sep 2026 09:00:00 GMT",
+    );
+  });
 });

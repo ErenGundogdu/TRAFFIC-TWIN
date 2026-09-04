@@ -2,7 +2,7 @@
 
 ## Durum ve İlkeler
 
-Bu belge hedef mimariyi tanımlar. Aşama 2 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, REST bootstrap, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Socket.IO, geçmiş, analitik, kavşak ve anomali bölümleri hedef durumdur.
+Bu belge hedef mimariyi tanımlar. Aşama 3 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Geçmiş import, analitik, replay, kavşak ve anomali bölümleri hedef durumdur.
 
 Mimari şu ilkeleri korur:
 
@@ -135,6 +135,10 @@ Fintraffic adapter'ı gzip, `Digitraffic-User`, ETag/Last-Modified, bir dakikal�
 6. Güncel snapshot'ı tek batch Socket.IO olayıyla yayınlar.
 7. Web, React Query bootstrap sonucunu Socket.IO güncellemeleriyle uzlaştırır.
 ```
+
+REST katalog çağrısı canlı sağlayıcıyı doğrudan tetiklemez; veritabanındaki son kalıcı snapshot'ı okur. Temiz kurulumda ilk poll sunucu dinlemeye başlamadan çalışır. Her Socket.IO bağlantısı/yeniden bağlantısı son snapshot ve not sorgularını geçersiz kılar; böylece kaçırılmış olaylar REST üzerinden tamamlanır.
+
+Operatör notunda istemci Zod ile doğrulanan komutu Socket.IO üzerinden yollar. Sunucu varlığı doğrular, notu PostgreSQL'e yazar, canonical kaydı acknowledgement ile gönderdikten sonra kapsama odasına yayınlar. İstemciler yalnız canonical sunucu kaydını önbelleğe ekler.
 
 Socket payload'ları `packages/contracts` içindeki Zod şemalarından tür türetir. Her ölçüm kendi kaynak zamanını taşır; batch zamanı ölçüm zamanı yerine kullanılmaz.
 

@@ -15,6 +15,20 @@
       "when": 1788513384752,
       "tag": "0001_enforce_location_srid",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788524607166,
+      "tag": "0002_amusing_longshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788525313042,
+      "tag": "0003_certain_rocket_raccoon",
+      "breakpoints": true
     }
   ]
 }

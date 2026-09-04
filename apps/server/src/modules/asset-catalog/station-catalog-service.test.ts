@@ -85,4 +85,48 @@ describe("StationCatalogService", () => {
     expect(result.stations[0]?.freshness).toBe("UNAVAILABLE");
     expect(result.stations[0]?.directions[0]?.averageSpeedKmh).toBeNull();
   });
+
+  it("reconciles REST from the persisted snapshot without polling upstream", async () => {
+    const repository = createRepository([
+      {
+        id: "fintraffic-tms:20002",
+        providerStationId: 20002,
+        tmsNumber: 20002,
+        name: "vt1_Espoo_Hirvisuo",
+        longitude: 24.637997,
+        latitude: 60.220898,
+        bearing: 298,
+      },
+    ]);
+    const client = {
+      getStations: vi.fn(),
+      getCurrentStationData: vi.fn(),
+    };
+    const service = new StationCatalogService(
+      repository,
+      client,
+      () => new Date("2026-09-04T09:04:00Z"),
+      {
+        insertBatch: vi.fn(async () => 0),
+        listLatestDirections: vi.fn(async () => [
+          {
+            assetId: "fintraffic-tms:20002",
+            direction: 1 as const,
+            measuredAt: "2026-09-04T09:03:35Z",
+            averageSpeedKmh: 93,
+            flowVehiclesPerHour: 1488,
+            sourceUpdatedAt: "2026-09-04T09:03:35Z",
+          },
+        ]),
+      },
+    );
+
+    const result = await service.getCoverageStations("helsinki");
+
+    expect(result.source.status).toBe("AVAILABLE");
+    expect(result.stations[0]?.directions[0]?.averageSpeedKmh).toBe(93);
+    expect(result.stations[0]?.directions[1]?.averageSpeedKmh).toBeNull();
+    expect(client.getStations).not.toHaveBeenCalled();
+    expect(client.getCurrentStationData).not.toHaveBeenCalled();
+  });
 });

@@ -1,8 +1,10 @@
 import type { StationSummary } from "@traffic-twin/contracts";
+import type { ReactNode } from "react";
 
 interface StationDetailPanelProps {
   station: StationSummary | null;
   timeZone: string;
+  footer?: ReactNode;
 }
 
 function formatMeasurementTime(value: string | null, timeZone: string) {
@@ -26,6 +28,7 @@ function formatMetric(value: number | null, unit: string) {
 export function StationDetailPanel({
   station,
   timeZone,
+  footer,
 }: StationDetailPanelProps) {
   if (!station) {
     return (
@@ -132,6 +135,7 @@ export function StationDetailPanel({
           </dd>
         </div>
       </dl>
+      {footer}
     </aside>
   );
 }

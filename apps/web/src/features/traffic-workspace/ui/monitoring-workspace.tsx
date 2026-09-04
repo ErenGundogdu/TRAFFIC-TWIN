@@ -8,6 +8,8 @@ import {
   useStationCatalog,
 } from "@/features/station-monitoring";
 import { TrafficMap } from "@/features/traffic-map";
+import { OperatorNotesPanel } from "@/features/operator-notes";
+import { useRealtimeSync } from "@/features/realtime";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
@@ -34,6 +36,7 @@ export function MonitoringWorkspace({
   const searchParams = useSearchParams();
   const selectedStationId = searchParams.get("station");
   const catalogQuery = useStationCatalog(coverageAreaId);
+  const realtime = useRealtimeSync(coverageAreaId);
   const selectedStation =
     catalogQuery.data?.stations.find(
       (station) => station.id === selectedStationId,
@@ -99,6 +102,22 @@ export function MonitoringWorkspace({
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-1.5 text-[11px] text-slate-500 lg:flex">
+            <span
+              className={`size-2 rounded-full ${
+                realtime.status === "connected"
+                  ? "bg-sky-500"
+                  : realtime.status === "connecting"
+                    ? "bg-amber-400"
+                    : "bg-slate-400"
+              }`}
+            />
+            {realtime.status === "connected"
+              ? "Canlı bağlı"
+              : realtime.status === "connecting"
+                ? "Bağlanıyor"
+                : "Canlı bağlantı kesildi"}
+          </div>
           <div className="hidden text-right sm:block">
             <p className="text-xs font-medium text-slate-700">
               {source.status === "AVAILABLE"
@@ -171,6 +190,17 @@ export function MonitoringWorkspace({
           <StationDetailPanel
             station={selectedStation}
             timeZone={coverageArea.timeZone}
+            footer={
+              selectedStation ? (
+                <OperatorNotesPanel
+                  key={selectedStation.id}
+                  assetId={selectedStation.id}
+                  timeZone={coverageArea.timeZone}
+                  createNote={realtime.createNote}
+                  realtimeConnected={realtime.status === "connected"}
+                />
+              ) : null
+            }
           />
         </div>
       </div>

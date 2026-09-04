@@ -7,6 +7,7 @@ import {
   type Database,
 } from "../../infrastructure/database/client.js";
 import { PostgresStationCatalogRepository } from "./station-catalog-repository.js";
+import { PostgresTrafficObservationRepository } from "../telemetry/traffic-observation-repository.js";
 
 describe("PostgresStationCatalogRepository", () => {
   const connection = createDatabase(
@@ -68,5 +69,61 @@ describe("PostgresStationCatalogRepository", () => {
     `);
 
     expect(result.rows[0]?.inside).toBe(true);
+  });
+
+  it("writes the same fixed-window observation idempotently", async () => {
+    await database.execute(sql`
+      DELETE FROM traffic_observations
+      WHERE asset_id = 'fintraffic-tms:20002'
+        AND measured_at = '2026-09-04T09:03:35Z'
+    `);
+
+    const stations = [
+      {
+        id: "fintraffic-tms:20002",
+        providerStationId: 20002,
+        tmsNumber: 20002,
+        name: "vt1_Espoo_Hirvisuo",
+        longitude: 24.637997,
+        latitude: 60.220898,
+        bearing: 298,
+        freshness: "FRESH" as const,
+        directions: [
+          {
+            direction: 1 as const,
+            label: "Yön 1",
+            averageSpeedKmh: 93,
+            flowVehiclesPerHour: 1488,
+            measuredAt: "2026-09-04T09:03:35Z",
+          },
+          {
+            direction: 2 as const,
+            label: "Yön 2",
+            averageSpeedKmh: 103,
+            flowVehiclesPerHour: 612,
+            measuredAt: "2026-09-04T09:03:35Z",
+          },
+        ],
+      },
+    ];
+    const repository = new PostgresTrafficObservationRepository(database);
+    const sourceUpdatedAt = new Date("2026-09-04T09:03:35Z");
+
+    expect(await repository.insertBatch(stations, sourceUpdatedAt)).toBe(2);
+    expect(await repository.insertBatch(stations, sourceUpdatedAt)).toBe(0);
+
+    const result = await database.execute<{ count: string }>(sql`
+      SELECT COUNT(*)::text AS count
+      FROM traffic_observations
+      WHERE asset_id = 'fintraffic-tms:20002'
+        AND measured_at = '2026-09-04T09:03:35Z'
+    `);
+    expect(result.rows[0]?.count).toBe("2");
+
+    await database.execute(sql`
+      DELETE FROM traffic_observations
+      WHERE asset_id = 'fintraffic-tms:20002'
+        AND measured_at = '2026-09-04T09:03:35Z'
+    `);
   });
 });

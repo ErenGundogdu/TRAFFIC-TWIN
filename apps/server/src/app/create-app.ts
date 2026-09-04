@@ -9,9 +9,14 @@ import {
   type StationCatalogService,
 } from "../modules/asset-catalog/station-catalog-service.js";
 import { FintrafficResponseError } from "../modules/providers/fintraffic/client.js";
+import { createOperatorNoteRouter } from "../modules/operator-notes/operator-note-router.js";
+import { AssetNotFoundError } from "../modules/operator-notes/operator-note-repository.js";
+import type { OperatorNoteService } from "../modules/operator-notes/operator-note-service.js";
+import { ZodError } from "zod";
 
 interface AppDependencies {
   stationCatalogService?: StationCatalogService;
+  operatorNoteService?: OperatorNoteService;
 }
 
 export function createApp(
@@ -39,6 +44,13 @@ export function createApp(
     );
   }
 
+  if (dependencies.operatorNoteService) {
+    app.use(
+      "/api/operator-notes",
+      createOperatorNoteRouter(dependencies.operatorNoteService),
+    );
+  }
+
   app.use(
     (
       error: unknown,
@@ -61,6 +73,20 @@ export function createApp(
             code: "FINTRAFFIC_UNAVAILABLE",
             message: "Fintraffic verisi şu anda alınamıyor.",
           },
+        });
+        return;
+      }
+
+      if (error instanceof AssetNotFoundError) {
+        response.status(404).json({
+          error: { code: "TRAFFIC_ASSET_NOT_FOUND", message: error.message },
+        });
+        return;
+      }
+
+      if (error instanceof ZodError) {
+        response.status(400).json({
+          error: { code: "INVALID_REQUEST", message: "İstek doğrulanamadı." },
         });
         return;
       }
