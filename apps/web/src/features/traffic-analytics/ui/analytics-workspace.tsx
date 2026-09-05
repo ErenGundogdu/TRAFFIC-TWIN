@@ -18,6 +18,7 @@ import { z } from "zod";
 import { useStationCatalog } from "@/features/station-monitoring";
 import { TrafficMap } from "@/features/traffic-map";
 import { useReplay } from "@/features/replay";
+import { ThemeToggle } from "@/shared/theme";
 import {
   dateLabelAt,
   shiftDateLabel,
@@ -123,8 +124,8 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
-      <header className="border-b border-slate-200 bg-white px-5 py-4">
+    <main className="min-h-screen bg-slate-100 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+      <header className="border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold tracking-[0.14em] text-sky-700 uppercase">
@@ -134,17 +135,20 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
               Geçmiş ve karşılaştırma
             </h1>
           </div>
-          <Link
-            href={`/monitoring?station=${encodeURIComponent(values.assetId)}`}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Haritada canlı göster
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/monitoring?station=${encodeURIComponent(values.assetId)}`}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Haritada canlı göster
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
       <div className="mx-auto grid max-w-[1500px] gap-4 p-4 lg:grid-cols-[290px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <h2 className="font-semibold">Analiz filtresi</h2>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[
@@ -156,7 +160,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                 key={label}
                 type="button"
                 onClick={() => applyRange(Number(days))}
-                className="rounded-lg border border-slate-200 px-2 py-2 text-xs font-semibold hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 px-2 py-2 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 {label}
               </button>
@@ -231,7 +235,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
         </aside>
 
         <div className="min-w-0 space-y-4">
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="grid md:grid-cols-[minmax(0,1fr)_300px]">
               <div className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -250,7 +254,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                     <CoverageBadge history={history.data} />
                   ) : null}
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 p-3">
+                <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-950">
                   <button
                     type="button"
                     disabled={!replayAvailable}
@@ -277,7 +281,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                     <button
                       type="button"
                       onClick={() => replay.control({ action: "pause" })}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
                     >
                       Duraklat
                     </button>
@@ -285,7 +289,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                     <button
                       type="button"
                       onClick={() => replay.control({ action: "resume" })}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
                     >
                       Sürdür
                     </button>
@@ -293,7 +297,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                   <button
                     type="button"
                     onClick={() => replay.control({ action: "stop" })}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
                   >
                     Canlı moda dön
                   </button>
@@ -305,7 +309,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                       replay.setSpeed(speed);
                     }}
                     aria-label="Replay hızı"
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs"
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs dark:border-slate-700 dark:bg-slate-900"
                   >
                     {[1, 2, 4, 8, 16, 32].map((speed) => (
                       <option key={speed} value={speed}>
@@ -330,7 +334,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                     {replay.frame.values.map((value) => (
                       <span
                         key={value.assetId}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600"
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
                       >
                         {catalog.stations.find(
                           (station) => station.id === value.assetId,
@@ -347,8 +351,17 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                       Gerçek geçmiş verisi sorgulanıyor…
                     </div>
                   ) : history.isError || !history.data ? (
-                    <div className="grid h-80 place-items-center text-sm text-rose-600">
-                      Geçmiş verisi alınamadı.
+                    <div className="grid h-80 place-items-center text-center text-sm text-rose-600 dark:text-rose-300">
+                      <div>
+                        <p>Geçmiş verisi alınamadı.</p>
+                        <button
+                          type="button"
+                          onClick={() => void history.refetch()}
+                          className="mt-2 font-semibold underline underline-offset-2"
+                        >
+                          Tekrar dene
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <HistoryChart
@@ -358,7 +371,7 @@ function AnalyticsContent({ catalog }: { catalog: StationCatalogResponse }) {
                   )}
                 </div>
               </div>
-              <div className="relative h-80 border-t border-slate-200 md:h-auto md:border-t-0 md:border-l">
+              <div className="relative h-80 border-t border-slate-200 md:h-auto md:border-t-0 md:border-l dark:border-slate-800">
                 <TrafficMap
                   bbox={catalog.coverageArea.bbox}
                   stations={catalog.stations}
@@ -396,11 +409,11 @@ function FilterSelect({
   children: ReactNode;
 }) {
   return (
-    <label className="block text-xs font-medium text-slate-600">
+    <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
       {label}
       <select
         {...registration}
-        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
       >
         {children}
       </select>
@@ -416,12 +429,12 @@ function FilterInput({
   registration: UseFormRegisterReturn;
 }) {
   return (
-    <label className="block text-xs font-medium text-slate-600">
+    <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
       {label}
       <input
         type="date"
         {...registration}
-        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm"
+        className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
       />
     </label>
   );
@@ -438,10 +451,10 @@ function CoverageBadge({ history }: { history: HistoryResponse }) {
     <span
       className={`rounded-full px-3 py-1 text-xs font-semibold ${
         history.coverage.status === "COMPLETE"
-          ? "bg-emerald-100 text-emerald-700"
+          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
           : history.coverage.status === "PARTIAL"
-            ? "bg-amber-100 text-amber-700"
-            : "bg-slate-200 text-slate-600"
+            ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+            : "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
       }`}
       title={`${history.coverage.availableDays}/${history.coverage.requestedDays} gün mevcut`}
     >
@@ -462,7 +475,20 @@ export function AnalyticsWorkspace({
     return <main className="app-loading">İstasyon kataloğu yükleniyor…</main>;
   }
   if (catalog.isError || !catalog.data) {
-    return <main className="app-loading">İstasyon kataloğu alınamadı.</main>;
+    return (
+      <main className="app-loading text-center">
+        <div>
+          <p>İstasyon kataloğu alınamadı.</p>
+          <button
+            type="button"
+            onClick={() => void catalog.refetch()}
+            className="mt-3 font-semibold underline underline-offset-2"
+          >
+            Tekrar dene
+          </button>
+        </div>
+      </main>
+    );
   }
 
   return <AnalyticsContent catalog={catalog.data} />;

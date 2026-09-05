@@ -83,14 +83,16 @@ Anomali kanıtı: TMS 20002 için önceki 6 cumartesinin resmî Fintraffic artif
 
 ## Aşama 6 — Teslimat Sertleştirmesi
 
-- Hata, loading, empty, stale ve yetersiz veri durumları
-- Erişilebilirlik ve açık/koyu tema kontrolü
-- Tam lint, typecheck, test ve production build
-- README kurulum ve çalışma adımlarının gerçek komutlarla güncellenmesi
-- `kararlar.md`, mimari ve demo senaryosunun güncellenmesi
-- Yaklaşık 10 dakikalık demo hazırlığı
+- [x] Hata, loading, empty, stale ve yetersiz veri durumları
+- [x] Erişilebilirlik ve açık/koyu tema kontrolü
+- [x] Tam lint, typecheck, test ve production build
+- [x] README kurulum ve çalışma adımlarının gerçek komutlarla güncellenmesi
+- [x] `kararlar.md`, mimari ve demo senaryosunun güncellenmesi
+- [x] Yaklaşık 10 dakikalık demo hazırlığı
 
-Çıkış kriteri: Temiz kurulumdan çalışan demo üretilebilir ve brief'in bütün zorunlu maddeleri kanıtlanabilir.
+Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/PostGIS 3.5 veritabanında bütün commitli migration'lar sıfırdan uygulanıp 10 uygulama tablosu doğrulandı. `pnpm verify:full`; format, lint, strict typecheck, 39 unit/component testi, 7 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'ini başarıyla tamamladı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak ve iki istasyonlu geçmiş grafik açık/koyu temada tarayıcıda kontrol edildi.
+
+Çıkış kriteri: **Tamamlandı.** Temiz kurulumdan çalışan demo üretilebilir ve brief'in bütün zorunlu maddeleri `docs/DEMO.md` akışında kanıtlanabilir.
 
 ## MVP Sonrası Adaylar
 

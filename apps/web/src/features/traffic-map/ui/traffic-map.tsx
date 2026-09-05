@@ -6,8 +6,11 @@ import type {
   JunctionSummary,
   StationSummary,
 } from "@traffic-twin/contracts";
+import { useState } from "react";
 import { Layer, Map, NavigationControl, Source } from "react-map-gl/maplibre";
 import type { LayerProps, MapLayerMouseEvent } from "react-map-gl/maplibre";
+
+import { useTheme } from "@/shared/theme";
 
 interface TrafficMapProps {
   bbox: CoverageArea["bbox"];
@@ -102,6 +105,8 @@ export function TrafficMap({
   onSelectJunction,
   anomalies = [],
 }: TrafficMapProps) {
+  const { theme } = useTheme();
+  const [styleFailed, setStyleFailed] = useState(false);
   const [minLongitude, minLatitude, maxLongitude, maxLatitude] = bbox;
   const stationGeoJson = {
     type: "FeatureCollection" as const,
@@ -179,37 +184,54 @@ export function TrafficMap({
   }
 
   return (
-    <Map
-      initialViewState={{
-        longitude: (minLongitude + maxLongitude) / 2,
-        latitude: (minLatitude + maxLatitude) / 2,
-        zoom: 9.2,
-      }}
-      mapStyle="https://tiles.openfreemap.org/styles/positron"
-      interactiveLayerIds={["traffic-stations", "traffic-junctions"]}
-      onClick={handleMapClick}
-      cursor="pointer"
-      attributionControl={{ compact: true }}
-      reuseMaps
-    >
-      <NavigationControl position="bottom-right" showCompass={false} />
-      <Source id="traffic-stations-source" type="geojson" data={stationGeoJson}>
-        <Layer {...stationLayer} />
-      </Source>
-      <Source
-        id="traffic-anomalies-source"
-        type="geojson"
-        data={anomalyGeoJson}
+    <div className="relative h-full min-h-0">
+      <Map
+        initialViewState={{
+          longitude: (minLongitude + maxLongitude) / 2,
+          latitude: (minLatitude + maxLatitude) / 2,
+          zoom: 9.2,
+        }}
+        mapStyle={`https://tiles.openfreemap.org/styles/${theme === "dark" ? "dark" : "positron"}`}
+        interactiveLayerIds={["traffic-stations", "traffic-junctions"]}
+        onClick={handleMapClick}
+        onError={() => setStyleFailed(true)}
+        onLoad={() => setStyleFailed(false)}
+        cursor="pointer"
+        attributionControl={{ compact: true }}
+        reuseMaps
       >
-        <Layer {...anomalyLayer} />
-      </Source>
-      <Source
-        id="traffic-junctions-source"
-        type="geojson"
-        data={junctionGeoJson}
-      >
-        <Layer {...junctionLayer} />
-      </Source>
-    </Map>
+        <NavigationControl position="bottom-right" showCompass={false} />
+        <Source
+          id="traffic-stations-source"
+          type="geojson"
+          data={stationGeoJson}
+        >
+          <Layer {...stationLayer} />
+        </Source>
+        <Source
+          id="traffic-anomalies-source"
+          type="geojson"
+          data={anomalyGeoJson}
+        >
+          <Layer {...anomalyLayer} />
+        </Source>
+        <Source
+          id="traffic-junctions-source"
+          type="geojson"
+          data={junctionGeoJson}
+        >
+          <Layer {...junctionLayer} />
+        </Source>
+      </Map>
+      {styleFailed ? (
+        <p
+          role="status"
+          className="absolute right-3 top-3 max-w-56 rounded-lg border border-amber-300 bg-amber-50/95 px-3 py-2 text-xs font-medium text-amber-900 shadow dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100"
+        >
+          Harita altlığı kısmen yüklenemedi. Trafik verileri çalışmaya devam
+          ediyor.
+        </p>
+      ) : null}
+    </div>
   );
 }

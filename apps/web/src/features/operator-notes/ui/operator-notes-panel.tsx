@@ -41,9 +41,9 @@ export function OperatorNotesPanel({
   }
 
   return (
-    <section className="mt-6 border-t border-slate-200 pt-5">
+    <section className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-slate-900">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           Operatör notları
         </h3>
         <span className="text-[11px] text-slate-500">
@@ -57,7 +57,7 @@ export function OperatorNotesPanel({
           Operatör
           <input
             {...form.register("author")}
-            className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
+            className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             placeholder="Adınız"
           />
           <span className="mt-1 block text-[11px] text-rose-600">
@@ -69,7 +69,7 @@ export function OperatorNotesPanel({
           <textarea
             {...form.register("content")}
             rows={3}
-            className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
+            className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             placeholder="Sahadaki durumu kaydedin…"
           />
           <span className="mt-1 block text-[11px] text-rose-600">
@@ -97,11 +97,22 @@ export function OperatorNotesPanel({
       <div className="mt-4 space-y-2" aria-live="polite">
         {notesQuery.isPending ? (
           <p className="text-xs text-slate-500">Notlar yükleniyor…</p>
+        ) : notesQuery.isError ? (
+          <div className="text-xs text-rose-700 dark:text-rose-300">
+            <p>Operatör notları alınamadı.</p>
+            <button
+              type="button"
+              onClick={() => void notesQuery.refetch()}
+              className="mt-1 font-semibold underline underline-offset-2"
+            >
+              Tekrar dene
+            </button>
+          </div>
         ) : notesQuery.data?.length ? (
           notesQuery.data.map((note) => (
             <article
               key={note.id}
-              className="rounded-xl border border-slate-200 bg-white p-3"
+              className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
             >
               <div className="flex items-center justify-between gap-2 text-[11px]">
                 <strong className="text-slate-700">{note.author}</strong>

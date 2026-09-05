@@ -4,7 +4,7 @@
 
 Traffic Twin, gerçek trafik ölçüm istasyonlarını harita üzerinde izlemek, tarihsel davranışı analiz etmek, açıklanabilir anomaliler üretmek ve operatörler arasında gerçek zamanlı not paylaşmak için tasarlanan bir staj projesidir.
 
-> Proje durumu: Aşama 5 tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. `/analytics` gerçek geçmiş seriyi karşılaştırır ve senkron replay eder.
+> Proje durumu: MVP ve Aşama 6 teslimat sertleştirmesi tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. `/analytics` gerçek geçmiş seriyi karşılaştırır ve senkron replay eder.
 
 ## Hedef MVP
 
@@ -52,6 +52,7 @@ Harita, panel ve analiz seçimleri ortak URL ve çalışma alanı sözleşmesiyl
 - [Katkı ve kalite kuralları](CONTRIBUTING.md)
 - [Ajan talimatları](AGENTS.md)
 - [Proje geliştirme skill'i](skills/traffic-twin-development/SKILL.md)
+- [Yaklaşık 10 dakikalık demo akışı](docs/DEMO.md)
 
 ## Kurulum
 
@@ -76,6 +77,27 @@ pnpm dev
 - PostgreSQL/PostGIS: `localhost:55432`
 
 `POSTGRES_PORT` ve `DATABASE_URL`, başka bir yerel servisle çakışma halinde `.env` üzerinden birlikte değiştirilebilir. Veritabanını durdurmak için `pnpm db:down` kullanılır.
+
+İlk açılışta backend Fintraffic'ten gerçek güncel istasyon kataloğunu ve ölçümleri alır. İnternet veya upstream erişimi yoksa başlangıç hatası açıkça gösterilir; sentetik başlangıç verisi kullanılmaz.
+
+### Demo Verisini Hazırlama
+
+Canlı izleme temiz kurulumda kendiliğinden çalışır. Kavşak, geçmiş karşılaştırma ve anomali kanıtlarını hazırlamak için uygulama açıkken aşağıdaki gerçek veri komutları bir kez çalıştırılır:
+
+```bash
+pnpm junctions:sync --coverage helsinki
+pnpm history:import --station 20002 --date 2026-09-03
+pnpm history:import --station 20004 --date 2026-09-03
+pnpm history:import --station 20002 --date 2026-08-29
+pnpm history:import --station 20002 --date 2026-08-22
+pnpm history:import --station 20002 --date 2026-08-15
+pnpm history:import --station 20002 --date 2026-08-08
+pnpm history:import --station 20002 --date 2026-08-01
+pnpm history:import --station 20002 --date 2026-07-25
+pnpm anomalies:evaluate --coverage helsinki
+```
+
+Bu tarihler uygulamaya gömülü değildir; doğrulanmış demo artifact'lerini tekrar üretmek için belgelenmiş komut girdileridir. Yeni dönemler aynı CLI ile eklenebilir.
 
 `LIVE_POLL_INTERVAL_MS` en az `60000` olabilir. REST istekleri Fintraffic'i ayrıca çağırmaz; kalıcı son snapshot'ı döndürür. Fintraffic geçici olarak erişilemezse son gerçek ölçüm yaşı ve bozulmuş kaynak durumu korunur, veri üretilmez.
 
@@ -119,6 +141,18 @@ Sonuç `http://localhost:4000/api/coverage-areas/helsinki/anomalies` üzerinden 
 ## Kalite Komutları
 
 ```bash
+pnpm verify
+```
+
+`verify`; format, lint, typecheck, unit/component testleri ve production build'i çalıştırır. Sağlıklı yerel PostgreSQL/PostGIS üzerinde entegrasyon testlerini de eklemek için:
+
+```bash
+pnpm verify:full
+```
+
+Ayrı ayrı çalıştırılabilen karşılıkları:
+
+```bash
 pnpm format:check
 pnpm lint
 pnpm typecheck
@@ -126,5 +160,7 @@ pnpm test
 pnpm test:integration
 pnpm build
 ```
+
+Arayüz açık temayı varsayılan kullanır; başlıktaki tema düğmesi seçimi tarayıcıda saklar ve MapLibre altlığını da OpenFreeMap'in karşılık gelen açık/koyu stiline geçirir. Bağlantı, altlık ve ikincil veri sorgusu hataları gerçek boş sonuçtan ayrılır ve son bilinen veri açıkça işaretlenir.
 
 Zorunlu teslimat hedefi Docker destekli yerel ortamdır; internete açık demo opsiyoneldir.

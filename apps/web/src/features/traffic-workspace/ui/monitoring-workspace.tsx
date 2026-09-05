@@ -17,6 +17,7 @@ import {
   useJunctionCatalog,
 } from "@/features/junction-monitoring";
 import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
+import { ThemeToggle } from "@/shared/theme";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
@@ -76,8 +77,8 @@ export function MonitoringWorkspace({
 
   if (catalogQuery.isPending) {
     return (
-      <main className="grid min-h-screen place-items-center bg-slate-100 p-6">
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-medium text-slate-600 shadow-sm">
+      <main className="grid min-h-screen place-items-center bg-slate-100 p-6 dark:bg-slate-950">
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-medium text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
           Gerçek Fintraffic istasyonları yükleniyor…
         </div>
       </main>
@@ -86,15 +87,15 @@ export function MonitoringWorkspace({
 
   if (catalogQuery.isError || !catalogQuery.data) {
     return (
-      <main className="grid min-h-screen place-items-center bg-slate-100 p-6">
-        <section className="max-w-md rounded-2xl border border-rose-200 bg-white p-6 shadow-sm">
+      <main className="grid min-h-screen place-items-center bg-slate-100 p-6 dark:bg-slate-950">
+        <section className="max-w-md rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-900 dark:bg-slate-900">
           <p className="text-xs font-semibold tracking-wider text-rose-700 uppercase">
             Veri kaynağına ulaşılamadı
           </p>
-          <h1 className="mt-2 text-xl font-semibold text-slate-950">
+          <h1 className="mt-2 text-xl font-semibold text-slate-950 dark:text-slate-50">
             İstasyonlar yüklenemedi
           </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
             API ve Fintraffic bağlantısını kontrol edip tekrar deneyin. Eksik
             ölçümlerin yerine veri üretilmedi.
           </p>
@@ -114,8 +115,8 @@ export function MonitoringWorkspace({
   const junctions = junctionQuery.data?.junctions ?? [];
 
   return (
-    <main className="flex h-screen min-h-[680px] flex-col overflow-hidden bg-slate-100 text-slate-950">
-      <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 shadow-sm">
+    <main className="flex h-screen min-h-[680px] flex-col overflow-hidden bg-slate-100 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+      <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-sm font-bold text-white">
             TT
@@ -135,7 +136,7 @@ export function MonitoringWorkspace({
                 ? `?station=${encodeURIComponent(selectedStationId)}`
                 : ""
             }`}
-            className="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:block"
+            className="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:block dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Analiz
           </Link>
@@ -179,19 +180,28 @@ export function MonitoringWorkspace({
           <button
             type="button"
             onClick={() => void catalogQuery.refetch()}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Yenile
           </button>
+          <ThemeToggle />
         </div>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_330px]">
-        <div className="hidden min-h-0 flex-col border-r border-slate-200 bg-white md:flex">
+        <div className="hidden min-h-0 flex-col border-r border-slate-200 bg-white md:flex dark:border-slate-800 dark:bg-slate-900">
           <JunctionList
             junctions={junctions}
             selectedJunctionId={selectedJunctionId}
             onSelect={selectJunction}
+            status={
+              junctionQuery.isPending
+                ? "loading"
+                : junctionQuery.isError
+                  ? "error"
+                  : "ready"
+            }
+            onRetry={() => void junctionQuery.refetch()}
           />
           <div className="min-h-0 flex-1">
             <StationList
@@ -216,8 +226,16 @@ export function MonitoringWorkspace({
             onSelectJunction={selectJunction}
             anomalies={anomalyQuery.data?.evaluations}
           />
-          <div className="pointer-events-none absolute top-4 left-4 rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-xs shadow-lg backdrop-blur">
-            <p className="font-semibold text-slate-800">
+          {realtime.status === "disconnected" ? (
+            <div
+              role="status"
+              className="absolute top-4 left-1/2 -translate-x-1/2 rounded-xl border border-amber-300 bg-amber-50/95 px-3 py-2 text-xs font-semibold text-amber-900 shadow dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100"
+            >
+              Canlı bağlantı kesildi · son bilinen gerçek ölçümler gösteriliyor
+            </div>
+          ) : null}
+          <div className="pointer-events-none absolute top-4 left-4 rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-xs shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/92">
+            <p className="font-semibold text-slate-800 dark:text-slate-100">
               Canlı trafik varlıkları
             </p>
             <p className="mt-0.5 text-slate-500">
@@ -235,7 +253,7 @@ export function MonitoringWorkspace({
           </a>
         </section>
 
-        <div className="hidden min-h-0 border-l border-slate-200 bg-slate-50 xl:block">
+        <div className="hidden min-h-0 border-l border-slate-200 bg-slate-50 xl:block dark:border-slate-800 dark:bg-slate-950">
           {selectedJunction ? (
             <JunctionDetailPanel junction={selectedJunction} />
           ) : (
@@ -245,7 +263,17 @@ export function MonitoringWorkspace({
               footer={
                 selectedStation ? (
                   <>
-                    <AnomalyPanel evaluations={selectedAnomalies} />
+                    <AnomalyPanel
+                      evaluations={selectedAnomalies}
+                      status={
+                        anomalyQuery.isPending
+                          ? "loading"
+                          : anomalyQuery.isError
+                            ? "error"
+                            : "ready"
+                      }
+                      onRetry={() => void anomalyQuery.refetch()}
+                    />
                     <OperatorNotesPanel
                       key={selectedStation.id}
                       assetId={selectedStation.id}

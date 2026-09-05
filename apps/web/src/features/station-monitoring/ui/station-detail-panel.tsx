@@ -37,10 +37,10 @@ export function StationDetailPanel({
           <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-slate-100 text-xl">
             ↖
           </span>
-          <h2 className="mt-4 font-semibold text-slate-900">
+          <h2 className="mt-4 font-semibold text-slate-900 dark:text-slate-100">
             İstasyon seçilmedi
           </h2>
-          <p className="mt-2 max-w-56 text-sm leading-6 text-slate-500">
+          <p className="mt-2 max-w-56 text-sm leading-6 text-slate-500 dark:text-slate-400">
             Gerçek hız ve hacim ölçümlerini incelemek için haritadaki bir
             noktayı seçin.
           </p>
@@ -61,7 +61,7 @@ export function StationDetailPanel({
           </p>
           <h2
             id="station-title"
-            className="mt-2 break-words text-lg font-semibold text-slate-950"
+            className="mt-2 break-words text-lg font-semibold text-slate-950 dark:text-slate-50"
           >
             {station.name}
           </h2>
@@ -85,10 +85,10 @@ export function StationDetailPanel({
         {station.directions.map((direction) => (
           <section
             key={direction.direction}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-slate-800">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                 {direction.label}
               </h3>
               <span className="text-[11px] font-medium text-slate-400">
@@ -96,19 +96,19 @@ export function StationDetailPanel({
               </span>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-sky-50 p-3">
+              <div className="rounded-xl bg-sky-50 p-3 dark:bg-sky-950">
                 <dt className="text-[11px] font-medium text-sky-700">
                   Ortalama hız
                 </dt>
-                <dd className="mt-1 text-base font-semibold text-slate-950">
+                <dd className="mt-1 text-base font-semibold text-slate-950 dark:text-slate-50">
                   {formatMetric(direction.averageSpeedKmh, "km/sa")}
                 </dd>
               </div>
-              <div className="rounded-xl bg-violet-50 p-3">
+              <div className="rounded-xl bg-violet-50 p-3 dark:bg-violet-950">
                 <dt className="text-[11px] font-medium text-violet-700">
                   Trafik hacmi
                 </dt>
-                <dd className="mt-1 text-base font-semibold text-slate-950">
+                <dd className="mt-1 text-base font-semibold text-slate-950 dark:text-slate-50">
                   {formatMetric(direction.flowVehiclesPerHour, "araç/sa")}
                 </dd>
               </div>
@@ -121,16 +121,16 @@ export function StationDetailPanel({
         ))}
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-200 pt-5 text-xs">
+      <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-200 pt-5 text-xs dark:border-slate-800">
         <div>
           <dt className="text-slate-500">Enlem</dt>
-          <dd className="mt-1 font-medium text-slate-800">
+          <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
             {station.latitude.toFixed(6)}
           </dd>
         </div>
         <div>
           <dt className="text-slate-500">Boylam</dt>
-          <dd className="mt-1 font-medium text-slate-800">
+          <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
             {station.longitude.toFixed(6)}
           </dd>
         </div>

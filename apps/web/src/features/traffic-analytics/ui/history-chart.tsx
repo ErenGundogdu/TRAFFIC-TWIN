@@ -13,6 +13,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { useTheme } from "@/shared/theme";
+
 const COLORS = ["#0284c7", "#7c3aed"];
 
 export function HistoryChart({
@@ -22,6 +24,7 @@ export function HistoryChart({
   history: HistoryResponse;
   cursorTimestamp?: string;
 }) {
+  const { theme } = useTheme();
   const rows = new Map<string, Record<string, number | string>>();
   for (const series of history.series) {
     for (const point of series.points) {
@@ -36,9 +39,11 @@ export function HistoryChart({
 
   if (data.length === 0) {
     return (
-      <div className="grid h-80 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-center">
+      <div className="grid h-80 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-center dark:border-slate-700 dark:bg-slate-950">
         <div>
-          <p className="font-semibold text-slate-700">Bu aralıkta veri yok</p>
+          <p className="font-semibold text-slate-700 dark:text-slate-200">
+            Bu aralıkta veri yok
+          </p>
           <p className="mt-1 text-sm text-slate-500">
             Eksik günler gerçek ölçüm gibi doldurulmadı.
           </p>
@@ -48,13 +53,21 @@ export function HistoryChart({
   }
 
   return (
-    <div className="h-80 w-full" aria-label="Trafik geçmiş grafiği">
+    <div
+      className="h-80 w-full"
+      role="img"
+      aria-label={`Trafik geçmiş grafiği, ${history.series.length} seri, ${data.length} zaman noktası`}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
+          accessibilityLayer
           data={data}
           margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke={theme === "dark" ? "#334155" : "#e2e8f0"}
+          />
           <XAxis
             dataKey="timestamp"
             minTickGap={36}
@@ -67,10 +80,24 @@ export function HistoryChart({
                 timeZone: history.timeZone,
               }).format(new Date(value))
             }
-            tick={{ fontSize: 11 }}
+            tick={{
+              fontSize: 11,
+              fill: theme === "dark" ? "#cbd5e1" : "#475569",
+            }}
           />
-          <YAxis tick={{ fontSize: 11 }} width={48} />
+          <YAxis
+            tick={{
+              fontSize: 11,
+              fill: theme === "dark" ? "#cbd5e1" : "#475569",
+            }}
+            width={48}
+          />
           <Tooltip
+            contentStyle={{
+              background: theme === "dark" ? "#0f172a" : "#ffffff",
+              borderColor: theme === "dark" ? "#475569" : "#e2e8f0",
+              color: theme === "dark" ? "#f8fafc" : "#0f172a",
+            }}
             labelFormatter={(value) =>
               new Intl.DateTimeFormat("tr-TR", {
                 dateStyle: "medium",

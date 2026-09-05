@@ -25,4 +25,5 @@ Next.js'ten ayrı, kalıcı çalışan Node.js/Express + Socket.IO backend seçi
 - Gerçek ham Fintraffic dosyaları sıkıştırılmış kaynak arşivinde tutulur; yakın dönem dakika, uzun dönem saat/gün özetleri sorgulanabilir olarak saklanır.
 - Arayüz ve belgeler Türkçe; kod, API alanları ve commit mesajları İngilizcedir.
 - Açık tema varsayılan, koyu tema ikincildir; trafik durumları yalnızca renkle ifade edilmez.
+- Tema seçimi tarayıcıda kalıcıdır ve aynı sözleşme OpenFreeMap açık/koyu stilini değiştirir. Klavye odağı ile azaltılmış hareket tercihi global erişilebilirlik davranışıdır.
 - MVP dört yetenekle sınırlıdır: canlı izleme, geçmiş/analiz/replay, anomali ve operatör notları.

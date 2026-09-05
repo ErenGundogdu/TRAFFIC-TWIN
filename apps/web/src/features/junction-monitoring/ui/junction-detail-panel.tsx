@@ -27,33 +27,33 @@ export function JunctionDetailPanel({
       <p className="text-xs font-semibold tracking-[0.16em] text-violet-700 uppercase">
         OSM’den türetilmiş kavşak
       </p>
-      <h2 className="mt-2 text-lg font-semibold text-slate-950">
+      <h2 className="mt-2 text-lg font-semibold text-slate-950 dark:text-slate-50">
         {junction.name}
       </h2>
       <p className="mt-1 text-xs text-slate-500">
         OSM relation/{junction.osmRelationId}
       </p>
 
-      <section className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-        <h3 className="text-sm font-semibold text-violet-950">
+      <section className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950">
+        <h3 className="text-sm font-semibold text-violet-950 dark:text-violet-100">
           {coverage.label}
         </h3>
-        <p className="mt-1 text-xs leading-5 text-violet-800">
+        <p className="mt-1 text-xs leading-5 text-violet-800 dark:text-violet-200">
           {coverage.description}
         </p>
       </section>
 
       <section className="mt-5">
-        <h3 className="text-sm font-semibold text-slate-900">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
           Bağlı fiziksel sensörler
         </h3>
         <ul className="mt-2 space-y-2">
           {junction.sensors.map((sensor) => (
             <li
               key={sensor.assetId}
-              className="rounded-xl border border-slate-200 bg-white p-3"
+              className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
             >
-              <p className="text-sm font-medium text-slate-900">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                 {sensor.name}
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -68,16 +68,16 @@ export function JunctionDetailPanel({
         </ul>
       </section>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-5 text-xs">
+      <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-5 text-xs dark:border-slate-800">
         <div>
           <dt className="text-slate-500">Yol referansları</dt>
-          <dd className="mt-1 font-medium text-slate-800">
+          <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
             {junction.roadRefs.join(", ") || "Bilinmiyor"}
           </dd>
         </div>
         <div>
           <dt className="text-slate-500">Politika</dt>
-          <dd className="mt-1 break-all font-medium text-slate-800">
+          <dd className="mt-1 break-all font-medium text-slate-800 dark:text-slate-200">
             {junction.policyVersion}
           </dd>
         </div>

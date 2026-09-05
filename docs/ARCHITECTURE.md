@@ -2,7 +2,7 @@
 
 ## Durum ve İlkeler
 
-Bu belge hedef mimariyi tanımlar. Aşama 5 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, OSM kavşak senkronu, kayan baseline/anomali motoru, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır.
+Bu belge hedef mimariyi tanımlar. Aşama 6 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, OSM kavşak senkronu, kayan baseline/anomali motoru, React Query/Axios istemcisi, MapLibre çalışma alanı ve teslimat dayanıklılık durumları uygulanmıştır.
 
 Mimari şu ilkeleri korur:
 
@@ -198,3 +198,9 @@ MVP modları canlı, geçmiş/replay ve karşılaştırmadır. Simülasyon ancak
 - OSM senkronizasyonu başarısızsa mevcut doğrulanmış geometri korunur.
 - Socket.IO koparsa bağlantı durumu gösterilir; yeniden bağlanınca REST snapshot ve kaçırılan notlar uzlaştırılır.
 - Import kısmen başarısızsa checkpoint üzerinden devam eder ve tamamlanmamış aralık analizde açıkça belirtilir.
+
+İstemci, birincil istasyon kataloğu ile kavşak/anomali/not gibi ikincil sorguların hata durumlarını ayrı ele alır. İkincil servis hatası gerçek bir “0 kayıt” sonucu gibi sunulmaz ve ilgili bölüm bağımsız yeniden denenebilir. Klavye odağı görünürdür; azaltılmış hareket tercihi gereksiz animasyonları kapatır.
+
+## Tema ve Görsel Erişilebilirlik
+
+Açık tema varsayılandır, kullanıcı seçimi tarayıcıda kalıcıdır. `data-theme` tabanlı tek tema sözleşmesi Tailwind bileşen renklerini ve MapLibre OpenFreeMap stilini birlikte değiştirir. Harita renkleri açıklama metni ve panel etiketleriyle desteklenir; güncellik, kapsama ve anomali yalnız renkle ifade edilmez. Grafik koyu temada eksen, grid ve tooltip kontrastını ayrıca uyarlar ve erişilebilir bir seri/zaman noktası özeti taşır.
