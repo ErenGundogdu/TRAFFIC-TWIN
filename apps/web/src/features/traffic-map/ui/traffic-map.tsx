@@ -1,6 +1,10 @@
 "use client";
 
-import type { CoverageArea, StationSummary } from "@traffic-twin/contracts";
+import type {
+  CoverageArea,
+  JunctionSummary,
+  StationSummary,
+} from "@traffic-twin/contracts";
 import { Layer, Map, NavigationControl, Source } from "react-map-gl/maplibre";
 import type { LayerProps, MapLayerMouseEvent } from "react-map-gl/maplibre";
 
@@ -9,6 +13,9 @@ interface TrafficMapProps {
   stations: StationSummary[];
   selectedStationId: string | null;
   onSelect: (stationId: string) => void;
+  junctions?: JunctionSummary[];
+  selectedJunctionId?: string | null;
+  onSelectJunction?: (junctionId: string) => void;
 }
 
 const stationLayer: LayerProps = {
@@ -41,11 +48,38 @@ const stationLayer: LayerProps = {
   },
 };
 
+const junctionLayer: LayerProps = {
+  id: "traffic-junctions",
+  type: "circle",
+  paint: {
+    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 11, 8],
+    "circle-color": [
+      "match",
+      ["get", "coverage"],
+      "FULL",
+      "#7c3aed",
+      "PARTIAL",
+      "#2563eb",
+      "#64748b",
+    ],
+    "circle-stroke-color": "#ffffff",
+    "circle-stroke-width": [
+      "case",
+      ["boolean", ["get", "selected"], false],
+      4,
+      2,
+    ],
+  },
+};
+
 export function TrafficMap({
   bbox,
   stations,
   selectedStationId,
   onSelect,
+  junctions = [],
+  selectedJunctionId = null,
+  onSelectJunction,
 }: TrafficMapProps) {
   const [minLongitude, minLatitude, maxLongitude, maxLatitude] = bbox;
   const stationGeoJson = {
@@ -63,11 +97,30 @@ export function TrafficMap({
       },
     })),
   };
+  const junctionGeoJson = {
+    type: "FeatureCollection" as const,
+    features: junctions.map((junction) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "Point" as const,
+        coordinates: [junction.longitude, junction.latitude],
+      },
+      properties: {
+        id: junction.id,
+        kind: "junction",
+        coverage: junction.coverage,
+        selected: junction.id === selectedJunctionId,
+      },
+    })),
+  };
 
   function handleMapClick(event: MapLayerMouseEvent) {
     const stationId = event.features?.[0]?.properties?.id as string | undefined;
+    const kind = event.features?.[0]?.properties?.kind as string | undefined;
 
-    if (stationId) {
+    if (stationId && kind === "junction") {
+      onSelectJunction?.(stationId);
+    } else if (stationId) {
       onSelect(stationId);
     }
   }
@@ -80,7 +133,7 @@ export function TrafficMap({
         zoom: 9.2,
       }}
       mapStyle="https://tiles.openfreemap.org/styles/positron"
-      interactiveLayerIds={["traffic-stations"]}
+      interactiveLayerIds={["traffic-stations", "traffic-junctions"]}
       onClick={handleMapClick}
       cursor="pointer"
       attributionControl={{ compact: true }}
@@ -89,6 +142,13 @@ export function TrafficMap({
       <NavigationControl position="bottom-right" showCompass={false} />
       <Source id="traffic-stations-source" type="geojson" data={stationGeoJson}>
         <Layer {...stationLayer} />
+      </Source>
+      <Source
+        id="traffic-junctions-source"
+        type="geojson"
+        data={junctionGeoJson}
+      >
+        <Layer {...junctionLayer} />
       </Source>
     </Map>
   );

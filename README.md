@@ -4,7 +4,7 @@
 
 Traffic Twin, gerçek trafik ölçüm istasyonlarını harita üzerinde izlemek, tarihsel davranışı analiz etmek, açıklanabilir anomaliler üretmek ve operatörler arasında gerçek zamanlı not paylaşmak için tasarlanan bir staj projesidir.
 
-> Proje durumu: Aşama 4 tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; `/analytics` gerçek günlük artifact'lerden üretilen dakika/saat/gün serisini filtreler, iki istasyonu karşılaştırır ve yakın dönemi harita-grafik senkron replay eder. Kalıcı operatör notları acknowledgement sonrası kapsama alanındaki istemcilere ulaşır. Kavşak türetme ve açıklanabilir anomali sonraki aşamadadır.
+> Proje durumu: Aşama 5 devam ediyor. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenip ayrı harita katmanında kapsama bilgisiyle gösterilir. `/analytics` gerçek geçmiş seriyi karşılaştırır ve senkron replay eder. Açıklanabilir anomali bu aşamanın sıradaki dilimidir.
 
 ## Hedef MVP
 
@@ -95,6 +95,16 @@ Canlı observation ve dakika özetlerinin varsayılan saklama süresi 90 gündü
 ```bash
 pnpm maintenance:retention
 ```
+
+## Gerçek OSM Kavşaklarını Senkronlama
+
+OSM'de açıkça `type=junction` olarak modellenen ilişkiler kapsama alanı bazında alınır. Eşleşen sensör, mesafe, yön farkı, yol referansı, güven ve politika sürümü PostgreSQL/PostGIS'te korunur:
+
+```bash
+pnpm junctions:sync --coverage helsinki
+```
+
+Senkron çalışma zamanı mock'u kullanmaz. Eşleşmeyen OSM ilişkileri trafik varlığına dönüştürülmez; bir sensör yalnız en yakın uyumlu kavşağa bağlanır. Sonuç `http://localhost:4000/api/coverage-areas/helsinki/junctions` üzerinden okunur.
 
 ## Kalite Komutları
 

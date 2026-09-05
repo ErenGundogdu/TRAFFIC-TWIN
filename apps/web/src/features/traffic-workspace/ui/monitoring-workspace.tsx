@@ -11,6 +11,11 @@ import {
 import { TrafficMap } from "@/features/traffic-map";
 import { OperatorNotesPanel } from "@/features/operator-notes";
 import { useRealtimeSync } from "@/features/realtime";
+import {
+  JunctionDetailPanel,
+  JunctionList,
+  useJunctionCatalog,
+} from "@/features/junction-monitoring";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
@@ -36,16 +41,30 @@ export function MonitoringWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedStationId = searchParams.get("station");
+  const selectedJunctionId = searchParams.get("junction");
   const catalogQuery = useStationCatalog(coverageAreaId);
+  const junctionQuery = useJunctionCatalog(coverageAreaId);
   const realtime = useRealtimeSync(coverageAreaId);
   const selectedStation =
     catalogQuery.data?.stations.find(
       (station) => station.id === selectedStationId,
     ) ?? null;
+  const selectedJunction =
+    junctionQuery.data?.junctions.find(
+      (junction) => junction.id === selectedJunctionId,
+    ) ?? null;
 
   function selectStation(stationId: string) {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("station", stationId);
+    nextParams.delete("junction");
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }
+
+  function selectJunction(junctionId: string) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("junction", junctionId);
+    nextParams.delete("station");
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
@@ -86,6 +105,7 @@ export function MonitoringWorkspace({
   }
 
   const { coverageArea, source, stations } = catalogQuery.data;
+  const junctions = junctionQuery.data?.junctions ?? [];
 
   return (
     <main className="flex h-screen min-h-[680px] flex-col overflow-hidden bg-slate-100 text-slate-950">
@@ -161,12 +181,19 @@ export function MonitoringWorkspace({
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_330px]">
-        <div className="hidden min-h-0 border-r border-slate-200 bg-white md:block">
-          <StationList
-            stations={stations}
-            selectedStationId={selectedStationId}
-            onSelect={selectStation}
+        <div className="hidden min-h-0 flex-col border-r border-slate-200 bg-white md:flex">
+          <JunctionList
+            junctions={junctions}
+            selectedJunctionId={selectedJunctionId}
+            onSelect={selectJunction}
           />
+          <div className="min-h-0 flex-1">
+            <StationList
+              stations={stations}
+              selectedStationId={selectedStationId}
+              onSelect={selectStation}
+            />
+          </div>
         </div>
 
         <section
@@ -178,13 +205,16 @@ export function MonitoringWorkspace({
             stations={stations}
             selectedStationId={selectedStationId}
             onSelect={selectStation}
+            junctions={junctions}
+            selectedJunctionId={selectedJunctionId}
+            onSelectJunction={selectJunction}
           />
           <div className="pointer-events-none absolute top-4 left-4 rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-xs shadow-lg backdrop-blur">
             <p className="font-semibold text-slate-800">
-              Canlı istasyon görünümü
+              Canlı trafik varlıkları
             </p>
             <p className="mt-0.5 text-slate-500">
-              Yeşil güncel · Turuncu gecikmiş · Gri veri yok
+              İstasyon: yeşil/turuncu · Kavşak: mor/mavi
             </p>
           </div>
           <a
@@ -198,21 +228,25 @@ export function MonitoringWorkspace({
         </section>
 
         <div className="hidden min-h-0 border-l border-slate-200 bg-slate-50 xl:block">
-          <StationDetailPanel
-            station={selectedStation}
-            timeZone={coverageArea.timeZone}
-            footer={
-              selectedStation ? (
-                <OperatorNotesPanel
-                  key={selectedStation.id}
-                  assetId={selectedStation.id}
-                  timeZone={coverageArea.timeZone}
-                  createNote={realtime.createNote}
-                  realtimeConnected={realtime.status === "connected"}
-                />
-              ) : null
-            }
-          />
+          {selectedJunction ? (
+            <JunctionDetailPanel junction={selectedJunction} />
+          ) : (
+            <StationDetailPanel
+              station={selectedStation}
+              timeZone={coverageArea.timeZone}
+              footer={
+                selectedStation ? (
+                  <OperatorNotesPanel
+                    key={selectedStation.id}
+                    assetId={selectedStation.id}
+                    timeZone={coverageArea.timeZone}
+                    createNote={realtime.createNote}
+                    realtimeConnected={realtime.status === "connected"}
+                  />
+                ) : null
+              }
+            />
+          )}
         </div>
       </div>
     </main>

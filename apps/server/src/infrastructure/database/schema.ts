@@ -36,6 +36,17 @@ export const aggregateResolution = pgEnum("aggregate_resolution", [
   "day",
 ]);
 
+export const junctionCoverage = pgEnum("junction_coverage", [
+  "FULL",
+  "PARTIAL",
+  "INSUFFICIENT",
+]);
+
+export const junctionMatchConfidence = pgEnum("junction_match_confidence", [
+  "HIGH",
+  "MEDIUM",
+]);
+
 export const coverageAreas = pgTable("coverage_areas", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -246,6 +257,80 @@ export const trafficAggregates = pgTable(
     check(
       "traffic_aggregates_values_check",
       sql`${table.averageSpeedKmh} >= 0 AND ${table.vehicleCount} >= 0 AND ${table.sampleCount} >= 0`,
+    ),
+  ],
+);
+
+export const derivedJunctions = pgTable(
+  "derived_junctions",
+  {
+    id: text("id").primaryKey(),
+    coverageAreaId: text("coverage_area_id")
+      .notNull()
+      .references(() => coverageAreas.id, { onDelete: "cascade" }),
+    osmRelationId: text("osm_relation_id").notNull(),
+    name: text("name").notNull(),
+    location: geometry("location", {
+      type: "point",
+      mode: "xy",
+      srid: 4326,
+    }).notNull(),
+    roadRefs: text("road_refs").array().notNull(),
+    coverage: junctionCoverage("coverage").notNull(),
+    policyVersion: text("policy_version").notNull(),
+    sourceUpdatedAt: timestamp("source_updated_at", {
+      withTimezone: true,
+    }).notNull(),
+    sourceFetchedAt: timestamp("source_fetched_at", {
+      withTimezone: true,
+    }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("derived_junctions_coverage_osm_uidx").on(
+      table.coverageAreaId,
+      table.osmRelationId,
+    ),
+    index("derived_junctions_location_gix").using("gist", table.location),
+  ],
+);
+
+export const junctionSensorMatches = pgTable(
+  "junction_sensor_matches",
+  {
+    junctionId: text("junction_id")
+      .notNull()
+      .references(() => derivedJunctions.id, { onDelete: "cascade" }),
+    stationAssetId: text("station_asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    roadRef: text("road_ref").notNull(),
+    distanceMeters: doublePrecision("distance_meters").notNull(),
+    bearingDifferenceDegrees: doublePrecision("bearing_difference_degrees"),
+    confidence: junctionMatchConfidence("confidence").notNull(),
+    policyVersion: text("policy_version").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "junction_sensor_matches_pk",
+      columns: [table.junctionId, table.stationAssetId],
+    }),
+    index("junction_sensor_matches_station_idx").on(table.stationAssetId),
+    check(
+      "junction_sensor_matches_distance_check",
+      sql`${table.distanceMeters} >= 0`,
+    ),
+    check(
+      "junction_sensor_matches_bearing_check",
+      sql`${table.bearingDifferenceDegrees} IS NULL OR ${table.bearingDifferenceDegrees} BETWEEN 0 AND 90`,
     ),
   ],
 );

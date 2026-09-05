@@ -18,12 +18,15 @@ import { FintrafficResponseError } from "../modules/providers/fintraffic/client.
 import { createOperatorNoteRouter } from "../modules/operator-notes/operator-note-router.js";
 import { AssetNotFoundError } from "../modules/operator-notes/operator-note-repository.js";
 import type { OperatorNoteService } from "../modules/operator-notes/operator-note-service.js";
+import { createJunctionRouter } from "../modules/junctions/junction-router.js";
+import type { JunctionService } from "../modules/junctions/junction-service.js";
 import { ZodError } from "zod";
 
 interface AppDependencies {
   stationCatalogService?: StationCatalogService;
   operatorNoteService?: OperatorNoteService;
   historyService?: HistoryService;
+  junctionService?: JunctionService;
 }
 
 export function createApp(
@@ -60,6 +63,13 @@ export function createApp(
 
   if (dependencies.historyService) {
     app.use("/api/analytics", createHistoryRouter(dependencies.historyService));
+  }
+
+  if (dependencies.junctionService) {
+    app.use(
+      "/api/coverage-areas",
+      createJunctionRouter(dependencies.junctionService),
+    );
   }
 
   app.use(

@@ -16,6 +16,9 @@ import { LiveTrafficPoller } from "./modules/ingestion/live-traffic-poller.js";
 import { PostgresOperatorNoteRepository } from "./modules/operator-notes/operator-note-repository.js";
 import { OperatorNoteService } from "./modules/operator-notes/operator-note-service.js";
 import { createRealtimeServer } from "./realtime/create-realtime-server.js";
+import { JunctionService } from "./modules/junctions/junction-service.js";
+import { PostgresJunctionCatalogRepository } from "./modules/junctions/junction-repository.js";
+import { OpenStreetMapClient } from "./modules/providers/openstreetmap/client.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -48,11 +51,17 @@ const replayService = new ReplayService(
   stationRepository,
   new HistoryRepository(db),
 );
+const junctionService = new JunctionService(
+  stationRepository,
+  new PostgresJunctionCatalogRepository(db),
+  new OpenStreetMapClient(env.OVERPASS_BASE_URL, env.FINTRAFFIC_USER),
+);
 const httpServer = createServer(
   createApp(env, {
     stationCatalogService,
     operatorNoteService,
     historyService,
+    junctionService,
   }),
 );
 const realtimeServer = createRealtimeServer(

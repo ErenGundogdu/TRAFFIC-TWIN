@@ -52,3 +52,16 @@ export {
   type IngestionCoverage,
   type ResolvedHistoryResolution,
 } from "./traffic-history.js";
+export {
+  junctionCatalogResponseSchema,
+  junctionCoverageSchema,
+  junctionDataSourceSchema,
+  junctionMatchConfidenceSchema,
+  junctionSensorMatchSchema,
+  junctionSummarySchema,
+  type JunctionCatalogResponse,
+  type JunctionCoverage,
+  type JunctionMatchConfidence,
+  type JunctionSensorMatch,
+  type JunctionSummary,
+} from "./junction-catalog.js";

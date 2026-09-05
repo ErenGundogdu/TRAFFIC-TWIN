@@ -68,14 +68,16 @@ Bir sonraki aşama, mevcut aşamanın çıkış kriterleri doğrulanmadan otomat
 
 ## Aşama 5 — Kavşak ve AI İçgörüsü
 
-- OSM kapsama alanı senkronizasyonu
-- İstasyon–yol–kavşak eşleştirme politikası
-- En az bir doğrulanmış kavşak grubu ve kapsama gösterimi
-- Kayan baseline üretimi
-- Median/MAD anomali motoru ve kalıcılık
-- Harita katmanı, açıklama paneli ve unit testler
+- [x] OSM kapsama alanı senkronizasyonu
+- [x] İstasyon–yol–kavşak eşleştirme politikası
+- [x] En az bir doğrulanmış kavşak grubu ve kapsama gösterimi
+- [ ] Kayan baseline üretimi
+- [ ] Median/MAD anomali motoru ve kalıcılık
+- [ ] Anomali harita katmanı, açıklama paneli ve unit testler
 
-Çıkış kriteri: Türetilmiş kavşakların veri kapsamı dürüstçe görünür; gerçek baseline'a sahip varlıklarda açıklanabilir anomali uçtan uca çalışır.
+Ara kanıt: 5 Eylül 2026 gerçek OSM senkronunda Helsinki sınırındaki 6 `type=junction` ilişkisinden 5'i, yol referansı/mesafe/yön politikasıyla 10 benzersiz Fintraffic sensörüne eşleştirildi. Aynı sensör yalnız en yakın uyumlu kavşağa atanır. İki kavşak `FULL`, biri `PARTIAL`, ikisi `INSUFFICIENT` kapsamayla harita ve detay panelinde gösterilir; OSM relation kimliği ile eşleştirme kanıtı korunur.
+
+Çıkış kriteri: **Devam ediyor.** Türetilmiş kavşakların veri kapsamı görünür; gerçek baseline'a sahip varlıklarda açıklanabilir anomali henüz tamamlanmadı.
 
 ## Aşama 6 — Teslimat Sertleştirmesi
 

@@ -2,7 +2,7 @@
 
 ## Durum ve İlkeler
 
-Bu belge hedef mimariyi tanımlar. Aşama 4 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Kavşak ve anomali bölümleri hedef durumdur.
+Bu belge hedef mimariyi tanımlar. Aşama 5'in kavşak dilimi itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, OSM kavşak senkronu, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Anomali bölümü hedef durumdur.
 
 Mimari şu ilkeleri korur:
 
@@ -158,9 +158,11 @@ Import, her istasyon ve kaynak günü için resmî CSV'yi akış hâlinde indiri
 
 ## Kavşak Türetme
 
-OSM yol grafiği kapsama alanı bazında senkronlanıp PostGIS'e yazılır. İstasyon; mesafe, yol kimliği/numarası, bearing ve yön uyumuyla yol yaklaşımına aday olur. Eşiklerin tamamı sürümlü eşleştirme politikasıdır. Düşük güvenli eşleşme otomatik olarak kavşak durumuna katılmaz.
+OSM `type=junction` ilişkileri kapsama alanı sınırıyla Overpass'ten alınır; relation merkezi, üye yol referansları ve OSM kaynak zamanı normalize edilip PostGIS'e yazılır. Bu ilk dilim açıkça modellenmiş OSM kavşak ilişkilerini kapsar; işaretlenmemiş sokak kesişimleri henüz türetilmez.
 
-Kavşak kapsaması `FULL`, `PARTIAL` veya `INSUFFICIENT` olur. Kavşağın durumu yalnızca yeterli ve zaman açısından uyumlu sensör yaklaşımlarından türetilir; istasyon varlığı yaşamaya devam eder.
+Fintraffic istasyonunun yol referansı sağlayıcı adından çıkarılır. Aday eşleşme aynı yol referansı, en çok 1.500 metre mesafe ve yakın nokta dışında en çok 45 derece yol ekseni farkı ister. 250 metre içindeki sensörlerde kavşak merkezi taşıt yollarının ortasında kalabildiği için bearing eleme amacıyla kullanılmaz fakat kanıt olarak saklanır. Bir sensör yalnızca en yakın uyumlu kavşağa atanır. Eşiklerin tamamı `osm-road-ref-distance-bearing-v1` politika sürümüyle kaydedilir.
+
+Kavşak kapsaması `FULL`, `PARTIAL` veya `INSUFFICIENT` olur. En az iki sensör bütün bilinen yol referanslarını kapsıyorsa tam, en az iki sensör yalnız bir bölümünü kapsıyorsa kısmi, tek sensör varsa yetersizdir. Eşleşmeyen OSM ilişkisi izlenen trafik varlığına dönüştürülmez. Fiziksel istasyon kaydı değişmeden yaşamaya devam eder; türetilmiş kavşak ve sensör eşleşmeleri ayrı tablolardır.
 
 ## Analitik ve Anomali
 

@@ -1,0 +1,56 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-09-05T17:16:06Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 4492080,
+      "center": { "lat": 60.3534059, "lon": 24.8080651 },
+      "tags": {
+        "destination": "Helsinki",
+        "destination:int_ref": "E 12",
+        "destination:ref": "3",
+        "highway": "motorway_link"
+      }
+    },
+    {
+      "type": "way",
+      "id": 4492081,
+      "center": { "lat": 60.3506402, "lon": 24.8099955 },
+      "tags": {
+        "destination": "Loppi;Klaukkala",
+        "highway": "motorway_link"
+      }
+    },
+    {
+      "type": "way",
+      "id": 4492132,
+      "center": { "lat": 60.3546016, "lon": 24.8077512 },
+      "tags": {
+        "destination:backward": "Tampere",
+        "destination:ref:backward": "3",
+        "highway": "motorway_link"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 11264073,
+      "center": { "lat": 60.3546718, "lon": 24.8095079 },
+      "members": [
+        { "type": "way", "ref": 4492080, "role": "" },
+        { "type": "way", "ref": 4492081, "role": "" },
+        { "type": "way", "ref": 4492132, "role": "" }
+      ],
+      "tags": {
+        "grade_separated": "yes",
+        "junction": "parclo",
+        "ref": "11",
+        "type": "junction"
+      }
+    }
+  ]
+}

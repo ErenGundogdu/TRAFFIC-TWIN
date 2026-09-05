@@ -16,6 +16,7 @@ const envSchema = z.object({
     .string()
     .min(3)
     .default("TrafficTwin/InternshipProject 0.1"),
+  OVERPASS_BASE_URL: z.url().default("https://overpass-api.de/api/interpreter"),
   LIVE_POLL_INTERVAL_MS: z.coerce.number().int().min(60_000).default(60_000),
   RAW_DATA_DIR: z.string().min(1).default("../../data/raw"),
   LIVE_OBSERVATION_RETENTION_DAYS: z.coerce

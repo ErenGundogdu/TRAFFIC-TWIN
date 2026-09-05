@@ -23,6 +23,7 @@
     "db:generate": "pnpm --filter @traffic-twin/server db:generate",
     "db:migrate": "pnpm --filter @traffic-twin/server db:migrate",
     "history:import": "pnpm --filter @traffic-twin/server history:import --",
+    "junctions:sync": "pnpm --filter @traffic-twin/server junctions:sync --",
     "maintenance:retention": "pnpm --filter @traffic-twin/server maintenance:retention",
     "test:integration": "pnpm --filter @traffic-twin/server test:integration"
   },
