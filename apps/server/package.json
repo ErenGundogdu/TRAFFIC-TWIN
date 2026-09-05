@@ -15,6 +15,7 @@
     "db:migrate": "drizzle-kit migrate",
     "history:import": "tsx src/cli/import-history.ts",
     "junctions:sync": "tsx src/cli/sync-junctions.ts",
+    "anomalies:evaluate": "tsx src/cli/evaluate-anomalies.ts",
     "maintenance:retention": "tsx src/cli/run-retention.ts"
   },
   "dependencies": {

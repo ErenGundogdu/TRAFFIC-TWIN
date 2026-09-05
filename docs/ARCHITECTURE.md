@@ -2,7 +2,7 @@
 
 ## Durum ve İlkeler
 
-Bu belge hedef mimariyi tanımlar. Aşama 5'in kavşak dilimi itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, OSM kavşak senkronu, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır. Anomali bölümü hedef durumdur.
+Bu belge hedef mimariyi tanımlar. Aşama 5 itibarıyla Fintraffic adapter'ı, ortak contracts paketi, istasyon kataloğu, PostgreSQL/PostGIS şeması, kalıcı observation serisi, merkezi conditional polling, REST reconciliation, Socket.IO canlı batch akışı, kalıcı operatör notları, geçmiş import ve toplulaştırma, analitik/replay, OSM kavşak senkronu, kayan baseline/anomali motoru, React Query/Axios istemcisi ve MapLibre çalışma alanı uygulanmıştır.
 
 Mimari şu ilkeleri korur:
 
@@ -171,6 +171,10 @@ Analitik sorgu en çok iki varlık, dönem, çözünürlük, metrik ve yön taş
 Replay en çok iki günlük dakika özetini yükler. Her Socket.IO bağlantısının ayrı, sunucu taraflı replay oturumu vardır; başlatma, duraklatma, sürdürme, hız değiştirme ve durdurma komutları Zod sözleşmeleriyle doğrulanır. Yayınlanan canonical kare, grafikteki referans çizgisini ve haritadaki istasyon değerlerini aynı zaman damgasıyla günceller.
 
 Anomali motoru aynı yerel haftanın günü/saat dilimi için kayan baseline kullanır. Varsayılan pencere 12 hafta, minimum örnek sayısı 6 ve aktifleşme kalıcılığı iki ardışık sapmadır; bunlar sürümlü politika değerleridir. Median/MAD tabanlı sonuç, kullanılan veri ve güven bilgisiyle saklanır.
+
+Canlı poll yeni observation yazdığında hız ve saatlik akış karşılaştırması çalışır. MAD sıfır veya çok küçük olduğunda anlamsız hassasiyeti önlemek için metrik bazlı minimum mutlak sapma eşiği uygulanır. Tek sapma `CANDIDATE`, zaman açısından ardışık ikinci sapma `ACTIVE` olur; normal ölçüm sayacı sıfırlar. Aynı kaynak observation yeniden işlenmez.
+
+`anomaly_evaluations` bir event günlüğü değil, güncel durum tablosudur. İstasyon–yön–metrik–politika başına en fazla bir satır bulunur ve yeni ölçüm bu satırı günceller. Baseline örnekleri, pencere, yerel zaman dilimi, median/MAD girdileri ve politika snapshot'ı birlikte saklanır. Bu seçim açıklanabilirliği korurken dakikalık canlı akışın sınırsız satır büyütmesini engeller.
 
 ## İstemci Durumu ve İki Yönlü Senkronizasyon
 

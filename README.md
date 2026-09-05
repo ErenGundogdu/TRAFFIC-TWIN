@@ -4,7 +4,7 @@
 
 Traffic Twin, gerçek trafik ölçüm istasyonlarını harita üzerinde izlemek, tarihsel davranışı analiz etmek, açıklanabilir anomaliler üretmek ve operatörler arasında gerçek zamanlı not paylaşmak için tasarlanan bir staj projesidir.
 
-> Proje durumu: Aşama 5 devam ediyor. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenip ayrı harita katmanında kapsama bilgisiyle gösterilir. `/analytics` gerçek geçmiş seriyi karşılaştırır ve senkron replay eder. Açıklanabilir anomali bu aşamanın sıradaki dilimidir.
+> Proje durumu: Aşama 5 tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. `/analytics` gerçek geçmiş seriyi karşılaştırır ve senkron replay eder.
 
 ## Hedef MVP
 
@@ -105,6 +105,16 @@ pnpm junctions:sync --coverage helsinki
 ```
 
 Senkron çalışma zamanı mock'u kullanmaz. Eşleşmeyen OSM ilişkileri trafik varlığına dönüştürülmez; bir sensör yalnız en yakın uyumlu kavşağa bağlanır. Sonuç `http://localhost:4000/api/coverage-areas/helsinki/junctions` üzerinden okunur.
+
+## Açıklanabilir Anomali
+
+Canlı poll sonrası her istasyon–yön–metrik durumu gerçek saatlik geçmişle yeniden değerlendirilir. Varsayılan pencere son 12 hafta, minimum örnek 6 ve aktifleşme eşiği iki ardışık sapmadır; değerler `.env` üzerinden değiştirilebilir. Aynı observation idempotent kalır:
+
+```bash
+pnpm anomalies:evaluate --coverage helsinki
+```
+
+Sonuç `http://localhost:4000/api/coverage-areas/helsinki/anomalies` üzerinden okunur. Her kombinasyon için yalnız güncel state satırı tutulur; kullanılan baseline örnekleri ve politika snapshot'ı bu satırda korunur. Böylece canlı değerlendirme veritabanında sınırsız satır üretmez.
 
 ## Kalite Komutları
 

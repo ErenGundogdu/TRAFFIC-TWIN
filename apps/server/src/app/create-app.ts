@@ -20,6 +20,8 @@ import { AssetNotFoundError } from "../modules/operator-notes/operator-note-repo
 import type { OperatorNoteService } from "../modules/operator-notes/operator-note-service.js";
 import { createJunctionRouter } from "../modules/junctions/junction-router.js";
 import type { JunctionService } from "../modules/junctions/junction-service.js";
+import { createAnomalyRouter } from "../modules/anomalies/anomaly-router.js";
+import type { AnomalyService } from "../modules/anomalies/anomaly-service.js";
 import { ZodError } from "zod";
 
 interface AppDependencies {
@@ -27,6 +29,7 @@ interface AppDependencies {
   operatorNoteService?: OperatorNoteService;
   historyService?: HistoryService;
   junctionService?: JunctionService;
+  anomalyService?: AnomalyService;
 }
 
 export function createApp(
@@ -69,6 +72,13 @@ export function createApp(
     app.use(
       "/api/coverage-areas",
       createJunctionRouter(dependencies.junctionService),
+    );
+  }
+
+  if (dependencies.anomalyService) {
+    app.use(
+      "/api/coverage-areas",
+      createAnomalyRouter(dependencies.anomalyService),
     );
   }
 

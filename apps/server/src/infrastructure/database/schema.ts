@@ -8,6 +8,7 @@ import {
   geometry,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -45,6 +46,25 @@ export const junctionCoverage = pgEnum("junction_coverage", [
 export const junctionMatchConfidence = pgEnum("junction_match_confidence", [
   "HIGH",
   "MEDIUM",
+]);
+
+export const anomalyMetric = pgEnum("anomaly_metric", [
+  "average-speed-kmh",
+  "flow-vehicles-per-hour",
+]);
+
+export const anomalyStatus = pgEnum("anomaly_status", [
+  "INSUFFICIENT_DATA",
+  "NORMAL",
+  "CANDIDATE",
+  "ACTIVE",
+]);
+
+export const anomalyConfidence = pgEnum("anomaly_confidence", [
+  "INSUFFICIENT",
+  "LOW",
+  "MEDIUM",
+  "HIGH",
 ]);
 
 export const coverageAreas = pgTable("coverage_areas", {
@@ -257,6 +277,90 @@ export const trafficAggregates = pgTable(
     check(
       "traffic_aggregates_values_check",
       sql`${table.averageSpeedKmh} >= 0 AND ${table.vehicleCount} >= 0 AND ${table.sampleCount} >= 0`,
+    ),
+  ],
+);
+
+export const anomalyEvaluations = pgTable(
+  "anomaly_evaluations",
+  {
+    id: text("id").primaryKey(),
+    coverageAreaId: text("coverage_area_id")
+      .notNull()
+      .references(() => coverageAreas.id, { onDelete: "cascade" }),
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    direction: integer("direction").notNull(),
+    metric: anomalyMetric("metric").notNull(),
+    status: anomalyStatus("status").notNull(),
+    confidence: anomalyConfidence("confidence").notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+    currentValue: doublePrecision("current_value").notNull(),
+    expectedMedian: doublePrecision("expected_median"),
+    medianAbsoluteDeviation: doublePrecision("median_absolute_deviation"),
+    expectedLowerBound: doublePrecision("expected_lower_bound"),
+    expectedUpperBound: doublePrecision("expected_upper_bound"),
+    absoluteDeviation: doublePrecision("absolute_deviation"),
+    sampleCount: integer("sample_count").notNull(),
+    consecutiveDeviations: integer("consecutive_deviations").notNull(),
+    policyVersion: text("policy_version").notNull(),
+    baselineWindowWeeks: integer("baseline_window_weeks").notNull(),
+    baselineStart: timestamp("baseline_start", {
+      withTimezone: true,
+    }).notNull(),
+    baselineEnd: timestamp("baseline_end", { withTimezone: true }).notNull(),
+    baselineSamples: jsonb("baseline_samples")
+      .$type<Array<{ timestamp: string; value: number }>>()
+      .notNull(),
+    policySnapshot: jsonb("policy_snapshot")
+      .$type<{
+        version: string;
+        windowWeeks: number;
+        minimumSamples: number;
+        persistenceCount: number;
+        maximumPersistenceGapMinutes: number;
+        madMultiplier: number;
+        minimumAbsoluteDeviation: Record<string, number>;
+      }>()
+      .notNull(),
+    localTimeZone: text("local_time_zone").notNull(),
+    localWeekday: integer("local_weekday").notNull(),
+    localHour: integer("local_hour").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("anomaly_evaluations_observation_uidx").on(
+      table.assetId,
+      table.direction,
+      table.metric,
+      table.policyVersion,
+    ),
+    index("anomaly_evaluations_coverage_status_idx").on(
+      table.coverageAreaId,
+      table.status,
+      table.observedAt,
+    ),
+    index("anomaly_evaluations_asset_time_idx").on(
+      table.assetId,
+      table.observedAt,
+    ),
+    check(
+      "anomaly_evaluations_direction_check",
+      sql`${table.direction} IN (1, 2)`,
+    ),
+    check(
+      "anomaly_evaluations_values_check",
+      sql`${table.currentValue} >= 0 AND ${table.sampleCount} >= 0 AND ${table.consecutiveDeviations} >= 0`,
+    ),
+    check(
+      "anomaly_evaluations_local_slot_check",
+      sql`${table.localWeekday} BETWEEN 1 AND 7 AND ${table.localHour} BETWEEN 0 AND 23`,
     ),
   ],
 );

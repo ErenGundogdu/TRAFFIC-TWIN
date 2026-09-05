@@ -16,6 +16,7 @@ import {
   JunctionList,
   useJunctionCatalog,
 } from "@/features/junction-monitoring";
+import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
@@ -44,6 +45,7 @@ export function MonitoringWorkspace({
   const selectedJunctionId = searchParams.get("junction");
   const catalogQuery = useStationCatalog(coverageAreaId);
   const junctionQuery = useJunctionCatalog(coverageAreaId);
+  const anomalyQuery = useAnomalyCatalog(coverageAreaId);
   const realtime = useRealtimeSync(coverageAreaId);
   const selectedStation =
     catalogQuery.data?.stations.find(
@@ -53,6 +55,10 @@ export function MonitoringWorkspace({
     junctionQuery.data?.junctions.find(
       (junction) => junction.id === selectedJunctionId,
     ) ?? null;
+  const selectedAnomalies =
+    anomalyQuery.data?.evaluations.filter(
+      (evaluation) => evaluation.assetId === selectedStationId,
+    ) ?? [];
 
   function selectStation(stationId: string) {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -208,13 +214,15 @@ export function MonitoringWorkspace({
             junctions={junctions}
             selectedJunctionId={selectedJunctionId}
             onSelectJunction={selectJunction}
+            anomalies={anomalyQuery.data?.evaluations}
           />
           <div className="pointer-events-none absolute top-4 left-4 rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-xs shadow-lg backdrop-blur">
             <p className="font-semibold text-slate-800">
               Canlı trafik varlıkları
             </p>
             <p className="mt-0.5 text-slate-500">
-              İstasyon: yeşil/turuncu · Kavşak: mor/mavi
+              İstasyon: yeşil/turuncu · Kavşak: mor/mavi · Anomali:
+              kırmızı/amber çerçeve
             </p>
           </div>
           <a
@@ -236,13 +244,16 @@ export function MonitoringWorkspace({
               timeZone={coverageArea.timeZone}
               footer={
                 selectedStation ? (
-                  <OperatorNotesPanel
-                    key={selectedStation.id}
-                    assetId={selectedStation.id}
-                    timeZone={coverageArea.timeZone}
-                    createNote={realtime.createNote}
-                    realtimeConnected={realtime.status === "connected"}
-                  />
+                  <>
+                    <AnomalyPanel evaluations={selectedAnomalies} />
+                    <OperatorNotesPanel
+                      key={selectedStation.id}
+                      assetId={selectedStation.id}
+                      timeZone={coverageArea.timeZone}
+                      createNote={realtime.createNote}
+                      realtimeConnected={realtime.status === "connected"}
+                    />
+                  </>
                 ) : null
               }
             />

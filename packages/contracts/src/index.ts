@@ -1,4 +1,16 @@
 export {
+  anomalyCatalogResponseSchema,
+  anomalyConfidenceSchema,
+  anomalyEvaluationSchema,
+  anomalyMetricSchema,
+  anomalyStatusSchema,
+  type AnomalyCatalogResponse,
+  type AnomalyConfidence,
+  type AnomalyEvaluation,
+  type AnomalyMetric,
+  type AnomalyStatus,
+} from "./anomaly.js";
+export {
   coverageAreaSchema,
   dataSourceSchema,
   stationCatalogResponseSchema,

@@ -71,13 +71,15 @@ Bir sonraki aşama, mevcut aşamanın çıkış kriterleri doğrulanmadan otomat
 - [x] OSM kapsama alanı senkronizasyonu
 - [x] İstasyon–yol–kavşak eşleştirme politikası
 - [x] En az bir doğrulanmış kavşak grubu ve kapsama gösterimi
-- [ ] Kayan baseline üretimi
-- [ ] Median/MAD anomali motoru ve kalıcılık
-- [ ] Anomali harita katmanı, açıklama paneli ve unit testler
+- [x] Kayan baseline üretimi
+- [x] Median/MAD anomali motoru ve kalıcılık
+- [x] Anomali harita katmanı, açıklama paneli ve unit testler
 
 Ara kanıt: 5 Eylül 2026 gerçek OSM senkronunda Helsinki sınırındaki 6 `type=junction` ilişkisinden 5'i, yol referansı/mesafe/yön politikasıyla 10 benzersiz Fintraffic sensörüne eşleştirildi. Aynı sensör yalnız en yakın uyumlu kavşağa atanır. İki kavşak `FULL`, biri `PARTIAL`, ikisi `INSUFFICIENT` kapsamayla harita ve detay panelinde gösterilir; OSM relation kimliği ile eşleştirme kanıtı korunur.
 
-Çıkış kriteri: **Devam ediyor.** Türetilmiş kavşakların veri kapsamı görünür; gerçek baseline'a sahip varlıklarda açıklanabilir anomali henüz tamamlanmadı.
+Anomali kanıtı: TMS 20002 için önceki 6 cumartesinin resmî Fintraffic artifact'leri içeri alındı. Canlı hız ve hacim, `Europe/Helsinki` aynı yerel gün/saat dilimindeki gerçek örneklerle karşılaştırıldı; panel mevcut değer, beklenen aralık, örnek sayısı, güven, politika ve ardışık sapma sayısını gösterdi. Gerçek bir hacim sapması önce `CANDIDATE` olarak kaldı; tek ölçümle aktif alarm üretilmedi.
+
+Çıkış kriteri: **Tamamlandı.** Türetilmiş kavşakların veri kapsamı görünür ve gerçek baseline'a sahip istasyonda açıklanabilir anomali uçtan uca çalışır. Yetersiz geçmişte değer üretilmez; güncel anomali state'i kombinasyon başına tek satırla sınırlıdır.
 
 ## Aşama 6 — Teslimat Sertleştirmesi
 

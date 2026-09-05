@@ -13,7 +13,7 @@ Bu belge brief'in zorunlu maddelerinin nerede uygulanacağını ve nasıl doğru
 | Axios ortak instance + interceptor | Web REST client; ortak base URL, timeout ve hata normalizasyonu  |     2 | Tamamlandı                                       |
 | WebSocket ana veri akışı           | Express/Socket.IO → Next.js canlı istasyon batch'leri            |     3 | Tamamlandı: gerçek canlı batch + REST uzlaşması  |
 | WebSocket çift yönlü özellik       | Operatör notu create acknowledgement ve broadcast                |     3 | Tamamlandı: kalıcılık + iki istemcili test       |
-| AI destekli içgörü                 | Gerçek veride kayan median/MAD baseline ve açıklanabilir anomali |     5 | Planlandı                                        |
+| AI destekli içgörü                 | Gerçek veride kayan median/MAD baseline ve açıklanabilir anomali |     5 | Tamamlandı: gerçek 6 haftalık kanıt + UI         |
 | Parsing/dönüştürme unit testleri   | Gerçek Fintraffic fixture'larıyla normalizasyon                  |     2 | Tamamlandı: kaynak/tarih belgeli fixture         |
 | Form validasyon unit testleri      | Operatör notu ve filtre Zod şemaları                             |   3–4 | Not ve geçmiş sorgu sözleşmeleri doğrulandı      |
 | En az bir custom hook testi        | React Query/Socket.IO reconciliation hook'u                      |     3 | `useRealtimeSync` testi tamamlandı               |

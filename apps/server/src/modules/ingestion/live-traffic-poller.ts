@@ -36,6 +36,7 @@ export class LiveTrafficPoller {
     private readonly publish: (batch: TrafficBatch) => void,
     private readonly clock: () => Date = () => new Date(),
     private readonly onError: (error: unknown) => void = console.error,
+    private readonly afterPersist?: () => Promise<void>,
   ) {}
 
   async runOnce(): Promise<PollResult> {
@@ -101,6 +102,14 @@ export class LiveTrafficPoller {
         emittedAt: now.toISOString(),
         stations,
       });
+
+      if (insertedObservationCount > 0 && this.afterPersist) {
+        try {
+          await this.afterPersist();
+        } catch (error) {
+          this.onError(error);
+        }
+      }
 
       return { status: "updated", insertedObservationCount };
     } finally {

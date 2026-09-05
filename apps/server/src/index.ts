@@ -19,6 +19,9 @@ import { createRealtimeServer } from "./realtime/create-realtime-server.js";
 import { JunctionService } from "./modules/junctions/junction-service.js";
 import { PostgresJunctionCatalogRepository } from "./modules/junctions/junction-repository.js";
 import { OpenStreetMapClient } from "./modules/providers/openstreetmap/client.js";
+import { AnomalyService } from "./modules/anomalies/anomaly-service.js";
+import { PostgresAnomalyRepository } from "./modules/anomalies/anomaly-repository.js";
+import { DEFAULT_ANOMALY_POLICY } from "./modules/anomalies/anomaly-engine.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -56,12 +59,24 @@ const junctionService = new JunctionService(
   new PostgresJunctionCatalogRepository(db),
   new OpenStreetMapClient(env.OVERPASS_BASE_URL, env.FINTRAFFIC_USER),
 );
+const anomalyService = new AnomalyService(
+  stationRepository,
+  observationRepository,
+  new PostgresAnomalyRepository(db),
+  {
+    ...DEFAULT_ANOMALY_POLICY,
+    windowWeeks: env.ANOMALY_BASELINE_WEEKS,
+    minimumSamples: env.ANOMALY_MINIMUM_SAMPLES,
+    persistenceCount: env.ANOMALY_PERSISTENCE_COUNT,
+  },
+);
 const httpServer = createServer(
   createApp(env, {
     stationCatalogService,
     operatorNoteService,
     historyService,
     junctionService,
+    anomalyService,
   }),
 );
 const realtimeServer = createRealtimeServer(
@@ -79,6 +94,9 @@ const liveTrafficPoller = new LiveTrafficPoller(
   (batch) => realtimeServer.publishTrafficBatch(batch),
   undefined,
   (error) => console.error("Live traffic poll failed.", error),
+  async () => {
+    await anomalyService.evaluateCoverage("helsinki");
+  },
 );
 
 try {
