@@ -75,6 +75,16 @@ export function MonitoringWorkspace({
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
+  function clearSelection() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("station");
+    nextParams.delete("junction");
+    const query = nextParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
   if (catalogQuery.isPending) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-100 p-6 dark:bg-slate-950">
@@ -188,7 +198,7 @@ export function MonitoringWorkspace({
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_330px]">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_330px]">
         <div className="hidden min-h-0 flex-col border-r border-slate-200 bg-white md:flex dark:border-slate-800 dark:bg-slate-900">
           <JunctionList
             junctions={junctions}
@@ -253,7 +263,21 @@ export function MonitoringWorkspace({
           </a>
         </section>
 
-        <div className="hidden min-h-0 border-l border-slate-200 bg-slate-50 xl:block dark:border-slate-800 dark:bg-slate-950">
+        <div
+          className={`absolute inset-y-4 right-4 z-20 w-[min(330px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
+            selectedStation || selectedJunction ? "block" : "hidden"
+          }`}
+        >
+          {selectedStation || selectedJunction ? (
+            <button
+              type="button"
+              onClick={clearSelection}
+              aria-label="Detay panelini kapat"
+              className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-600 shadow-sm xl:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          ) : null}
           {selectedJunction ? (
             <JunctionDetailPanel junction={selectedJunction} />
           ) : (
