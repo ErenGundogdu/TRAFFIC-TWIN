@@ -12,6 +12,8 @@ export const stationLayer: LayerProps = {
       "#059669",
       "STALE",
       "#d97706",
+      "OUTDATED",
+      "#e11d48",
       "#64748b",
     ],
     "circle-stroke-color": [
@@ -42,6 +44,8 @@ export const stationHaloLayer: LayerProps = {
       "#10b981",
       "STALE",
       "#f59e0b",
+      "OUTDATED",
+      "#f43f5e",
       "#94a3b8",
     ],
     "circle-opacity": [

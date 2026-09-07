@@ -8,7 +8,12 @@ export const trafficDirectionSchema = z.object({
   measuredAt: z.iso.datetime().nullable(),
 });
 
-export const stationFreshnessSchema = z.enum(["FRESH", "STALE", "UNAVAILABLE"]);
+export const stationFreshnessSchema = z.enum([
+  "FRESH",
+  "STALE",
+  "OUTDATED",
+  "UNAVAILABLE",
+]);
 
 export const stationSummarySchema = z.object({
   id: z.string().min(1),

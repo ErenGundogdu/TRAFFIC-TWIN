@@ -41,5 +41,9 @@ describe("StationDetailPanel", () => {
     expect(screen.getByText("Yön 2")).toBeInTheDocument();
     expect(screen.getByText("93 km/sa")).toBeInTheDocument();
     expect(screen.getByText("612 araç/sa")).toBeInTheDocument();
+    expect(screen.getAllByText("Geçiş oranı")).toHaveLength(2);
+    expect(
+      screen.getAllByText("Son 5 dk. temposunun saatlik karşılığı"),
+    ).toHaveLength(2);
   });
 });

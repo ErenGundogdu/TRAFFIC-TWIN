@@ -14,7 +14,9 @@ const STATUS_LABELS = {
 } as const;
 
 function metricLabel(metric: AnomalyEvaluation["metric"]) {
-  return metric === "average-speed-kmh" ? "Ortalama hız" : "Trafik hacmi";
+  return metric === "average-speed-kmh"
+    ? "Ortalama hız"
+    : "Saatlik geçiş oranı";
 }
 
 function unit(metric: AnomalyEvaluation["metric"]) {

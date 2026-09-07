@@ -249,7 +249,11 @@ export function MonitoringWorkspace({
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-200" />
-              Gecikmiş
+              Gecikmeli
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-rose-500 ring-2 ring-rose-200" />
+              Eski
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-violet-600 ring-2 ring-violet-200" />

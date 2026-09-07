@@ -19,7 +19,8 @@ type AssetKind = "station" | "junction";
 
 const freshnessLabels = {
   FRESH: "Güncel",
-  STALE: "Gecikmiş",
+  STALE: "Gecikmeli",
+  OUTDATED: "Eski veri",
   UNAVAILABLE: "Veri yok",
 } as const;
 
@@ -301,7 +302,9 @@ export function AssetSelectionBar({
                               ? "bg-emerald-500"
                               : station.freshness === "STALE"
                                 ? "bg-amber-500"
-                                : "bg-slate-400"
+                                : station.freshness === "OUTDATED"
+                                  ? "bg-rose-500"
+                                  : "bg-slate-400"
                           }`}
                         />
                         {freshnessLabels[station.freshness]}

@@ -9,6 +9,7 @@ import type {
   PersistedDirection,
   TrafficObservationRepository,
 } from "../telemetry/traffic-observation-repository.js";
+import { classifyMeasurementFreshness } from "../telemetry/classify-measurement-freshness.js";
 import type {
   PersistedStation,
   StationCatalogRepository,
@@ -20,7 +21,7 @@ const SOURCE_BASE = {
   attribution: "Fintraffic / Digitraffic, CC BY 4.0",
   licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
 } as const;
-const FRESHNESS_LIMIT_MS = 3 * 60 * 1_000;
+const SOURCE_FRESHNESS_LIMIT_MS = 3 * 60 * 1_000;
 
 export class CoverageAreaNotFoundError extends Error {
   constructor(id: string) {
@@ -69,12 +70,7 @@ function toPersistedStation(
 
   return {
     ...station,
-    freshness: newestMeasurement
-      ? now.getTime() - new Date(newestMeasurement).getTime() <=
-        FRESHNESS_LIMIT_MS
-        ? "FRESH"
-        : "STALE"
-      : "UNAVAILABLE",
+    freshness: classifyMeasurementFreshness(newestMeasurement, now),
     directions: stationDirections,
   };
 }
@@ -124,7 +120,9 @@ export class StationCatalogService {
           source: {
             ...SOURCE_BASE,
             status:
-              sourceAgeMs <= FRESHNESS_LIMIT_MS ? "AVAILABLE" : "DEGRADED",
+              sourceAgeMs <= SOURCE_FRESHNESS_LIMIT_MS
+                ? "AVAILABLE"
+                : "DEGRADED",
             updatedAt: sourceUpdatedAt ?? null,
             fetchedAt: fetchedAt.toISOString(),
           },

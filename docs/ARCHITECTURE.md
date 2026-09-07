@@ -207,6 +207,8 @@ Harita çalışma zamanı WebGL 2'yi tercih eder, bulunmadığında WebGL 1'e ge
 
 İstemci, birincil istasyon kataloğu ile kavşak/anomali/not gibi ikincil sorguların hata durumlarını ayrı ele alır. İkincil servis hatası gerçek bir “0 kayıt” sonucu gibi sunulmaz ve ilgili bölüm bağımsız yeniden denenebilir. Klavye odağı görünürdür; azaltılmış hareket tercihi gereksiz animasyonları kapatır.
 
+İstasyon güncelliği ölçüm zamanından hesaplanır: en çok 5 dakika `FRESH`, 5–15 dakika `STALE`, 15 dakikadan eski `OUTDATED`, ölçüm bulunmaması `UNAVAILABLE` durumudur. Kaynak bağlantısının genel durumu bu istasyon bazlı sınıflandırmanın yerine geçmez. Trafik akışı son 5 dakikalık kayan pencerenin saatlik geçiş oranıdır; kullanıcı arayüzünde son 5 dakikada geçen mutlak araç sayısı gibi sunulmaz.
+
 ## Tema ve Görsel Erişilebilirlik
 
 Açık tema varsayılandır, kullanıcı seçimi tarayıcıda kalıcıdır. `data-theme` tabanlı tek tema sözleşmesi Tailwind bileşen renklerini ve MapLibre OpenFreeMap stilini birlikte değiştirir. Harita renkleri açıklama metni ve panel etiketleriyle desteklenir; güncellik, kapsama ve anomali yalnız renkle ifade edilmez. Grafik koyu temada eksen, grid ve tooltip kontrastını ayrıca uyarlar ve erişilebilir bir seri/zaman noktası özeti taşır.

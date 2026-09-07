@@ -7,6 +7,13 @@ interface StationDetailPanelProps {
   footer?: ReactNode;
 }
 
+const freshnessLabels = {
+  FRESH: "Güncel",
+  STALE: "Gecikmeli",
+  OUTDATED: "Eski veri",
+  UNAVAILABLE: "Veri yok",
+} as const;
+
 function formatMeasurementTime(value: string | null, timeZone: string) {
   if (!value) {
     return "Ölçüm yok";
@@ -41,8 +48,8 @@ export function StationDetailPanel({
             İstasyon seçilmedi
           </h2>
           <p className="mt-2 max-w-56 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Gerçek hız ve hacim ölçümlerini incelemek için haritadaki bir
-            noktayı seçin.
+            Gerçek hız ve geçiş oranını incelemek için haritadaki bir noktayı
+            seçin.
           </p>
         </div>
       </aside>
@@ -69,16 +76,21 @@ export function StationDetailPanel({
             TMS {station.tmsNumber} · Fintraffic
           </p>
         </div>
-        <span
-          className={`mt-1 size-3 shrink-0 rounded-full ${
-            station.freshness === "FRESH"
-              ? "bg-emerald-500"
-              : station.freshness === "STALE"
-                ? "bg-amber-500"
-                : "bg-slate-400"
-          }`}
-          title={station.freshness}
-        />
+        <span className="mt-1 inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          <span
+            className={`size-2.5 rounded-full ${
+              station.freshness === "FRESH"
+                ? "bg-emerald-500"
+                : station.freshness === "STALE"
+                  ? "bg-amber-500"
+                  : station.freshness === "OUTDATED"
+                    ? "bg-rose-500"
+                    : "bg-slate-400"
+            }`}
+            aria-hidden="true"
+          />
+          {freshnessLabels[station.freshness]}
+        </span>
       </div>
 
       <div className="mt-5 space-y-3">
@@ -92,7 +104,7 @@ export function StationDetailPanel({
                 {direction.label}
               </h3>
               <span className="text-[11px] font-medium text-slate-400">
-                Son 5 dk · kayan
+                5 dk. kayan pencere
               </span>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3">
@@ -106,11 +118,14 @@ export function StationDetailPanel({
               </div>
               <div className="rounded-xl bg-violet-50 p-3 dark:bg-violet-950">
                 <dt className="text-[11px] font-medium text-violet-700">
-                  Trafik hacmi
+                  Geçiş oranı
                 </dt>
                 <dd className="mt-1 text-base font-semibold text-slate-950 dark:text-slate-50">
                   {formatMetric(direction.flowVehiclesPerHour, "araç/sa")}
                 </dd>
+                <p className="mt-1 text-[10px] leading-4 text-violet-600 dark:text-violet-300">
+                  Son 5 dk. temposunun saatlik karşılığı
+                </p>
               </div>
             </dl>
             <p className="mt-3 text-[11px] leading-5 text-slate-500">

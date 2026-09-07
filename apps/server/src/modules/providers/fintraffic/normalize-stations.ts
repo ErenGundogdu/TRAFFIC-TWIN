@@ -10,6 +10,8 @@ import type {
   FintrafficStationDataCollection,
 } from "./schemas.js";
 
+import { classifyMeasurementFreshness } from "../../telemetry/classify-measurement-freshness.js";
+
 const SENSOR_NAMES = {
   1: {
     speed: "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA1",
@@ -20,8 +22,6 @@ const SENSOR_NAMES = {
     flow: "OHITUKSET_5MIN_LIUKUVA_SUUNTA2",
   },
 } as const;
-
-const FRESHNESS_LIMIT_MS = 3 * 60 * 1_000;
 
 function isInsideCoverage(
   longitude: number,
@@ -88,9 +88,6 @@ export function normalizeStations(
         .filter((value): value is string => value !== null)
         .sort()
         .at(-1);
-      const ageMs = newestMeasurement
-        ? now.getTime() - new Date(newestMeasurement).getTime()
-        : Number.POSITIVE_INFINITY;
       const [longitude, latitude] = feature.geometry.coordinates;
 
       return {
@@ -101,12 +98,7 @@ export function normalizeStations(
         longitude,
         latitude,
         bearing: feature.properties.bearing,
-        freshness:
-          newestMeasurement === undefined
-            ? "UNAVAILABLE"
-            : ageMs <= FRESHNESS_LIMIT_MS
-              ? "FRESH"
-              : "STALE",
+        freshness: classifyMeasurementFreshness(newestMeasurement, now),
         directions,
       };
     });
