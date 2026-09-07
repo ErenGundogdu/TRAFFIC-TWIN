@@ -1,1 +1,1 @@
-export { AnalyticsWorkspace } from "./ui/analytics-workspace";
+export { AnalyticsPanel } from "./ui/analytics-panel";

@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useEffect } from "react";
 
+import { AnalyticsPanel } from "@/features/traffic-analytics";
 import {
   StationDetailPanel,
   useStationCatalog,
@@ -18,6 +19,11 @@ import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
 import { ThemeToggle } from "@/shared/theme";
 
 import { AssetSelectionBar } from "./asset-selection-bar";
+import {
+  parseWorkspaceMode,
+  setWorkspaceMode,
+  type WorkspaceMode,
+} from "../model/workspace-mode";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
@@ -42,12 +48,21 @@ export function MonitoringWorkspace({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const selectedStationId = searchParams.get("station");
+  const mode = parseWorkspaceMode(searchParams.get("mode"));
+  const requestedStationId = searchParams.get("station");
   const selectedJunctionId = searchParams.get("junction");
   const catalogQuery = useStationCatalog(coverageAreaId);
   const junctionQuery = useJunctionCatalog(coverageAreaId);
   const anomalyQuery = useAnomalyCatalog(coverageAreaId);
   const realtime = useRealtimeSync(coverageAreaId);
+  const requestedStation =
+    catalogQuery.data?.stations.find(
+      (station) => station.id === requestedStationId,
+    ) ?? null;
+  const selectedStationId =
+    requestedStation?.id ??
+    (mode === "analysis" ? catalogQuery.data?.stations[0]?.id : null) ??
+    null;
   const selectedStation =
     catalogQuery.data?.stations.find(
       (station) => station.id === selectedStationId,
@@ -61,6 +76,29 @@ export function MonitoringWorkspace({
       (evaluation) => evaluation.assetId === selectedStationId,
     ) ?? [];
 
+  useEffect(() => {
+    if (
+      mode !== "analysis" ||
+      requestedStation ||
+      !selectedStationId ||
+      !catalogQuery.data
+    ) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("station", selectedStationId);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }, [
+    catalogQuery.data,
+    mode,
+    pathname,
+    requestedStation,
+    router,
+    searchParams,
+    selectedStationId,
+  ]);
+
   function selectStation(stationId: string) {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("station", stationId);
@@ -72,6 +110,7 @@ export function MonitoringWorkspace({
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("junction", junctionId);
     nextParams.delete("station");
+    nextParams.delete("mode");
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
@@ -79,6 +118,24 @@ export function MonitoringWorkspace({
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete("station");
     nextParams.delete("junction");
+    if (mode === "analysis") {
+      nextParams.delete("mode");
+    }
+    const query = nextParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
+  function changeMode(nextMode: WorkspaceMode) {
+    const nextParams = setWorkspaceMode(searchParams, nextMode);
+    nextParams.delete("junction");
+    if (nextMode === "analysis" && !selectedStationId) {
+      const firstStationId = catalogQuery.data?.stations[0]?.id;
+      if (firstStationId) {
+        nextParams.set("station", firstStationId);
+      }
+    }
     const query = nextParams.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
@@ -140,16 +197,23 @@ export function MonitoringWorkspace({
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href={`/analytics${
-              selectedStationId
-                ? `?station=${encodeURIComponent(selectedStationId)}`
-                : ""
-            }`}
-            className="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:block dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          <div
+            className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
+            aria-label="Çalışma modu"
           >
-            Analiz
-          </Link>
+            <ModeButton
+              active={mode === "live"}
+              onClick={() => changeMode("live")}
+            >
+              Canlı
+            </ModeButton>
+            <ModeButton
+              active={mode === "analysis"}
+              onClick={() => changeMode("analysis")}
+            >
+              Analiz
+            </ModeButton>
+          </div>
           <div className="hidden items-center gap-1.5 text-[11px] text-slate-500 lg:flex">
             <span
               className={`size-2 rounded-full ${
@@ -216,9 +280,15 @@ export function MonitoringWorkspace({
         onRetryJunctions={() => void junctionQuery.refetch()}
       />
 
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_330px]">
+      <div
+        className={`relative grid min-h-0 flex-1 grid-cols-1 ${
+          mode === "analysis"
+            ? "grid-rows-[minmax(260px,1fr)_minmax(300px,46vh)]"
+            : "xl:grid-cols-[minmax(0,1fr)_330px]"
+        }`}
+      >
         <section
-          className="relative min-h-[440px] overflow-hidden"
+          className={`relative overflow-hidden ${mode === "live" ? "min-h-[440px]" : "min-h-[260px]"}`}
           aria-label="Trafik haritası"
         >
           <TrafficMap
@@ -241,7 +311,7 @@ export function MonitoringWorkspace({
           ) : null}
           <div className="pointer-events-none absolute top-4 left-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-[11px] text-slate-600 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
             <span className="font-semibold text-slate-900 dark:text-white">
-              Canlı trafik
+              {mode === "analysis" ? "Analiz bağlamı" : "Canlı trafik"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
@@ -274,55 +344,88 @@ export function MonitoringWorkspace({
           </a>
         </section>
 
-        <div
-          className={`absolute inset-y-4 right-4 z-20 w-[min(330px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
-            selectedStation || selectedJunction ? "block" : "hidden"
-          }`}
-        >
-          {selectedStation || selectedJunction ? (
-            <button
-              type="button"
-              onClick={clearSelection}
-              aria-label="Detay panelini kapat"
-              className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-600 shadow-sm xl:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          ) : null}
-          {selectedJunction ? (
-            <JunctionDetailPanel junction={selectedJunction} />
-          ) : (
-            <StationDetailPanel
-              station={selectedStation}
-              timeZone={coverageArea.timeZone}
-              footer={
-                selectedStation ? (
-                  <>
-                    <AnomalyPanel
-                      evaluations={selectedAnomalies}
-                      status={
-                        anomalyQuery.isPending
-                          ? "loading"
-                          : anomalyQuery.isError
-                            ? "error"
-                            : "ready"
-                      }
-                      onRetry={() => void anomalyQuery.refetch()}
-                    />
-                    <OperatorNotesPanel
-                      key={selectedStation.id}
-                      assetId={selectedStation.id}
-                      timeZone={coverageArea.timeZone}
-                      createNote={realtime.createNote}
-                      realtimeConnected={realtime.status === "connected"}
-                    />
-                  </>
-                ) : null
-              }
-            />
-          )}
-        </div>
+        {mode === "analysis" && selectedStationId ? (
+          <AnalyticsPanel
+            catalog={catalogQuery.data}
+            selectedStationId={selectedStationId}
+            onReturnLive={() => changeMode("live")}
+          />
+        ) : (
+          <div
+            className={`absolute inset-y-4 right-4 z-20 w-[min(330px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
+              selectedStation || selectedJunction ? "block" : "hidden"
+            }`}
+          >
+            {selectedStation || selectedJunction ? (
+              <button
+                type="button"
+                onClick={clearSelection}
+                aria-label="Detay panelini kapat"
+                className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-600 shadow-sm xl:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            ) : null}
+            {selectedJunction ? (
+              <JunctionDetailPanel junction={selectedJunction} />
+            ) : (
+              <StationDetailPanel
+                station={selectedStation}
+                timeZone={coverageArea.timeZone}
+                footer={
+                  selectedStation ? (
+                    <>
+                      <AnomalyPanel
+                        evaluations={selectedAnomalies}
+                        status={
+                          anomalyQuery.isPending
+                            ? "loading"
+                            : anomalyQuery.isError
+                              ? "error"
+                              : "ready"
+                        }
+                        onRetry={() => void anomalyQuery.refetch()}
+                      />
+                      <OperatorNotesPanel
+                        key={selectedStation.id}
+                        assetId={selectedStation.id}
+                        timeZone={coverageArea.timeZone}
+                        createNote={realtime.createNote}
+                        realtimeConnected={realtime.status === "connected"}
+                      />
+                    </>
+                  ) : null
+                }
+              />
+            )}
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+function ModeButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? "bg-white text-sky-700 shadow-sm dark:bg-slate-700 dark:text-sky-300"
+          : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

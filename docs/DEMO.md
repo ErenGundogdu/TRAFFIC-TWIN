@@ -39,7 +39,7 @@ Kanıt: kavşak detay paneli ve haritadaki bağımsız kavşak katmanı.
 
 ## 4:15–6:30 — Geçmiş Analiz ve Karşılaştırma
 
-- `Analiz` bağlantısına geçin; seçili istasyonun URL üzerinden korunduğunu gösterin.
+- Üstteki `Analiz` moduna geçin; haritanın ve seçili istasyonun korunduğunu, URL'ye `mode=analysis` eklendiğini gösterin.
 - Tarihleri `03.09.2026–04.09.2026`, yönü `1`, çözünürlüğü `Dakika` yapın.
 - Karşılaştırma istasyonu olarak TMS 20004'ü seçip analizi uygulayın.
 - İki gerçek seriyi, tam/kısmi/eksik gün kapsamasını ve saat dilimini açıklayın.
@@ -51,8 +51,8 @@ Kanıt: paylaşılabilir filtre URL'si, iki serili grafik ve veri kapsama rozeti
 
 - En fazla iki günlük ve veri içeren aralıkta replay'i başlatın.
 - Duraklatın, hızı değiştirin ve sürdürün.
-- Grafik zaman imleci ile harita karesinin aynı canonical Socket.IO timestamp'ini kullandığını gösterin.
-- `Canlı moda dön` ile replay oturumunu kapatın.
+- Grafik zaman imleci ile harita bağlamının aynı canonical Socket.IO replay zamanını kullandığını gösterin.
+- `Canlıya dön` ile replay oturumunu kapatıp aynı haritada canlı moda geçin.
 
 Kanıt: oynatma durumu, kare zamanı, hız kontrolü ve eşzamanlı harita/grafik ilerlemesi.
 

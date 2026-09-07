@@ -4,7 +4,7 @@
 
 Traffic Twin, gerçek trafik ölçüm istasyonlarını harita üzerinde izlemek, tarihsel davranışı analiz etmek, açıklanabilir anomaliler üretmek ve operatörler arasında gerçek zamanlı not paylaşmak için tasarlanan bir staj projesidir.
 
-> Proje durumu: MVP ve Aşama 6 teslimat sertleştirmesi tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. `/analytics` gerçek geçmiş seriyi karşılaştırır ve senkron replay eder.
+> Proje durumu: MVP ve Aşama 6 teslimat sertleştirmesi tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. Aynı harita çalışma alanındaki Analiz modu gerçek geçmiş seriyi karşılaştırır ve senkron replay eder.
 
 ## Hedef MVP
 
@@ -35,10 +35,11 @@ Sensör istasyonları fiziksel veri kaynağıdır. OpenStreetMap yol ağıyla do
 
 Çalışan ürün akışında sentetik veya mock trafik verisi kullanılmaz. Eksik veri uydurulmaz; tazelik, kapsama ve yetersiz veri durumu kullanıcıya gösterilir.
 
-## Çalışma Alanları
+## Çalışma Alanı
 
-- `/monitoring`: Aranabilir varlık seçim çubuğu, canlı harita, yön ölçümleri ve operatör notları
-- `/analytics`: Tarihsel filtreleme, iki istasyonlu karşılaştırma ve senkron replay
+- `/monitoring`: Aranabilir varlık seçim çubuğu ve kalıcı harita üzerinde Canlı ile Analiz modları
+- `/monitoring?mode=analysis`: Tarihsel filtreleme, iki istasyonlu karşılaştırma ve senkron replay
+- `/analytics`: Eski paylaşılmış bağlantıları filtreleri koruyarak yeni Analiz moduna yönlendiren uyumluluk rotası
 
 Harita, panel ve analiz seçimleri ortak URL ve çalışma alanı sözleşmesiyle iki yönlü senkron tutulur.
 
@@ -68,7 +69,7 @@ pnpm dev
 
 - Web: `http://localhost:3000`
 - Canlı izleme: `http://localhost:3000/monitoring`
-- Geçmiş analiz: `http://localhost:3000/analytics`
+- Geçmiş analiz: `http://localhost:3000/monitoring?mode=analysis`
 - API sağlık kontrolü: `http://localhost:4000/health`
 - Helsinki istasyon API'si: `http://localhost:4000/api/coverage-areas/helsinki/stations`
 - Geçmiş API'si: `http://localhost:4000/api/analytics/helsinki/history`

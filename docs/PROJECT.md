@@ -38,7 +38,7 @@ Kabul kriterleri:
 
 ### 2. Geçmiş, Analiz, Karşılaştırma ve Replay
 
-Kullanıcı varlık, metrik, yön, tarih aralığı ve çözünürlük seçerek geçmiş seriyi görüntüler. `/analytics` ekranı aynı filtre sözleşmesini kullanır ve sonuçtan haritadaki varlığa geri geçebilir. Yakın dönem verisi dakikalık, uzun dönem verisi saatlik/günlük özetlerden sunulur. Replay gerçek kayıtları zaman sırasıyla Socket.IO üzerinden oynatır ve harita ile grafik zaman imlecini senkron ilerletir.
+Kullanıcı varlık, metrik, yön, tarih aralığı ve çözünürlük seçerek geçmiş seriyi görüntüler. `/monitoring?mode=analysis` aynı kalıcı harita ve varlık seçim sözleşmesi içinde analizi açar; eski `/analytics` bağlantıları filtreleri korunarak bu moda yönlendirilir. Yakın dönem verisi dakikalık, uzun dönem verisi saatlik/günlük özetlerden sunulur. Replay gerçek kayıtları zaman sırasıyla Socket.IO üzerinden oynatır ve harita bağlamı ile grafik zaman imlecini senkron ilerletir.
 
 Kabul kriterleri:
 
@@ -46,7 +46,7 @@ Kabul kriterleri:
 - İki zaman dönemi veya iki varlık ortak metrikler üzerinden karşılaştırılabilir.
 - Eksik tarih aralığı için ingestion durumu görünür, boş sonuç gerçek veri gibi gösterilmez.
 - Replay oynatılabilir, durdurulabilir, hızı değiştirilebilir ve canlı moda dönebilir.
-- Seçim ve filtreler `/monitoring` ile `/analytics` arasında URL üzerinden korunur.
+- Mod, seçim ve filtreler `/monitoring` URL'sinde paylaşılabilir biçimde korunur.
 
 ### 3. Açıklanabilir Anomali
 

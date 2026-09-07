@@ -166,7 +166,7 @@ Kavşak kapsaması `FULL`, `PARTIAL` veya `INSUFFICIENT` olur. En az iki sensör
 
 ## Analitik ve Anomali
 
-Analitik sorgu en çok iki varlık, dönem, çözünürlük, metrik ve yön taşır. Server iki güne kadar dakika, 90 güne kadar saat, daha uzun aralıkta gün çözünürlüğünü otomatik seçer; istemci bunu açıkça değiştirebilir. Manifest tarihleri istenen günlerle karşılaştırılarak `COMPLETE`, `PARTIAL` veya `NO_DATA` kapsaması döndürülür. Grafik bileşeni haritadan bağımsızdır ve `/analytics` çalışma alanında kullanılır.
+Analitik sorgu en çok iki varlık, dönem, çözünürlük, metrik ve yön taşır. Server iki güne kadar dakika, 90 güne kadar saat, daha uzun aralıkta gün çözünürlüğünü otomatik seçer; istemci bunu açıkça değiştirebilir. Manifest tarihleri istenen günlerle karşılaştırılarak `COMPLETE`, `PARTIAL` veya `NO_DATA` kapsaması döndürülür. Grafik bileşeni haritadan bağımsızdır ve `/monitoring?mode=analysis` içindeki yerleştirilebilir analiz panelinde kullanılır. `/analytics` yalnız eski filtreli bağlantıları bu moda taşıyan uyumluluk rotasıdır.
 
 Replay en çok iki günlük dakika özetini yükler. Her Socket.IO bağlantısının ayrı, sunucu taraflı replay oturumu vardır; başlatma, duraklatma, sürdürme, hız değiştirme ve durdurma komutları Zod sözleşmeleriyle doğrulanır. Yayınlanan canonical kare, grafikteki referans çizgisini ve haritadaki istasyon değerlerini aynı zaman damgasıyla günceller.
 
@@ -183,7 +183,7 @@ Canlı poll yeni observation yazdığında hız ve saatlik akış karşılaştı
 - Küçük UI store'u: kamera, hover, açık panel ve geçici harita etkileşimi.
 - React Hook Form + Zod: filtre ve not girişleri.
 
-Haritada seçim URL'yi günceller; panel, tablo ve grafik aynı seçimi okur. Analiz tablosundaki “haritada göster” eylemi aynı URL sözleşmesiyle `/monitoring` rotasına gider. Nesnenin kopyası state'te tutulmaz; ID üzerinden güncel React Query/Socket.IO verisinden türetilir.
+Haritada veya varlık çubuğunda seçim URL'yi günceller; detay paneli ve analiz grafiği aynı seçimi okur. Canlı/Analiz geçişi `mode` parametresini değiştirir, seçimi ve analiz filtrelerini kaybetmez. Nesnenin kopyası state'te tutulmaz; ID üzerinden güncel React Query/Socket.IO verisinden türetilir.
 
 İstasyon ve kavşak kataloğu, harita alanını daraltan kalıcı listeler yerine çalışma alanının üstündeki tek varlık seçim çubuğundan açılır. Çubuk tür geçişi, ad/TMS/yol araması ve kaydırılabilir sonuç görünümü sağlar; seçim yine aynı URL sözleşmesini kullanır. Birleşik gezinme bileşeni `traffic-workspace` içinde kalır, istasyon ve kavşak feature'larının veri sorumluluğunu üstlenmez.
 

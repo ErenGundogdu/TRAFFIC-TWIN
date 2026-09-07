@@ -60,11 +60,11 @@ Bir sonraki aşama, mevcut aşamanın çıkış kriterleri doğrulanmadan otomat
 - [x] Sınırlı Helsinki geçmiş backfill'i
 - [x] Dakika/saat/gün toplulaştırmaları
 - [x] Tarih/metrik/yön filtre formu
-- [x] `/analytics` rotası ve ortak grafik bileşeni
+- [x] Tek harita çalışma alanında URL tabanlı Analiz modu ve ortak grafik bileşeni
 - [x] Varlık karşılaştırması
 - [x] Socket.IO replay oturumu ve senkron zaman imleci
 
-Çıkış kriteri: **Tamamlandı.** Fintraffic'in 3 Eylül 2026 tarihli iki gerçek TMS artifact'i checksum ve kaynak kökeniyle arşivlendi; 95.206 geçerli araç kaydı 5.104 dakika, 96 saat ve 4 gün özetine dönüştürüldü. `/analytics` gün/ay/yıl/özel aralık, metrik, yön ve otomatik çözünürlük filtrelerini URL'de taşır; iki istasyonu aynı grafikte karşılaştırır ve eksik günleri açıkça gösterir. Yakın dönem dakika serisi Socket.IO üzerinden oynatılabilir, duraklatılabilir, hızı değiştirilebilir; grafik zaman imleci ve harita değerleri aynı replay karesini kullanır.
+Çıkış kriteri: **Tamamlandı.** Fintraffic'in 3 Eylül 2026 tarihli iki gerçek TMS artifact'i checksum ve kaynak kökeniyle arşivlendi; 95.206 geçerli araç kaydı 5.104 dakika, 96 saat ve 4 gün özetine dönüştürüldü. `/monitoring?mode=analysis` gün/ay/yıl/özel aralık, metrik, yön ve otomatik çözünürlük filtrelerini URL'de taşır; kalıcı haritayı korurken iki istasyonu aynı grafikte karşılaştırır ve eksik günleri açıkça gösterir. Eski `/analytics` bağlantıları filtre kaybetmeden bu moda yönlenir. Yakın dönem dakika serisi Socket.IO üzerinden oynatılabilir, durdurulabilir ve hızı değiştirilebilir; grafik zaman imleci canonical replay karesini kullanır.
 
 ## Aşama 5 — Kavşak ve AI İçgörüsü
 
