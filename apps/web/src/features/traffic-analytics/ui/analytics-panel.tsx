@@ -28,6 +28,7 @@ import {
   findAssetAvailability,
 } from "../lib/history-availability";
 import { HistoryChart } from "./history-chart";
+import { HistorySummaryPanel } from "./history-summary-panel";
 
 const filterSchema = z
   .object({
@@ -368,6 +369,14 @@ export function AnalyticsPanel({
             </div>
             {history.data ? <CoverageBadge history={history.data} /> : null}
           </div>
+
+          {history.data && history.data.coverage.status !== "NO_DATA" ? (
+            <HistorySummaryPanel
+              summaries={history.data.summaries}
+              resolution={history.data.resolution}
+              timeZone={history.data.timeZone}
+            />
+          ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-950">
             <button

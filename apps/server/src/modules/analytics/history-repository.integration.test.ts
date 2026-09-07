@@ -83,7 +83,8 @@ describe("HistoryRepository", () => {
       42,
     );
 
-    const series = await new HistoryRepository(connection.db).getSeries({
+    const repository = new HistoryRepository(connection.db);
+    const series = await repository.getSeries({
       assetIds: ["fintraffic-tms:20002"],
       direction: 1,
       resolution: "hour",
@@ -100,9 +101,24 @@ describe("HistoryRepository", () => {
       },
     ]);
 
-    const availability = await new HistoryRepository(
-      connection.db,
-    ).listAvailability("helsinki");
+    const summaryRows = await repository.getSummaryRows({
+      assetIds: ["fintraffic-tms:20002"],
+      resolution: "hour",
+      from: new Date("2020-01-15T09:00:00Z"),
+      to: new Date("2020-01-15T11:00:00Z"),
+    });
+    expect(summaryRows).toEqual([
+      {
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        bucketStart: new Date("2020-01-15T10:00:00Z"),
+        averageSpeedKmh: 82.5,
+        vehicleCount: 42,
+        sampleCount: 42,
+      },
+    ]);
+
+    const availability = await repository.listAvailability("helsinki");
     expect(availability).toContainEqual({
       assetId: "fintraffic-tms:20002",
       sourceDate: "2020-01-15",

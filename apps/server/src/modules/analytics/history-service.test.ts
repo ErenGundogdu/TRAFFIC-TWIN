@@ -40,6 +40,7 @@ describe("HistoryService", () => {
       const getSeries = vi.fn(async () => []);
       const service = new HistoryService(stationRepository(), {
         getSeries,
+        getSummaryRows: vi.fn(async () => []),
         listAvailableDates: vi.fn(async () => []),
         listAvailability: vi.fn(async () => []),
       });
@@ -61,6 +62,7 @@ describe("HistoryService", () => {
   it("reports missing imported dates instead of filling them", async () => {
     const service = new HistoryService(stationRepository(), {
       getSeries: vi.fn(async () => []),
+      getSummaryRows: vi.fn(async () => []),
       listAvailableDates: vi.fn(async () => [
         { assetId: station.id, sourceDate: "2026-09-03" },
       ]),
@@ -87,6 +89,7 @@ describe("HistoryService", () => {
   it("groups processed source dates into per-asset availability", async () => {
     const service = new HistoryService(stationRepository(), {
       getSeries: vi.fn(async () => []),
+      getSummaryRows: vi.fn(async () => []),
       listAvailableDates: vi.fn(async () => []),
       listAvailability: vi.fn(async () => [
         { assetId: station.id, sourceDate: "2026-08-29" },

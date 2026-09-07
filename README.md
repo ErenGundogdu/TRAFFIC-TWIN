@@ -38,7 +38,7 @@ Sensör istasyonları fiziksel veri kaynağıdır. OpenStreetMap yol ağıyla do
 ## Çalışma Alanı
 
 - `/monitoring`: Aranabilir varlık seçim çubuğu ve kalıcı harita üzerinde Canlı ile Analiz modları
-- `/monitoring?mode=analysis`: Gerçek geçmiş kullanılabilirliği, uygun tarih önerisi, tarihsel filtreleme, iki istasyonlu karşılaştırma ve senkron replay
+- `/monitoring?mode=analysis`: Gerçek geçmiş kullanılabilirliği, uygun tarih önerisi, sunucu hesaplı dönem KPI'ları, tarihsel filtreleme, iki istasyonlu karşılaştırma ve senkron replay
 - `/analytics`: Eski paylaşılmış bağlantıları filtreleri koruyarak yeni Analiz moduna yönlendiren uyumluluk rotası
 
 Harita, panel ve analiz seçimleri ortak URL ve çalışma alanı sözleşmesiyle iki yönlü senkron tutulur.

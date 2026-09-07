@@ -11,6 +11,7 @@ import {
   trafficAggregates,
   trafficAssets,
 } from "../../infrastructure/database/schema.js";
+import type { HistorySummaryRow } from "./history-summary.js";
 
 interface HistoryRowsQuery {
   assetIds: string[];
@@ -62,6 +63,33 @@ export class HistoryRepository {
         })),
       };
     });
+  }
+
+  async getSummaryRows(query: {
+    assetIds: string[];
+    resolution: ResolvedHistoryResolution;
+    from: Date;
+    to: Date;
+  }): Promise<HistorySummaryRow[]> {
+    return this.database
+      .select({
+        assetId: trafficAggregates.assetId,
+        direction: trafficAggregates.direction,
+        bucketStart: trafficAggregates.bucketStart,
+        averageSpeedKmh: trafficAggregates.averageSpeedKmh,
+        vehicleCount: trafficAggregates.vehicleCount,
+        sampleCount: trafficAggregates.sampleCount,
+      })
+      .from(trafficAggregates)
+      .where(
+        and(
+          inArray(trafficAggregates.assetId, query.assetIds),
+          eq(trafficAggregates.resolution, query.resolution),
+          gte(trafficAggregates.bucketStart, query.from),
+          lt(trafficAggregates.bucketStart, query.to),
+        ),
+      )
+      .orderBy(asc(trafficAggregates.bucketStart));
   }
 
   async listAvailableDates(

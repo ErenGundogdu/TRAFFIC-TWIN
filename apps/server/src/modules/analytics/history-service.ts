@@ -8,6 +8,7 @@ import {
 
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import type { HistoryRepository } from "./history-repository.js";
+import { summarizeHistory } from "./history-summary.js";
 
 const DAY_MS = 86_400_000;
 
@@ -52,7 +53,7 @@ export class HistoryService {
     private readonly stationRepository: StationCatalogRepository,
     private readonly historyRepository: Pick<
       HistoryRepository,
-      "getSeries" | "listAvailableDates" | "listAvailability"
+      "getSeries" | "getSummaryRows" | "listAvailableDates" | "listAvailability"
     >,
   ) {}
 
@@ -101,12 +102,11 @@ export class HistoryService {
       );
     }
 
-    const knownAssets = new Set(
-      (await this.stationRepository.listStations(coverageAreaId)).map(
-        (station) => station.id,
-      ),
+    const stations = await this.stationRepository.listStations(coverageAreaId);
+    const stationsById = new Map(
+      stations.map((station) => [station.id, station.name]),
     );
-    if (query.assetIds.some((assetId) => !knownAssets.has(assetId))) {
+    if (query.assetIds.some((assetId) => !stationsById.has(assetId))) {
       throw new HistoryAssetNotFoundError(
         "One or more traffic assets are outside the coverage area.",
       );
@@ -131,6 +131,22 @@ export class HistoryService {
       (date) => !datesAvailableForEveryAsset.includes(date),
     );
     const resolution = resolveResolution(query);
+    const [series, summaryRows] = await Promise.all([
+      this.historyRepository.getSeries({
+        assetIds: query.assetIds,
+        direction: query.direction,
+        metric: query.metric,
+        resolution,
+        from,
+        to,
+      }),
+      this.historyRepository.getSummaryRows({
+        assetIds: query.assetIds,
+        resolution,
+        from,
+        to,
+      }),
+    ]);
 
     return {
       query,
@@ -147,13 +163,12 @@ export class HistoryService {
         availableDays: datesAvailableForEveryAsset.length,
         missingDates: missingDates.slice(0, 31),
       },
-      series: await this.historyRepository.getSeries({
+      series,
+      summaries: summarizeHistory({
         assetIds: query.assetIds,
         direction: query.direction,
-        metric: query.metric,
-        resolution,
-        from,
-        to,
+        assetNames: stationsById,
+        rows: summaryRows,
       }),
     };
   }

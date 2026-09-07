@@ -103,6 +103,13 @@ Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/Pos
 - [x] Karşılaştırma için ortak gün hesabı ve en son verili gün eylemi
 - [x] Verisiz sorguda gerçek verili istasyon önerileri
 
+### Açıklanabilir dönem özeti
+
+- [x] Canonical agregalardan sunucu taraflı KPI hesabı
+- [x] Ağırlıklı ortalama/medyan hız, toplam geçiş ve yoğun zaman dilimi
+- [x] İki yönlü hacim dağılımı ve kullanılan örnek sayısı
+- [x] Yetersiz veri halinde nullable sözleşme ve açık kullanıcı durumu
+
 Yalnızca Aşama 6 tamamlandıktan ve kalan zaman değerlendirildikten sonra:
 
 1. LLM destekli yönetici raporu
