@@ -6,11 +6,32 @@ import type {
   JunctionSummary,
   StationSummary,
 } from "@traffic-twin/contracts";
-import { useState } from "react";
-import { Layer, Map, NavigationControl, Source } from "react-map-gl/maplibre";
-import type { LayerProps, MapLayerMouseEvent } from "react-map-gl/maplibre";
+import { useEffect, useRef, useState } from "react";
+import {
+  Layer,
+  Map,
+  NavigationControl,
+  Popup,
+  ScaleControl,
+  Source,
+} from "react-map-gl/maplibre";
+import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 
 import { useTheme } from "@/shared/theme";
+
+import {
+  createAnomalyGeoJson,
+  createJunctionGeoJson,
+  createStationGeoJson,
+} from "../lib/traffic-map-data";
+import {
+  anomalyLayer,
+  junctionHaloLayer,
+  junctionLayer,
+  selectedStationLabelLayer,
+  stationHaloLayer,
+  stationLayer,
+} from "./traffic-map-layers";
 
 interface TrafficMapProps {
   bbox: CoverageArea["bbox"];
@@ -23,77 +44,17 @@ interface TrafficMapProps {
   anomalies?: AnomalyEvaluation[];
 }
 
-const stationLayer: LayerProps = {
-  id: "traffic-stations",
-  type: "circle",
-  paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 9, 6],
-    "circle-color": [
-      "match",
-      ["get", "freshness"],
-      "FRESH",
-      "#059669",
-      "STALE",
-      "#d97706",
-      "#64748b",
-    ],
-    "circle-stroke-color": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      "#0c4a6e",
-      "#ffffff",
-    ],
-    "circle-stroke-width": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      3,
-      2,
-    ],
-    "circle-opacity": 0.94,
-  },
-};
+interface HoveredAsset {
+  longitude: number;
+  latitude: number;
+  name: string;
+  category: string;
+  detail: string;
+}
 
-const junctionLayer: LayerProps = {
-  id: "traffic-junctions",
-  type: "circle",
-  paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 11, 8],
-    "circle-color": [
-      "match",
-      ["get", "coverage"],
-      "FULL",
-      "#7c3aed",
-      "PARTIAL",
-      "#2563eb",
-      "#64748b",
-    ],
-    "circle-stroke-color": "#ffffff",
-    "circle-stroke-width": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      4,
-      2,
-    ],
-  },
-};
-
-const anomalyLayer: LayerProps = {
-  id: "traffic-anomalies",
-  type: "circle",
-  paint: {
-    "circle-radius": 12,
-    "circle-color": "rgba(0,0,0,0)",
-    "circle-stroke-width": 3,
-    "circle-stroke-color": [
-      "match",
-      ["get", "status"],
-      "ACTIVE",
-      "#e11d48",
-      "#f59e0b",
-    ],
-    "circle-opacity": 0.95,
-  },
-};
+function formatMetric(value: number | null, suffix: string) {
+  return value === null ? "Veri yok" : `${Math.round(value)} ${suffix}`;
+}
 
 export function TrafficMap({
   bbox,
@@ -106,71 +67,33 @@ export function TrafficMap({
   anomalies = [],
 }: TrafficMapProps) {
   const { theme } = useTheme();
+  const mapRef = useRef<MapRef>(null);
   const [styleFailed, setStyleFailed] = useState(false);
+  const [hoveredAsset, setHoveredAsset] = useState<HoveredAsset | null>(null);
   const [minLongitude, minLatitude, maxLongitude, maxLatitude] = bbox;
-  const stationGeoJson = {
-    type: "FeatureCollection" as const,
-    features: stations.map((station) => ({
-      type: "Feature" as const,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [station.longitude, station.latitude],
-      },
-      properties: {
-        id: station.id,
-        freshness: station.freshness,
-        selected: station.id === selectedStationId,
-      },
-    })),
-  };
-  const junctionGeoJson = {
-    type: "FeatureCollection" as const,
-    features: junctions.map((junction) => ({
-      type: "Feature" as const,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [junction.longitude, junction.latitude],
-      },
-      properties: {
-        id: junction.id,
-        kind: "junction",
-        coverage: junction.coverage,
-        selected: junction.id === selectedJunctionId,
-      },
-    })),
-  };
-  const anomalyStatusByAsset = new globalThis.Map<
-    string,
-    "ACTIVE" | "CANDIDATE"
-  >();
-  for (const anomaly of anomalies) {
-    if (anomaly.status === "ACTIVE") {
-      anomalyStatusByAsset.set(anomaly.assetId, "ACTIVE");
-    } else if (
-      anomaly.status === "CANDIDATE" &&
-      anomalyStatusByAsset.get(anomaly.assetId) !== "ACTIVE"
-    ) {
-      anomalyStatusByAsset.set(anomaly.assetId, "CANDIDATE");
+  const stationGeoJson = createStationGeoJson(stations, selectedStationId);
+  const junctionGeoJson = createJunctionGeoJson(junctions, selectedJunctionId);
+
+  useEffect(() => {
+    const selectedAsset = selectedStationId
+      ? stations.find((station) => station.id === selectedStationId)
+      : junctions.find((junction) => junction.id === selectedJunctionId);
+
+    if (!selectedAsset) {
+      return;
     }
-  }
-  const anomalyGeoJson = {
-    type: "FeatureCollection" as const,
-    features: stations.flatMap((station) => {
-      const status = anomalyStatusByAsset.get(station.id);
-      return status
-        ? [
-            {
-              type: "Feature" as const,
-              geometry: {
-                type: "Point" as const,
-                coordinates: [station.longitude, station.latitude],
-              },
-              properties: { assetId: station.id, status },
-            },
-          ]
-        : [];
-    }),
-  };
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    mapRef.current?.flyTo({
+      center: [selectedAsset.longitude, selectedAsset.latitude],
+      zoom: Math.max(mapRef.current.getZoom(), 12),
+      duration: reduceMotion ? 0 : 700,
+      essential: false,
+    });
+  }, [junctions, selectedJunctionId, selectedStationId, stations]);
+  const anomalyGeoJson = createAnomalyGeoJson(stations, anomalies);
 
   function handleMapClick(event: MapLayerMouseEvent) {
     const stationId = event.features?.[0]?.properties?.id as string | undefined;
@@ -183,30 +106,71 @@ export function TrafficMap({
     }
   }
 
+  function handlePointerMove(event: MapLayerMouseEvent) {
+    const feature = event.features?.[0];
+    const coordinates =
+      feature?.geometry.type === "Point" ? feature.geometry.coordinates : null;
+
+    if (!feature || !coordinates) {
+      setHoveredAsset(null);
+      return;
+    }
+
+    if (feature.properties.kind === "junction") {
+      setHoveredAsset({
+        longitude: coordinates[0],
+        latitude: coordinates[1],
+        name: String(feature.properties.name),
+        category: "Doğrulanmış kavşak",
+        detail: `${feature.properties.sensorCount} sensör · ${feature.properties.coverage}`,
+      });
+      return;
+    }
+
+    setHoveredAsset({
+      longitude: coordinates[0],
+      latitude: coordinates[1],
+      name: String(feature.properties.name),
+      category: `Ölçüm istasyonu · TMS ${feature.properties.tmsNumber}`,
+      detail: `Yön 1: ${formatMetric(feature.properties.directionOneSpeed as number | null, "km/sa")} · Yön 2: ${formatMetric(feature.properties.directionTwoSpeed as number | null, "km/sa")}`,
+    });
+  }
+
   return (
     <div className="relative h-full min-h-0">
       <Map
+        ref={mapRef}
         initialViewState={{
           longitude: (minLongitude + maxLongitude) / 2,
           latitude: (minLatitude + maxLatitude) / 2,
           zoom: 9.2,
         }}
-        mapStyle={`https://tiles.openfreemap.org/styles/${theme === "dark" ? "dark" : "positron"}`}
+        mapStyle={`https://tiles.openfreemap.org/styles/${theme === "dark" ? "dark" : "liberty"}`}
         interactiveLayerIds={["traffic-stations", "traffic-junctions"]}
         onClick={handleMapClick}
+        onMouseMove={handlePointerMove}
+        onMouseLeave={() => setHoveredAsset(null)}
         onError={() => setStyleFailed(true)}
         onLoad={() => setStyleFailed(false)}
-        cursor="pointer"
+        cursor={hoveredAsset ? "pointer" : "grab"}
         attributionControl={{ compact: true }}
+        maxPitch={0}
         reuseMaps
       >
-        <NavigationControl position="bottom-right" showCompass={false} />
+        <NavigationControl
+          position="bottom-right"
+          showCompass
+          visualizePitch={false}
+        />
+        <ScaleControl position="bottom-left" unit="metric" />
         <Source
           id="traffic-stations-source"
           type="geojson"
           data={stationGeoJson}
         >
+          <Layer {...stationHaloLayer} />
           <Layer {...stationLayer} />
+          <Layer {...selectedStationLabelLayer} />
         </Source>
         <Source
           id="traffic-anomalies-source"
@@ -220,8 +184,30 @@ export function TrafficMap({
           type="geojson"
           data={junctionGeoJson}
         >
+          <Layer {...junctionHaloLayer} />
           <Layer {...junctionLayer} />
         </Source>
+        {hoveredAsset ? (
+          <Popup
+            longitude={hoveredAsset.longitude}
+            latitude={hoveredAsset.latitude}
+            anchor="bottom"
+            offset={16}
+            closeButton={false}
+            closeOnClick={false}
+            className="traffic-map-popup"
+          >
+            <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+              {hoveredAsset.category}
+            </p>
+            <p className="mt-0.5 max-w-56 truncate text-sm font-semibold text-slate-950">
+              {hoveredAsset.name}
+            </p>
+            <p className="mt-1 text-[11px] text-slate-600">
+              {hoveredAsset.detail}
+            </p>
+          </Popup>
+        ) : null}
       </Map>
       {styleFailed ? (
         <p

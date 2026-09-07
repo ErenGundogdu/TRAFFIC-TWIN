@@ -239,14 +239,26 @@ export function MonitoringWorkspace({
               Canlı bağlantı kesildi · son bilinen gerçek ölçümler gösteriliyor
             </div>
           ) : null}
-          <div className="pointer-events-none absolute top-4 left-4 rounded-xl border border-white/70 bg-white/92 px-3 py-2 text-xs shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/92">
-            <p className="font-semibold text-slate-800 dark:text-slate-100">
-              Canlı trafik varlıkları
-            </p>
-            <p className="mt-0.5 text-slate-500">
-              İstasyon: yeşil/turuncu · Kavşak: mor/mavi · Anomali:
-              kırmızı/amber çerçeve
-            </p>
+          <div className="pointer-events-none absolute top-4 left-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-[11px] text-slate-600 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
+            <span className="font-semibold text-slate-900 dark:text-white">
+              Canlı trafik
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
+              Güncel
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-200" />
+              Gecikmiş
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-violet-600 ring-2 ring-violet-200" />
+              Kavşak
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full border-2 border-rose-500" />
+              Anomali
+            </span>
           </div>
           <a
             href={source.licenseUrl}

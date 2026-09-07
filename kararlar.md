@@ -4,7 +4,7 @@ Bu belge, staj brief'inde araştırılması istenen dört ana teknoloji kararın
 
 ## 1. Harita Altyapısı — MapLibre GL JS
 
-Harita motoru olarak MapLibre GL JS, React entegrasyonu için `react-map-gl/maplibre` seçildi. MapLibre açık kaynaklı, WebGL tabanlı ve canlı GeoJSON, vektör karo, cluster, heatmap ve özel katman kullanımına uygundur. React wrapper'ı harita kamerası ile panel, URL ve analiz durumunun kontrollü biçimde senkron tutulmasını kolaylaştırır. Görsel altlık için başlangıçta OpenFreeMap Positron, koyu tema için OpenFreeMap Dark kullanılacaktır. Harita stili konfigüre edilebilir tutulacak ve ileride PMTiles veya başka bir sağlayıcıya geçiş MapLibre feature'larını değiştirmeyecektir.
+Harita motoru olarak MapLibre GL JS, React entegrasyonu için `react-map-gl/maplibre` seçildi. MapLibre açık kaynaklı, WebGL tabanlı ve canlı GeoJSON, vektör karo, cluster, heatmap ve özel katman kullanımına uygundur. React wrapper'ı harita kamerası ile panel, URL ve analiz durumunun kontrollü biçimde senkron tutulmasını kolaylaştırır. Görsel altlık için açık temada yol ve yer adlarını daha belirgin gösteren OpenFreeMap Liberty, koyu temada OpenFreeMap Dark kullanılacaktır. Harita stili konfigüre edilebilir tutulacak ve ileride PMTiles veya başka bir sağlayıcıya geçiş MapLibre feature'larını değiştirmeyecektir.
 
 MapLibre GL JS 5.x sürüm hattı korunacaktır. 6.x sürümü WebGL 1 desteğini kaldırdığı için yalnızca WebGL 1 sunan tarayıcı veya GPU ortamlarında haritayı tamamen boş bırakır; 5.x ise WebGL 2 bulunmadığında WebGL 1'e geri düşer. Hedef tarayıcı tabanı WebGL 2 olarak değiştirilmeden ana sürüm yükseltilmeyecektir.
 

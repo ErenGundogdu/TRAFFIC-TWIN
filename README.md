@@ -161,7 +161,7 @@ pnpm test:integration
 pnpm build
 ```
 
-Arayüz açık temayı varsayılan kullanır; başlıktaki tema düğmesi seçimi tarayıcıda saklar ve MapLibre altlığını da OpenFreeMap'in karşılık gelen açık/koyu stiline geçirir. Bağlantı, altlık ve ikincil veri sorgusu hataları gerçek boş sonuçtan ayrılır ve son bilinen veri açıkça işaretlenir.
+Arayüz açık temayı varsayılan kullanır; başlıktaki tema düğmesi seçimi tarayıcıda saklar ve MapLibre altlığını OpenFreeMap Liberty/Dark stiline geçirir. Harita seçili varlığa odaklanır; durum halkaları, hover özeti ve ölçek kontrolü bağlamı kaybetmeden incelemeyi destekler. Bağlantı, altlık ve ikincil veri sorgusu hataları gerçek boş sonuçtan ayrılır ve son bilinen veri açıkça işaretlenir.
 
 Harita WebGL 2'yi, desteklenmeyen ortamlarda WebGL 1 geri dönüşünü kullanır. Bu nedenle MapLibre GL JS bağımlılığı 5.x sürüm hattında tutulur.
 
