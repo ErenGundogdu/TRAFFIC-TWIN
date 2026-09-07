@@ -1,6 +1,7 @@
 import {
   historyQuerySchema,
   type HistoryQuery,
+  type HistoryAvailabilityResponse,
   type HistoryResponse,
   type ResolvedHistoryResolution,
 } from "@traffic-twin/contracts";
@@ -51,9 +52,41 @@ export class HistoryService {
     private readonly stationRepository: StationCatalogRepository,
     private readonly historyRepository: Pick<
       HistoryRepository,
-      "getSeries" | "listAvailableDates"
+      "getSeries" | "listAvailableDates" | "listAvailability"
     >,
   ) {}
+
+  async getAvailability(
+    coverageAreaId: string,
+  ): Promise<HistoryAvailabilityResponse> {
+    const coverageArea =
+      await this.stationRepository.findCoverageArea(coverageAreaId);
+    if (!coverageArea) {
+      throw new HistoryCoverageAreaNotFoundError(
+        `Coverage area '${coverageAreaId}' was not found.`,
+      );
+    }
+
+    const rows = await this.historyRepository.listAvailability(coverageAreaId);
+    const datesByAsset = new Map<string, string[]>();
+    for (const row of rows) {
+      const dates = datesByAsset.get(row.assetId) ?? [];
+      if (!dates.includes(row.sourceDate)) dates.push(row.sourceDate);
+      datesByAsset.set(row.assetId, dates);
+    }
+
+    return {
+      coverageAreaId,
+      timeZone: coverageArea.timeZone,
+      assets: [...datesByAsset.entries()].map(([assetId, availableDates]) => ({
+        assetId,
+        firstDate: availableDates[0]!,
+        lastDate: availableDates.at(-1)!,
+        availableDayCount: availableDates.length,
+        availableDates,
+      })),
+    };
+  }
 
   async query(
     coverageAreaId: string,

@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AssetSelectionBar } from "./asset-selection-bar";
+
+afterEach(cleanup);
 
 const stations = [
   {
@@ -96,5 +98,39 @@ describe("AssetSelectionBar", () => {
     expect(
       screen.queryByRole("searchbox", { name: "İstasyon veya kavşak ara" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows real history availability instead of live freshness in analysis mode", () => {
+    render(
+      <AssetSelectionBar
+        stations={stations}
+        junctions={[]}
+        selectedStationId={null}
+        selectedJunctionId={null}
+        onSelectStation={vi.fn()}
+        onSelectJunction={vi.fn()}
+        onClearSelection={vi.fn()}
+        junctionStatus="ready"
+        onRetryJunctions={vi.fn()}
+        showHistoryAvailability
+        historyAvailabilityStatus="ready"
+        historyAvailability={[
+          {
+            assetId: "fintraffic-tms:20004",
+            firstDate: "2026-09-03",
+            lastDate: "2026-09-03",
+            availableDayCount: 1,
+            availableDates: ["2026-09-03"],
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "İstasyon veya kavşak seç" }),
+    );
+
+    expect(screen.getByText("Geçmiş · 1 gün")).toBeInTheDocument();
+    expect(screen.getByText("Geçmiş yok")).toBeInTheDocument();
   });
 });

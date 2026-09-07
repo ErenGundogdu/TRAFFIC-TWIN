@@ -47,6 +47,7 @@ Kabul kriterleri:
 - Eksik tarih aralığı için ingestion durumu görünür, boş sonuç gerçek veri gibi gösterilmez.
 - Replay oynatılabilir, durdurulabilir, hızı değiştirilebilir ve canlı moda dönebilir.
 - Mod, seçim ve filtreler `/monitoring` URL'sinde paylaşılabilir biçimde korunur.
+- İstasyonların geçmiş veri bulunurluğu ve gerçek import tarihleri seçimden önce görünür; verisiz seçimde çalışabilecek varlık ve en son ortak gün önerilir.
 
 ### 3. Açıklanabilir Anomali
 

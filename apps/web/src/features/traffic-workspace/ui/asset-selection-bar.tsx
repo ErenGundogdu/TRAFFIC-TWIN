@@ -1,6 +1,10 @@
 "use client";
 
-import type { JunctionSummary, StationSummary } from "@traffic-twin/contracts";
+import type {
+  HistoryAssetAvailability,
+  JunctionSummary,
+  StationSummary,
+} from "@traffic-twin/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface AssetSelectionBarProps {
@@ -13,6 +17,9 @@ interface AssetSelectionBarProps {
   onClearSelection: () => void;
   junctionStatus: "loading" | "error" | "ready";
   onRetryJunctions: () => void;
+  showHistoryAvailability?: boolean;
+  historyAvailability?: HistoryAssetAvailability[];
+  historyAvailabilityStatus?: "loading" | "error" | "ready";
 }
 
 type AssetKind = "station" | "junction";
@@ -44,6 +51,9 @@ export function AssetSelectionBar({
   onClearSelection,
   junctionStatus,
   onRetryJunctions,
+  showHistoryAvailability = false,
+  historyAvailability = [],
+  historyAvailabilityStatus = "ready",
 }: AssetSelectionBarProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -59,14 +69,26 @@ export function AssetSelectionBar({
     (junction) => junction.id === selectedJunctionId,
   );
   const normalizedQuery = normalizeSearch(query);
+  const historyByAsset = useMemo(
+    () => new Map(historyAvailability.map((item) => [item.assetId, item])),
+    [historyAvailability],
+  );
   const filteredStations = useMemo(
     () =>
-      stations.filter((station) =>
-        normalizeSearch(`${station.name} ${station.tmsNumber}`).includes(
-          normalizedQuery,
-        ),
-      ),
-    [normalizedQuery, stations],
+      stations
+        .filter((station) =>
+          normalizeSearch(`${station.name} ${station.tmsNumber}`).includes(
+            normalizedQuery,
+          ),
+        )
+        .sort((left, right) => {
+          if (!showHistoryAvailability) return 0;
+          return (
+            Number(historyByAsset.has(right.id)) -
+            Number(historyByAsset.has(left.id))
+          );
+        }),
+    [historyByAsset, normalizedQuery, showHistoryAvailability, stations],
   );
   const filteredJunctions = useMemo(
     () =>
@@ -120,7 +142,13 @@ export function AssetSelectionBar({
 
   const selectionName = selectedStation?.name ?? selectedJunction?.name;
   const selectionMeta = selectedStation
-    ? `İstasyon · TMS ${selectedStation.tmsNumber}`
+    ? `İstasyon · TMS ${selectedStation.tmsNumber}${
+        showHistoryAvailability
+          ? historyByAsset.has(selectedStation.id)
+            ? ` · ${historyByAsset.get(selectedStation.id)!.availableDayCount} gün geçmiş`
+            : " · geçmiş yok"
+          : ""
+      }`
     : selectedJunction
       ? `Kavşak · ${coverageLabels[selectedJunction.coverage]}`
       : "Haritada incelemek istediğiniz varlığı seçin";
@@ -294,21 +322,28 @@ export function AssetSelectionBar({
                           TMS {station.tmsNumber}
                         </span>
                       </span>
-                      <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                        <span
-                          aria-hidden="true"
-                          className={`size-2 rounded-full ${
-                            station.freshness === "FRESH"
-                              ? "bg-emerald-500"
-                              : station.freshness === "STALE"
-                                ? "bg-amber-500"
-                                : station.freshness === "OUTDATED"
-                                  ? "bg-rose-500"
-                                  : "bg-slate-400"
-                          }`}
+                      {showHistoryAvailability ? (
+                        <HistoryAvailabilityBadge
+                          availability={historyByAsset.get(station.id)}
+                          status={historyAvailabilityStatus}
                         />
-                        {freshnessLabels[station.freshness]}
-                      </span>
+                      ) : (
+                        <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                          <span
+                            aria-hidden="true"
+                            className={`size-2 rounded-full ${
+                              station.freshness === "FRESH"
+                                ? "bg-emerald-500"
+                                : station.freshness === "STALE"
+                                  ? "bg-amber-500"
+                                  : station.freshness === "OUTDATED"
+                                    ? "bg-rose-500"
+                                    : "bg-slate-400"
+                            }`}
+                          />
+                          {freshnessLabels[station.freshness]}
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))
@@ -357,5 +392,35 @@ export function AssetSelectionBar({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function HistoryAvailabilityBadge({
+  availability,
+  status,
+}: {
+  availability: HistoryAssetAvailability | undefined;
+  status: "loading" | "error" | "ready";
+}) {
+  if (status === "loading") {
+    return (
+      <span className="shrink-0 text-[11px] text-slate-400">
+        Geçmiş kontrol ediliyor
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="shrink-0 text-[11px] text-amber-600 dark:text-amber-300">
+        Geçmiş bilgisi alınamadı
+      </span>
+    );
+  }
+  return availability ? (
+    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+      Geçmiş · {availability.availableDayCount} gün
+    </span>
+  ) : (
+    <span className="shrink-0 text-[11px] text-slate-400">Geçmiş yok</span>
   );
 }

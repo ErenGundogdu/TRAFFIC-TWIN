@@ -3,7 +3,7 @@ import type {
   HistorySeries,
   ResolvedHistoryResolution,
 } from "@traffic-twin/contracts";
-import { and, asc, eq, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, lt, lte } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import {
@@ -82,6 +82,30 @@ export class HistoryRepository {
           gte(ingestionArtifacts.sourceDate, fromDate),
           lte(ingestionArtifacts.sourceDate, toDate),
         ),
+      );
+  }
+
+  async listAvailability(coverageAreaId: string) {
+    return this.database
+      .select({
+        assetId: ingestionArtifacts.assetId,
+        sourceDate: ingestionArtifacts.sourceDate,
+      })
+      .from(ingestionArtifacts)
+      .innerJoin(
+        trafficAssets,
+        eq(trafficAssets.id, ingestionArtifacts.assetId),
+      )
+      .where(
+        and(
+          eq(trafficAssets.coverageAreaId, coverageAreaId),
+          eq(ingestionArtifacts.status, "PROCESSED"),
+          gt(ingestionArtifacts.validRecordCount, 0),
+        ),
+      )
+      .orderBy(
+        asc(ingestionArtifacts.assetId),
+        asc(ingestionArtifacts.sourceDate),
       );
   }
 

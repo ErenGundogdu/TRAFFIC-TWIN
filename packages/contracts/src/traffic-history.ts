@@ -65,6 +65,20 @@ export const historyResponseSchema = z.object({
   series: z.array(historySeriesSchema),
 });
 
+export const historyAssetAvailabilitySchema = z.object({
+  assetId: z.string().min(1),
+  firstDate: z.iso.date(),
+  lastDate: z.iso.date(),
+  availableDayCount: z.number().int().positive(),
+  availableDates: z.array(z.iso.date()).min(1),
+});
+
+export const historyAvailabilityResponseSchema = z.object({
+  coverageAreaId: z.string().min(1),
+  timeZone: z.string().min(1),
+  assets: z.array(historyAssetAvailabilitySchema),
+});
+
 export type HistoryMetric = z.infer<typeof historyMetricSchema>;
 export type HistoryResolution = z.infer<typeof historyResolutionSchema>;
 export type ResolvedHistoryResolution = z.infer<
@@ -75,3 +89,9 @@ export type HistoryPoint = z.infer<typeof historyPointSchema>;
 export type HistorySeries = z.infer<typeof historySeriesSchema>;
 export type IngestionCoverage = z.infer<typeof ingestionCoverageSchema>;
 export type HistoryResponse = z.infer<typeof historyResponseSchema>;
+export type HistoryAssetAvailability = z.infer<
+  typeof historyAssetAvailabilitySchema
+>;
+export type HistoryAvailabilityResponse = z.infer<
+  typeof historyAvailabilityResponseSchema
+>;

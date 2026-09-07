@@ -3,7 +3,10 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
-import { AnalyticsPanel } from "@/features/traffic-analytics";
+import {
+  AnalyticsPanel,
+  useHistoryAvailability,
+} from "@/features/traffic-analytics";
 import {
   StationDetailPanel,
   useStationCatalog,
@@ -54,6 +57,10 @@ export function MonitoringWorkspace({
   const catalogQuery = useStationCatalog(coverageAreaId);
   const junctionQuery = useJunctionCatalog(coverageAreaId);
   const anomalyQuery = useAnomalyCatalog(coverageAreaId);
+  const historyAvailabilityQuery = useHistoryAvailability(
+    coverageAreaId,
+    mode === "analysis",
+  );
   const realtime = useRealtimeSync(coverageAreaId);
   const requestedStation =
     catalogQuery.data?.stations.find(
@@ -278,6 +285,15 @@ export function MonitoringWorkspace({
               : "ready"
         }
         onRetryJunctions={() => void junctionQuery.refetch()}
+        showHistoryAvailability={mode === "analysis"}
+        historyAvailability={historyAvailabilityQuery.data?.assets}
+        historyAvailabilityStatus={
+          historyAvailabilityQuery.isPending
+            ? "loading"
+            : historyAvailabilityQuery.isError
+              ? "error"
+              : "ready"
+        }
       />
 
       <div
@@ -349,6 +365,14 @@ export function MonitoringWorkspace({
             catalog={catalogQuery.data}
             selectedStationId={selectedStationId}
             onReturnLive={() => changeMode("live")}
+            availability={historyAvailabilityQuery.data?.assets ?? []}
+            availabilityStatus={
+              historyAvailabilityQuery.isPending
+                ? "loading"
+                : historyAvailabilityQuery.isError
+                  ? "error"
+                  : "ready"
+            }
           />
         ) : (
           <div

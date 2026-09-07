@@ -8,6 +8,19 @@ export function createHistoryRouter(
 ): ReturnType<typeof Router> {
   const router = Router();
 
+  router.get(
+    "/:coverageAreaId/availability",
+    async (request, response, next) => {
+      try {
+        response.json(
+          await service.getAvailability(request.params.coverageAreaId!),
+        );
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   router.get("/:coverageAreaId/history", async (request, response, next) => {
     try {
       const query = historyQuerySchema.parse({

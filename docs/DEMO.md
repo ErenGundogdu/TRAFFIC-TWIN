@@ -40,6 +40,8 @@ Kanıt: kavşak detay paneli ve haritadaki bağımsız kavşak katmanı.
 ## 4:15–6:30 — Geçmiş Analiz ve Karşılaştırma
 
 - Üstteki `Analiz` moduna geçin; haritanın ve seçili istasyonun korunduğunu, URL'ye `mode=analysis` eklendiğini gösterin.
+- İstasyon listesindeki geçmiş gün etiketlerini ve verisiz bir seçimde sunulan gerçek verili istasyon önerilerini gösterin.
+- `En son günü aç` eylemiyle seçimin en son ortak verili tarihine geçin.
 - Tarihleri `03.09.2026–04.09.2026`, yönü `1`, çözünürlüğü `Dakika` yapın.
 - Karşılaştırma istasyonu olarak TMS 20004'ü seçip analizi uygulayın.
 - İki gerçek seriyi, tam/kısmi/eksik gün kapsamasını ve saat dilimini açıklayın.

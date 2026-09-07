@@ -96,6 +96,13 @@ Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/Pos
 
 ## MVP Sonrası Adaylar
 
+### Analiz kullanılabilirliği iyileştirmesi
+
+- [x] Gerçek ingestion manifestinden istasyon ve tarih kullanılabilirliği API'si
+- [x] Geçmişi olan istasyonları öne çıkaran seçim etiketleri
+- [x] Karşılaştırma için ortak gün hesabı ve en son verili gün eylemi
+- [x] Verisiz sorguda gerçek verili istasyon önerileri
+
 Yalnızca Aşama 6 tamamlandıktan ve kalan zaman değerlendirildikten sonra:
 
 1. LLM destekli yönetici raporu

@@ -100,6 +100,14 @@ describe("HistoryRepository", () => {
       },
     ]);
 
+    const availability = await new HistoryRepository(
+      connection.db,
+    ).listAvailability("helsinki");
+    expect(availability).toContainEqual({
+      assetId: "fintraffic-tms:20002",
+      sourceDate: "2020-01-15",
+    });
+
     await connection.db
       .delete(trafficAggregates)
       .where(eq(trafficAggregates.artifactId, artifactId));

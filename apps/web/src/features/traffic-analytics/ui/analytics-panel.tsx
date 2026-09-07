@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   historyMetricSchema,
   historyResolutionSchema,
+  type HistoryAssetAvailability,
   type HistoryQuery,
   type HistoryResponse,
   type ReplaySpeed,
@@ -22,6 +23,10 @@ import {
 } from "@/shared/time/zoned-date";
 
 import { useTrafficHistory } from "../hooks/use-traffic-history";
+import {
+  commonAvailableDates,
+  findAssetAvailability,
+} from "../lib/history-availability";
 import { HistoryChart } from "./history-chart";
 
 const filterSchema = z
@@ -44,12 +49,16 @@ interface AnalyticsPanelProps {
   catalog: StationCatalogResponse;
   selectedStationId: string;
   onReturnLive: () => void;
+  availability: HistoryAssetAvailability[];
+  availabilityStatus: "loading" | "error" | "ready";
 }
 
 export function AnalyticsPanel({
   catalog,
   selectedStationId,
   onReturnLive,
+  availability,
+  availabilityStatus,
 }: AnalyticsPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,6 +101,20 @@ export function AnalyticsPanel({
   const selectedStation = catalog.stations.find(
     (station) => station.id === selectedStationId,
   );
+  const selectedAvailability = findAssetAvailability(
+    availability,
+    selectedStationId,
+  );
+  const selectedAssetIds = [selectedStationId, values.compareAssetId].filter(
+    Boolean,
+  );
+  const sharedDates = commonAvailableDates(availability, selectedAssetIds);
+  const firstSharedDate = sharedDates[0] ?? null;
+  const lastSharedDate = sharedDates.at(-1) ?? null;
+  const availableStationIds = new Set(availability.map((item) => item.assetId));
+  const suggestedStations = catalog.stations.filter((station) =>
+    availableStationIds.has(station.id),
+  );
   const replayAvailable =
     new Date(query.to).getTime() - new Date(query.from).getTime() <=
       2 * 86_400_000 &&
@@ -117,11 +140,38 @@ export function AnalyticsPanel({
   }
 
   function applyRange(days: number) {
+    const rangeEnd = lastSharedDate ? shiftDateLabel(lastSharedDate, 1) : today;
     submit({
       ...form.getValues(),
-      fromDate: shiftDateLabel(today, -days),
-      toDate: today,
+      fromDate: shiftDateLabel(rangeEnd, -days),
+      toDate: rangeEnd,
     });
+  }
+
+  function openLatestAvailableDay() {
+    if (!lastSharedDate) return;
+    submit({
+      ...form.getValues(),
+      fromDate: lastSharedDate,
+      toDate: shiftDateLabel(lastSharedDate, 1),
+      resolution: "minute",
+    });
+  }
+
+  function openAvailableStation(assetId: string) {
+    const assetAvailability = findAssetAvailability(availability, assetId);
+    if (!assetAvailability) return;
+
+    replay.control({ action: "stop" });
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("mode", "analysis");
+    params.set("station", assetId);
+    params.delete("junction");
+    params.delete("compare");
+    params.set("from", assetAvailability.lastDate);
+    params.set("to", shiftDateLabel(assetAvailability.lastDate, 1));
+    params.set("resolution", "minute");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   return (
@@ -140,7 +190,13 @@ export function AnalyticsPanel({
                 {selectedStation?.name ?? selectedStationId}
               </h2>
               <p className="mt-1 text-[11px] text-slate-500">
-                Ana istasyonu üst seçim çubuğundan değiştirebilirsiniz.
+                {availabilityStatus === "loading"
+                  ? "Geçmiş veri tarihleri kontrol ediliyor…"
+                  : selectedAvailability
+                    ? `${selectedAvailability.availableDayCount} verili gün · ${formatDate(selectedAvailability.firstDate)}–${formatDate(selectedAvailability.lastDate)}`
+                    : availabilityStatus === "error"
+                      ? "Geçmiş bilgisi şu anda alınamadı."
+                      : "Bu istasyon için geçmiş veri içeri alınmamış."}
               </p>
             </div>
             <button
@@ -154,20 +210,67 @@ export function AnalyticsPanel({
 
           <div className="mt-3 grid grid-cols-3 gap-2">
             {[
-              [1, "Gün"],
-              [30, "Ay"],
-              [365, "Yıl"],
+              [1, "Son gün"],
+              [30, "Son ay"],
+              [365, "Son yıl"],
             ].map(([days, label]) => (
               <button
                 key={label}
                 type="button"
                 onClick={() => applyRange(Number(days))}
-                className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                disabled={
+                  availabilityStatus === "ready" && sharedDates.length === 0
+                }
+                className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
               >
                 {label}
               </button>
             ))}
           </div>
+
+          {availabilityStatus === "ready" ? (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
+              {sharedDates.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        {values.compareAssetId
+                          ? `${sharedDates.length} ortak verili gün`
+                          : `${sharedDates.length} verili gün`}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        En son: {formatDate(lastSharedDate!)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={openLatestAvailableDay}
+                      className="rounded-lg bg-emerald-100 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200"
+                    >
+                      En son günü aç
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {sharedDates.slice(-6).map((date) => (
+                      <span
+                        key={date}
+                        className="rounded-md bg-white px-1.5 py-1 text-[10px] text-slate-500 dark:bg-slate-900 dark:text-slate-400"
+                      >
+                        {formatDate(date)}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs leading-5 text-amber-700 dark:text-amber-300">
+                  {values.compareAssetId
+                    ? "Seçilen iki istasyonun ortak geçmiş günü bulunmuyor."
+                    : "Bu istasyon için geçmiş veri bulunmuyor."}
+                </p>
+              )}
+            </div>
+          ) : null}
 
           <form
             onSubmit={form.handleSubmit(submit)}
@@ -178,11 +281,19 @@ export function AnalyticsPanel({
               registration={form.register("compareAssetId")}
             >
               <option value="">Karşılaştırma yok</option>
-              {catalog.stations
+              {[...catalog.stations]
                 .filter((station) => station.id !== selectedStationId)
+                .sort(
+                  (left, right) =>
+                    Number(availableStationIds.has(right.id)) -
+                    Number(availableStationIds.has(left.id)),
+                )
                 .map((station) => (
                   <option key={station.id} value={station.id}>
                     {station.name}
+                    {availableStationIds.has(station.id)
+                      ? ` · ${findAssetAvailability(availability, station.id)!.availableDayCount} gün geçmiş`
+                      : " · geçmiş yok"}
                   </option>
                 ))}
             </FilterSelect>
@@ -215,10 +326,20 @@ export function AnalyticsPanel({
               <FilterInput
                 label="Başlangıç"
                 registration={form.register("fromDate")}
+                min={firstSharedDate ?? undefined}
+                max={lastSharedDate ?? undefined}
               />
               <FilterInput
                 label="Bitiş"
                 registration={form.register("toDate")}
+                min={
+                  firstSharedDate
+                    ? shiftDateLabel(firstSharedDate, 1)
+                    : undefined
+                }
+                max={
+                  lastSharedDate ? shiftDateLabel(lastSharedDate, 1) : undefined
+                }
               />
             </div>
             {form.formState.errors.toDate?.message ? (
@@ -361,6 +482,15 @@ export function AnalyticsPanel({
                   </button>
                 </div>
               </div>
+            ) : history.data.coverage.status === "NO_DATA" ? (
+              <HistoryDiscoveryEmptyState
+                suggestedStations={suggestedStations}
+                availability={availability}
+                onSelect={openAvailableStation}
+                onOpenLatest={
+                  lastSharedDate ? openLatestAvailableDay : undefined
+                }
+              />
             ) : (
               <HistoryChart
                 history={history.data}
@@ -399,20 +529,92 @@ function FilterSelect({
 function FilterInput({
   label,
   registration,
+  min,
+  max,
 }: {
   label: string;
   registration: UseFormRegisterReturn;
+  min?: string;
+  max?: string;
 }) {
   return (
     <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
       {label}
       <input
         type="date"
+        min={min}
+        max={max}
         {...registration}
         className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
       />
     </label>
   );
+}
+
+function HistoryDiscoveryEmptyState({
+  suggestedStations,
+  availability,
+  onSelect,
+  onOpenLatest,
+}: {
+  suggestedStations: StationCatalogResponse["stations"];
+  availability: HistoryAssetAvailability[];
+  onSelect: (assetId: string) => void;
+  onOpenLatest?: () => void;
+}) {
+  return (
+    <div className="grid min-h-80 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
+      <div className="max-w-xl">
+        <p className="font-semibold text-slate-800 dark:text-slate-100">
+          Bu seçimde geçmiş veri yok
+        </p>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          {onOpenLatest
+            ? "Eksik günler ölçüm gibi doldurulmadı. Seçimin en son ortak verili gününü açabilirsiniz."
+            : "Bu istasyon için geçmiş veri içeri alınmamış. Aşağıdaki gerçek verili istasyonlardan birini seçebilirsiniz."}
+        </p>
+        {onOpenLatest ? (
+          <button
+            type="button"
+            onClick={onOpenLatest}
+            className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white dark:bg-sky-700"
+          >
+            En son verili günü aç
+          </button>
+        ) : null}
+        {suggestedStations.length > 0 ? (
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {suggestedStations.map((station) => {
+              const item = findAssetAvailability(availability, station.id)!;
+              return (
+                <button
+                  key={station.id}
+                  type="button"
+                  onClick={() => onSelect(station.id)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-xs hover:border-sky-300 dark:border-slate-700 dark:bg-slate-900"
+                >
+                  <span className="block font-semibold">{station.name}</span>
+                  <span className="mt-0.5 block text-slate-500">
+                    TMS {station.tmsNumber} · {item.availableDayCount} gün · son{" "}
+                    {formatDate(item.lastDate)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T12:00:00Z`));
 }
 
 function CoverageBadge({ history }: { history: HistoryResponse }) {

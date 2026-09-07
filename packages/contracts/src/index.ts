@@ -48,6 +48,8 @@ export {
 } from "./realtime.js";
 export {
   historyMetricSchema,
+  historyAssetAvailabilitySchema,
+  historyAvailabilityResponseSchema,
   historyPointSchema,
   historyQuerySchema,
   historyResolutionSchema,
@@ -56,6 +58,8 @@ export {
   ingestionCoverageSchema,
   resolvedHistoryResolutionSchema,
   type HistoryMetric,
+  type HistoryAssetAvailability,
+  type HistoryAvailabilityResponse,
   type HistoryPoint,
   type HistoryQuery,
   type HistoryResolution,

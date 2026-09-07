@@ -41,6 +41,7 @@ describe("HistoryService", () => {
       const service = new HistoryService(stationRepository(), {
         getSeries,
         listAvailableDates: vi.fn(async () => []),
+        listAvailability: vi.fn(async () => []),
       });
 
       const result = await service.query("helsinki", {
@@ -63,6 +64,7 @@ describe("HistoryService", () => {
       listAvailableDates: vi.fn(async () => [
         { assetId: station.id, sourceDate: "2026-09-03" },
       ]),
+      listAvailability: vi.fn(async () => []),
     });
 
     const result = await service.query("helsinki", {
@@ -79,6 +81,32 @@ describe("HistoryService", () => {
       requestedDays: 2,
       availableDays: 1,
       missingDates: ["2026-09-02"],
+    });
+  });
+
+  it("groups processed source dates into per-asset availability", async () => {
+    const service = new HistoryService(stationRepository(), {
+      getSeries: vi.fn(async () => []),
+      listAvailableDates: vi.fn(async () => []),
+      listAvailability: vi.fn(async () => [
+        { assetId: station.id, sourceDate: "2026-08-29" },
+        { assetId: station.id, sourceDate: "2026-09-03" },
+        { assetId: station.id, sourceDate: "2026-09-03" },
+      ]),
+    });
+
+    await expect(service.getAvailability("helsinki")).resolves.toEqual({
+      coverageAreaId: "helsinki",
+      timeZone: "Europe/Helsinki",
+      assets: [
+        {
+          assetId: station.id,
+          firstDate: "2026-08-29",
+          lastDate: "2026-09-03",
+          availableDayCount: 2,
+          availableDates: ["2026-08-29", "2026-09-03"],
+        },
+      ],
     });
   });
 });
