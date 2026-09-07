@@ -34,6 +34,7 @@ Kabul kriterleri:
 - Socket.IO güncellemesi aynı istasyonun görünümünü sayfa yenilemeden değiştirir.
 - Bağlantı kesilirse son veri `stale` olarak işaretlenir; sahte değer üretilmez.
 - Harita katmanları istasyon, doğrulanmış kavşak, not ve anomali için ayrı yönetilir.
+- Harita, gerçek araç/saat değerinden üretilen yoğunluk ve göreli 3B hacim görünümleri ile seçili istasyonun gerçek OSM yol geometrisi üzerindeki yönlü akışını sunar.
 - En az bir doğrulanmış kavşak grubu bağlı sensör ve kapsama bilgisiyle gösterilir.
 
 ### 2. Geçmiş, Analiz, Karşılaştırma ve Replay

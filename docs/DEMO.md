@@ -37,6 +37,15 @@ Kanıt: seçim–URL–panel senkronu, gerçek ölçüm zamanı, stale/unknown e
 
 Kanıt: kavşak detay paneli ve haritadaki bağımsız kavşak katmanı.
 
+## 2:45–4:15 — Harita Görselleştirme Modları
+
+- `Yoğunluk` görünümünde iki yön toplam gerçek araç/saat değerlerinin ısı dağılımını gösterin.
+- TMS 20002'yi seçip `Yol akışı` görünümünde Turunväylä'nın gerçek OSM çizgisini, yön oklarını, hız rengini ve hacim kalınlığını açıklayın.
+- `3B hacim` görünümüne geçin; sütunların fiziksel yükseklik değil, o anki istasyonlar arasında göreli araç/saat ölçeği olduğunu belirtin.
+- Yol bağlamı alınamadığında sensör ölçümünün ve diğer harita katmanlarının çalışmaya devam ettiğini açıklayın.
+
+Kanıt: üçlü harita görünüm seçicisi, OSM kaynaklı yol çizgisi ve canlı veriyle değişen MapLibre katmanları.
+
 ## 4:15–6:30 — Geçmiş Analiz ve Karşılaştırma
 
 - Üstteki `Analiz` moduna geçin; haritanın ve seçili istasyonun korunduğunu, URL'ye `mode=analysis` eklendiğini gösterin.

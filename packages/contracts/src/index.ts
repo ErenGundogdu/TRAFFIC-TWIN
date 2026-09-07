@@ -84,3 +84,10 @@ export {
   type JunctionSensorMatch,
   type JunctionSummary,
 } from "./junction-catalog.js";
+export {
+  roadCoordinateSchema,
+  roadSegmentSchema,
+  stationRoadContextSchema,
+  type RoadSegment,
+  type StationRoadContext,
+} from "./road-context.js";

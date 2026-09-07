@@ -1,7 +1,11 @@
 import type { CoverageArea } from "@traffic-twin/contracts";
 
 import { normalizeOsmJunctions } from "./normalize-junctions.js";
-import { overpassJunctionResponseSchema } from "./schemas.js";
+import { normalizeRoadContext } from "./normalize-road-context.js";
+import {
+  overpassJunctionResponseSchema,
+  overpassRoadResponseSchema,
+} from "./schemas.js";
 
 export class OverpassResponseError extends Error {
   constructor(status: number) {
@@ -41,5 +45,35 @@ export class OpenStreetMapClient {
     return normalizeOsmJunctions(
       overpassJunctionResponseSchema.parse(await response.json()),
     );
+  }
+
+  async getRoadContext(input: {
+    longitude: number;
+    latitude: number;
+    bearing: number | null;
+    roadRef: string | null;
+  }) {
+    const query = [
+      "[out:json][timeout:20];",
+      `way(around:120,${input.latitude},${input.longitude})[highway];`,
+      "out tags geom;",
+    ].join("");
+    const url = new URL(this.baseUrl);
+    url.searchParams.set("data", query);
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": this.userAgent,
+      },
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    if (!response.ok) throw new OverpassResponseError(response.status);
+
+    const payload = overpassRoadResponseSchema.parse(await response.json());
+    return {
+      sourceUpdatedAt: payload.osm3s.timestamp_osm_base,
+      segments: normalizeRoadContext(payload, input, input.roadRef),
+    };
   }
 }

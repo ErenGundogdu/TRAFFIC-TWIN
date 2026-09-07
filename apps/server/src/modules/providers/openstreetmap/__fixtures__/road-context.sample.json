@@ -1,0 +1,56 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-09-07T12:31:06Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "way",
+      "id": 4218023,
+      "geometry": [
+        { "lat": 60.2211969, "lon": 24.6353432 },
+        { "lat": 60.2210905, "lon": 24.6362415 },
+        { "lat": 60.2209753, "lon": 24.6373727 },
+        { "lat": 60.2208906, "lon": 24.6382883 },
+        { "lat": 60.2208062, "lon": 24.6392982 }
+      ],
+      "tags": {
+        "highway": "motorway",
+        "name": "Turunväylä",
+        "oneway": "yes",
+        "ref": "1"
+      }
+    },
+    {
+      "type": "way",
+      "id": 6814361,
+      "geometry": [
+        { "lat": 60.2205447, "lon": 24.6352478 },
+        { "lat": 60.2205094, "lon": 24.6354764 },
+        { "lat": 60.2203948, "lon": 24.6363322 }
+      ],
+      "tags": {
+        "highway": "residential",
+        "name": "Hirvisuontie"
+      }
+    },
+    {
+      "type": "way",
+      "id": 25562214,
+      "geometry": [
+        { "lat": 60.221032, "lon": 24.6382522 },
+        { "lat": 60.2211031, "lon": 24.637432 },
+        { "lat": 60.2212228, "lon": 24.6363025 },
+        { "lat": 60.2213259, "lon": 24.6354159 }
+      ],
+      "tags": {
+        "highway": "motorway",
+        "name": "Turunväylä",
+        "oneway": "yes",
+        "ref": "1"
+      }
+    }
+  ]
+}

@@ -12,6 +12,14 @@ const overpassElementSchema = z.object({
     })
     .optional(),
   tags: tagsSchema.optional(),
+  geometry: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lon: z.number().min(-180).max(180),
+      }),
+    )
+    .optional(),
   members: z
     .array(
       z.object({
@@ -34,3 +42,6 @@ export const overpassJunctionResponseSchema = z.object({
 export type OverpassJunctionResponse = z.infer<
   typeof overpassJunctionResponseSchema
 >;
+
+export const overpassRoadResponseSchema = overpassJunctionResponseSchema;
+export type OverpassRoadResponse = z.infer<typeof overpassRoadResponseSchema>;

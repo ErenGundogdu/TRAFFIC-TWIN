@@ -22,6 +22,7 @@ import { OpenStreetMapClient } from "./modules/providers/openstreetmap/client.js
 import { AnomalyService } from "./modules/anomalies/anomaly-service.js";
 import { PostgresAnomalyRepository } from "./modules/anomalies/anomaly-repository.js";
 import { DEFAULT_ANOMALY_POLICY } from "./modules/anomalies/anomaly-engine.js";
+import { RoadContextService } from "./modules/road-context/road-context-service.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -54,10 +55,18 @@ const replayService = new ReplayService(
   stationRepository,
   new HistoryRepository(db),
 );
+const openStreetMapClient = new OpenStreetMapClient(
+  env.OVERPASS_BASE_URL,
+  env.FINTRAFFIC_USER,
+);
 const junctionService = new JunctionService(
   stationRepository,
   new PostgresJunctionCatalogRepository(db),
-  new OpenStreetMapClient(env.OVERPASS_BASE_URL, env.FINTRAFFIC_USER),
+  openStreetMapClient,
+);
+const roadContextService = new RoadContextService(
+  stationRepository,
+  openStreetMapClient,
 );
 const anomalyService = new AnomalyService(
   stationRepository,
@@ -77,6 +86,7 @@ const httpServer = createServer(
     historyService,
     junctionService,
     anomalyService,
+    roadContextService,
   }),
 );
 const realtimeServer = createRealtimeServer(

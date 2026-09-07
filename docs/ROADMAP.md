@@ -90,7 +90,7 @@ Anomali kanıtı: TMS 20002 için önceki 6 cumartesinin resmî Fintraffic artif
 - [x] `kararlar.md`, mimari ve demo senaryosunun güncellenmesi
 - [x] Yaklaşık 10 dakikalık demo hazırlığı
 
-Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/PostGIS 3.5 veritabanında bütün commitli migration'lar sıfırdan uygulanıp 10 uygulama tablosu doğrulandı. `pnpm verify:full`; format, lint, strict typecheck, 39 unit/component testi, 7 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'ini başarıyla tamamladı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak ve iki istasyonlu geçmiş grafik açık/koyu temada tarayıcıda kontrol edildi.
+Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/PostGIS 3.5 veritabanında bütün commitli migration'lar sıfırdan uygulanıp 10 uygulama tablosu doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 62 unit/component testi, 7 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim ve iki istasyonlu geçmiş grafik tarayıcıda kontrol edildi.
 
 Çıkış kriteri: **Tamamlandı.** Temiz kurulumdan çalışan demo üretilebilir ve brief'in bütün zorunlu maddeleri `docs/DEMO.md` akışında kanıtlanabilir.
 
@@ -109,6 +109,14 @@ Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/Pos
 - [x] Ağırlıklı ortalama/medyan hız, toplam geçiş ve yoğun zaman dilimi
 - [x] İki yönlü hacim dağılımı ve kullanılan örnek sayısı
 - [x] Yetersiz veri halinde nullable sözleşme ve açık kullanıcı durumu
+
+### Yol ve yoğunluk görselleştirmesi
+
+- [x] Gerçek araç/saat ölçümlü MapLibre ısı katmanı
+- [x] Göreli ölçekli ve açıklamalı 3B hacim sütunları
+- [x] Seçili istasyon için yol referanslı gerçek OSM geometrisi
+- [x] Fintraffic bearing ile yön eşleştirme ve yol üzeri akış okları
+- [x] OSM başarısızlık/no-match durumunda ölçümü koruyan bozulma davranışı
 
 Yalnızca Aşama 6 tamamlandıktan ve kalan zaman değerlendirildikten sonra:
 

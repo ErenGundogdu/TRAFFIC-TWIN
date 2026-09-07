@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   AnalyticsPanel,
@@ -11,8 +11,9 @@ import {
   StationDetailPanel,
   useStationCatalog,
 } from "@/features/station-monitoring";
-import { TrafficMap } from "@/features/traffic-map";
+import { TrafficMap, type MapVisualizationMode } from "@/features/traffic-map";
 import { OperatorNotesPanel } from "@/features/operator-notes";
+import { useStationRoadContext } from "@/features/road-context";
 import { useRealtimeSync } from "@/features/realtime";
 import {
   JunctionDetailPanel,
@@ -51,6 +52,8 @@ export function MonitoringWorkspace({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [mapVisualizationMode, setMapVisualizationMode] =
+    useState<MapVisualizationMode>("overview");
   const mode = parseWorkspaceMode(searchParams.get("mode"));
   const requestedStationId = searchParams.get("station");
   const selectedJunctionId = searchParams.get("junction");
@@ -70,6 +73,10 @@ export function MonitoringWorkspace({
     requestedStation?.id ??
     (mode === "analysis" ? catalogQuery.data?.stations[0]?.id : null) ??
     null;
+  const roadContextQuery = useStationRoadContext(
+    coverageAreaId,
+    mapVisualizationMode === "flow" ? selectedStationId : null,
+  );
   const selectedStation =
     catalogQuery.data?.stations.find(
       (station) => station.id === selectedStationId,
@@ -316,6 +323,18 @@ export function MonitoringWorkspace({
             selectedJunctionId={selectedJunctionId}
             onSelectJunction={selectJunction}
             anomalies={anomalyQuery.data?.evaluations}
+            visualizationMode={mapVisualizationMode}
+            onVisualizationModeChange={setMapVisualizationMode}
+            roadContext={roadContextQuery.data}
+            roadContextStatus={
+              mapVisualizationMode !== "flow" || !selectedStationId
+                ? "idle"
+                : roadContextQuery.isPending
+                  ? "loading"
+                  : roadContextQuery.isError
+                    ? "error"
+                    : "ready"
+            }
           />
           {realtime.status === "disconnected" ? (
             <div

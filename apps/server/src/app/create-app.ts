@@ -15,6 +15,12 @@ import {
   type StationCatalogService,
 } from "../modules/asset-catalog/station-catalog-service.js";
 import { FintrafficResponseError } from "../modules/providers/fintraffic/client.js";
+import { OverpassResponseError } from "../modules/providers/openstreetmap/client.js";
+import { createRoadContextRouter } from "../modules/road-context/road-context-router.js";
+import {
+  RoadContextNotFoundError,
+  type RoadContextService,
+} from "../modules/road-context/road-context-service.js";
 import { createOperatorNoteRouter } from "../modules/operator-notes/operator-note-router.js";
 import { AssetNotFoundError } from "../modules/operator-notes/operator-note-repository.js";
 import type { OperatorNoteService } from "../modules/operator-notes/operator-note-service.js";
@@ -30,6 +36,7 @@ interface AppDependencies {
   historyService?: HistoryService;
   junctionService?: JunctionService;
   anomalyService?: AnomalyService;
+  roadContextService?: RoadContextService;
 }
 
 export function createApp(
@@ -82,6 +89,13 @@ export function createApp(
     );
   }
 
+  if (dependencies.roadContextService) {
+    app.use(
+      "/api/coverage-areas",
+      createRoadContextRouter(dependencies.roadContextService),
+    );
+  }
+
   app.use(
     (
       error: unknown,
@@ -113,6 +127,26 @@ export function createApp(
           error: {
             code: "FINTRAFFIC_UNAVAILABLE",
             message: "Fintraffic verisi şu anda alınamıyor.",
+          },
+        });
+        return;
+      }
+
+      if (error instanceof OverpassResponseError) {
+        response.status(502).json({
+          error: {
+            code: "OPENSTREETMAP_UNAVAILABLE",
+            message: "OpenStreetMap yol bağlamı şu anda alınamıyor.",
+          },
+        });
+        return;
+      }
+
+      if (error instanceof RoadContextNotFoundError) {
+        response.status(404).json({
+          error: {
+            code: "ROAD_CONTEXT_SCOPE_NOT_FOUND",
+            message: "İstasyon veya kapsama alanı bulunamadı.",
           },
         });
         return;
