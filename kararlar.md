@@ -6,6 +6,8 @@ Bu belge, staj brief'inde araştırılması istenen dört ana teknoloji kararın
 
 Harita motoru olarak MapLibre GL JS, React entegrasyonu için `react-map-gl/maplibre` seçildi. MapLibre açık kaynaklı, WebGL tabanlı ve canlı GeoJSON, vektör karo, cluster, heatmap ve özel katman kullanımına uygundur. React wrapper'ı harita kamerası ile panel, URL ve analiz durumunun kontrollü biçimde senkron tutulmasını kolaylaştırır. Görsel altlık için başlangıçta OpenFreeMap Positron, koyu tema için OpenFreeMap Dark kullanılacaktır. Harita stili konfigüre edilebilir tutulacak ve ileride PMTiles veya başka bir sağlayıcıya geçiş MapLibre feature'larını değiştirmeyecektir.
 
+MapLibre GL JS 5.x sürüm hattı korunacaktır. 6.x sürümü WebGL 1 desteğini kaldırdığı için yalnızca WebGL 1 sunan tarayıcı veya GPU ortamlarında haritayı tamamen boş bırakır; 5.x ise WebGL 2 bulunmadığında WebGL 1'e geri düşer. Hedef tarayıcı tabanı WebGL 2 olarak değiştirilmeden ana sürüm yükseltilmeyecektir.
+
 ## 2. Trafik ve Kavşak Verisi — Fintraffic TMS + OpenStreetMap
 
 Ana trafik kaynağı olarak Fintraffic Digitraffic TMS seçildi; çünkü gerçek, koordinatlı ve yaklaşık dakikalık güncellenen yol sensörü ölçümleri sağlar. Backend bütün istasyonların verisini dakikada bir bulk REST ve conditional GET ile alacak, normalize edecek ve kendi Socket.IO kanalı üzerinden istemcilere yayınlayacaktır. İlk fiziksel varlık sensör istasyonudur; kavşaklar OpenStreetMap geometrileriyle mesafe, yol ve yön uyumu doğrulanan sensör yaklaşımlarından türetilecektir. Helsinki ilk kapsama alanıdır fakat ülke, bbox ve merkez koordinatları UI koduna sabitlenmeyecektir. Çalışan ürün akışında sentetik trafik veya grid verisi kullanılmayacak, eksik ölçümler açıkça bilinmeyen olarak işaretlenecektir.

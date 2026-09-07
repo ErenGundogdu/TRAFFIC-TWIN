@@ -193,6 +193,8 @@ Tek bir `TrafficMap` kabuğu kullanılır. Mod tanımı görünür katmanları, 
 
 MVP modları canlı, geçmiş/replay ve karşılaştırmadır. Simülasyon ancak MVP tamamlandıktan sonra yeni bir mod olarak eklenebilir. İstasyonlar, kavşaklar, notlar ve anomaliler bağımsız MapLibre source/layer bileşenleridir.
 
+Harita çalışma zamanı WebGL 2'yi tercih eder, bulunmadığında WebGL 1'e geri düşer. Bu uyumluluk sözleşmesi nedeniyle MapLibre GL JS 5.x sürüm hattında tutulur; WebGL 2 zorunlu kılan bir ana sürüm yükseltmesi hedef tarayıcı desteği ayrıca değiştirilmeden yapılmaz.
+
 ## Hata ve Bozulma Davranışı
 
 - Fintraffic erişilemezse son bilinen veri yaşıyla gösterilir ve yeni veri uydurulmaz.
