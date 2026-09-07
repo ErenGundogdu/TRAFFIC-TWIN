@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import {
   StationDetailPanel,
-  StationList,
   useStationCatalog,
 } from "@/features/station-monitoring";
 import { TrafficMap } from "@/features/traffic-map";
@@ -13,11 +12,12 @@ import { OperatorNotesPanel } from "@/features/operator-notes";
 import { useRealtimeSync } from "@/features/realtime";
 import {
   JunctionDetailPanel,
-  JunctionList,
   useJunctionCatalog,
 } from "@/features/junction-monitoring";
 import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
 import { ThemeToggle } from "@/shared/theme";
+
+import { AssetSelectionBar } from "./asset-selection-bar";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
@@ -198,30 +198,25 @@ export function MonitoringWorkspace({
         </div>
       </header>
 
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_330px]">
-        <div className="hidden min-h-0 flex-col border-r border-slate-200 bg-white md:flex dark:border-slate-800 dark:bg-slate-900">
-          <JunctionList
-            junctions={junctions}
-            selectedJunctionId={selectedJunctionId}
-            onSelect={selectJunction}
-            status={
-              junctionQuery.isPending
-                ? "loading"
-                : junctionQuery.isError
-                  ? "error"
-                  : "ready"
-            }
-            onRetry={() => void junctionQuery.refetch()}
-          />
-          <div className="min-h-0 flex-1">
-            <StationList
-              stations={stations}
-              selectedStationId={selectedStationId}
-              onSelect={selectStation}
-            />
-          </div>
-        </div>
+      <AssetSelectionBar
+        stations={stations}
+        junctions={junctions}
+        selectedStationId={selectedStationId}
+        selectedJunctionId={selectedJunctionId}
+        onSelectStation={selectStation}
+        onSelectJunction={selectJunction}
+        onClearSelection={clearSelection}
+        junctionStatus={
+          junctionQuery.isPending
+            ? "loading"
+            : junctionQuery.isError
+              ? "error"
+              : "ready"
+        }
+        onRetryJunctions={() => void junctionQuery.refetch()}
+      />
 
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_330px]">
         <section
           className="relative min-h-[440px] overflow-hidden"
           aria-label="Trafik haritası"

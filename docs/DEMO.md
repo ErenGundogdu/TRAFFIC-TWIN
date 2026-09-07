@@ -22,7 +22,7 @@ Kanıt: başlıktaki kaynak durumu, saat dilimi ve harita attribution metinleri.
 
 ## 1:00–3:00 — Canlı İzleme ve Dayanıklılık
 
-- Listeden TMS 20002 istasyonunu seçin; URL'deki `station` parametresinin değiştiğini gösterin.
+- Varlık seçim çubuğunu açıp TMS 20002'yi arayın ve istasyonu seçin; URL'deki `station` parametresinin değiştiğini gösterin.
 - İki yönün son 5 dakikalık kayan hız/hacmini, ölçüm zamanını ve tazelik etiketini açıklayın.
 - Canlı bağlantı ve Fintraffic kaynak durumunun farklı göstergeler olduğunu belirtin.
 - Tema düğmesiyle koyu temaya geçin; arayüzün ve MapLibre stilinin birlikte değiştiğini gösterin.
@@ -31,7 +31,7 @@ Kanıt: seçim–URL–panel senkronu, gerçek ölçüm zamanı, stale/unknown e
 
 ## 3:00–4:15 — Türetilmiş Kavşak
 
-- Sol panelden tam veya kısmi kapsamalı bir kavşak seçin.
+- Varlık seçim çubuğunda “Kavşaklar” görünümüne geçip tam veya kısmi kapsamalı bir kavşak seçin.
 - OSM relation kimliği, yol referansları, bağlı fiziksel sensörler, mesafe/yön farkı, güven ve politika sürümünü gösterin.
 - Bir sensörün yalnız en yakın uyumlu kavşağa atandığını; yetersiz kapsamada veri uydurulmadığını belirtin.
 

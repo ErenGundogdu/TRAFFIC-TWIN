@@ -185,6 +185,8 @@ Canlı poll yeni observation yazdığında hız ve saatlik akış karşılaştı
 
 Haritada seçim URL'yi günceller; panel, tablo ve grafik aynı seçimi okur. Analiz tablosundaki “haritada göster” eylemi aynı URL sözleşmesiyle `/monitoring` rotasına gider. Nesnenin kopyası state'te tutulmaz; ID üzerinden güncel React Query/Socket.IO verisinden türetilir.
 
+İstasyon ve kavşak kataloğu, harita alanını daraltan kalıcı listeler yerine çalışma alanının üstündeki tek varlık seçim çubuğundan açılır. Çubuk tür geçişi, ad/TMS/yol araması ve kaydırılabilir sonuç görünümü sağlar; seçim yine aynı URL sözleşmesini kullanır. Birleşik gezinme bileşeni `traffic-workspace` içinde kalır, istasyon ve kavşak feature'larının veri sorumluluğunu üstlenmez.
+
 Seçim detayı tek bileşen ağacı olarak geniş ekranda üçüncü kolonda, daha dar ekranlarda harita üzerinde kapatılabilir panelde gösterilir. Responsive görünüm aynı veriyi ikinci kez sorgulayan veya iki form örneği oluşturan ayrı bir mobil detay implementasyonu kullanmaz.
 
 ## Harita Modları ve Katmanlar
