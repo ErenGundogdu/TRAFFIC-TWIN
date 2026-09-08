@@ -46,7 +46,7 @@ Kabul kriterleri:
 - Gün, ay, yıl ve özel aralık sorguları uygun veri çözünürlüğünü seçer.
 - İki zaman dönemi veya iki varlık ortak metrikler üzerinden karşılaştırılabilir.
 - Eksik tarih aralığı için ingestion durumu görünür, boş sonuç gerçek veri gibi gösterilmez.
-- Replay oynatılabilir, durdurulabilir, hızı değiştirilebilir ve canlı moda dönebilir.
+- Replay oynatılabilir, durdurulabilir, hızı değiştirilebilir, zaman çizelgesinden gerçek bir ölçüm anına götürülebilir ve canlı moda dönebilir.
 - Mod, seçim ve filtreler `/monitoring` URL'sinde paylaşılabilir biçimde korunur.
 - İstasyonların geçmiş veri bulunurluğu ve gerçek import tarihleri seçimden önce görünür; verisiz seçimde çalışabilecek varlık ve en son ortak gün önerilir.
 - Seçilen dönem için ağırlıklı ortalama/medyan hız, toplam geçiş, yoğun zaman dilimi, hız aralığı ve iki yönlü hacim dağılımı sunucuda hesaplanıp veri temeliyle gösterilir.

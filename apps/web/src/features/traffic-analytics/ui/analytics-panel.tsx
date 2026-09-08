@@ -15,7 +15,7 @@ import { useState, type ReactNode } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { z } from "zod";
 
-import { useReplay } from "@/features/replay";
+import { ReplayTimeline, type ReplayController } from "@/features/replay";
 import {
   dateLabelAt,
   shiftDateLabel,
@@ -52,6 +52,7 @@ interface AnalyticsPanelProps {
   onReturnLive: () => void;
   availability: HistoryAssetAvailability[];
   availabilityStatus: "loading" | "error" | "ready";
+  replay: ReplayController;
 }
 
 export function AnalyticsPanel({
@@ -60,6 +61,7 @@ export function AnalyticsPanel({
   onReturnLive,
   availability,
   availabilityStatus,
+  replay,
 }: AnalyticsPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -97,7 +99,6 @@ export function AnalyticsPanel({
     to: zonedDateStartIso(values.toDate, catalog.coverageArea.timeZone),
   };
   const history = useTrafficHistory(catalog.coverageArea.id, query);
-  const replay = useReplay();
   const [replaySpeed, setReplaySpeed] = useState<ReplaySpeed>(8);
   const selectedStation = catalog.stations.find(
     (station) => station.id === selectedStationId,
@@ -120,6 +121,12 @@ export function AnalyticsPanel({
     new Date(query.to).getTime() - new Date(query.from).getTime() <=
       2 * 86_400_000 &&
     Boolean(history.data?.series.some((series) => series.points.length));
+  const replayTimestamps =
+    history.data?.series
+      .flatMap((series) => series.points.map((point) => point.timestamp))
+      .sort() ?? [];
+  const replayStart = replayTimestamps[0] ?? null;
+  const replayEnd = replayTimestamps.at(-1) ?? null;
 
   function submit(next: FilterValues) {
     replay.control({ action: "stop" });
@@ -455,6 +462,21 @@ export function AnalyticsPanel({
                   : `${replay.frameCount} kare`}
             </span>
           </div>
+
+          {replayStart && replayEnd ? (
+            <ReplayTimeline
+              start={replayStart}
+              end={replayEnd}
+              current={replay.frame?.timestamp}
+              timeZone={catalog.coverageArea.timeZone}
+              disabled={
+                replay.status === "idle" ||
+                replay.status === "loading" ||
+                replay.status === "error"
+              }
+              onSeek={replay.seek}
+            />
+          ) : null}
 
           {replay.frame ? (
             <div className="mt-2 flex flex-wrap gap-2">

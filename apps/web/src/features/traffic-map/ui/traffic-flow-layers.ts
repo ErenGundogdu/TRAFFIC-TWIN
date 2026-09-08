@@ -15,9 +15,9 @@ export const trafficHeatmapLayer: LayerProps = {
       3_000,
       1,
     ],
-    "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 8, 0.7, 13, 1.8],
-    "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 8, 18, 13, 42],
-    "heatmap-opacity": 0.72,
+    "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2.6],
+    "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 8, 24, 13, 72],
+    "heatmap-opacity": 0.86,
     "heatmap-color": [
       "interpolate",
       ["linear"],
@@ -36,12 +36,50 @@ export const trafficHeatmapLayer: LayerProps = {
   },
 };
 
+export const trafficDensityGlowLayer: LayerProps = {
+  id: "traffic-density-glow",
+  type: "circle",
+  filter: ["==", ["get", "hasFlow"], true],
+  paint: {
+    "circle-radius": [
+      "interpolate",
+      ["linear"],
+      ["get", "totalFlowVehiclesPerHour"],
+      0,
+      16,
+      3_000,
+      38,
+    ],
+    "circle-color": [
+      "step",
+      ["get", "totalFlowVehiclesPerHour"],
+      "#38bdf8",
+      700,
+      "#22c55e",
+      1_400,
+      "#f59e0b",
+      2_200,
+      "#e11d48",
+    ],
+    "circle-opacity": 0.2,
+    "circle-blur": 0.65,
+  },
+};
+
 export const roadFlowCasingLayer: LayerProps = {
   id: "traffic-road-flow-casing",
   type: "line",
   paint: {
-    "line-color": "#ffffff",
-    "line-opacity": 0.9,
+    "line-color": [
+      "match",
+      ["get", "direction"],
+      1,
+      "#0284c7",
+      2,
+      "#7c3aed",
+      "#64748b",
+    ],
+    "line-opacity": 0.95,
     "line-width": [
       "interpolate",
       ["linear"],
@@ -84,15 +122,23 @@ export const roadFlowArrowLayer: LayerProps = {
   layout: {
     "symbol-placement": "line",
     "symbol-spacing": 90,
-    "text-field": "▶",
-    "text-size": 13,
+    "text-field": ["concat", ["get", "directionLabel"], "  ▶"],
+    "text-size": 12,
     "text-rotation-alignment": "map",
     "text-keep-upright": false,
   },
   paint: {
-    "text-color": "#ffffff",
-    "text-halo-color": "#0f172a",
-    "text-halo-width": 1,
+    "text-color": [
+      "match",
+      ["get", "direction"],
+      1,
+      "#0284c7",
+      2,
+      "#7c3aed",
+      "#475569",
+    ],
+    "text-halo-color": "#ffffff",
+    "text-halo-width": 2,
   },
 };
 

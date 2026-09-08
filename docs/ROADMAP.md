@@ -64,7 +64,7 @@ Bir sonraki aşama, mevcut aşamanın çıkış kriterleri doğrulanmadan otomat
 - [x] Varlık karşılaştırması
 - [x] Socket.IO replay oturumu ve senkron zaman imleci
 
-Çıkış kriteri: **Tamamlandı.** Fintraffic'in 3 Eylül 2026 tarihli iki gerçek TMS artifact'i checksum ve kaynak kökeniyle arşivlendi; 95.206 geçerli araç kaydı 5.104 dakika, 96 saat ve 4 gün özetine dönüştürüldü. `/monitoring?mode=analysis` gün/ay/yıl/özel aralık, metrik, yön ve otomatik çözünürlük filtrelerini URL'de taşır; kalıcı haritayı korurken iki istasyonu aynı grafikte karşılaştırır ve eksik günleri açıkça gösterir. Eski `/analytics` bağlantıları filtre kaybetmeden bu moda yönlenir. Yakın dönem dakika serisi Socket.IO üzerinden oynatılabilir, durdurulabilir ve hızı değiştirilebilir; grafik zaman imleci canonical replay karesini kullanır.
+Çıkış kriteri: **Tamamlandı.** Fintraffic'in 3 Eylül 2026 tarihli iki gerçek TMS artifact'i checksum ve kaynak kökeniyle arşivlendi; 95.206 geçerli araç kaydı 5.104 dakika, 96 saat ve 4 gün özetine dönüştürüldü. `/monitoring?mode=analysis` gün/ay/yıl/özel aralık, metrik, yön ve otomatik çözünürlük filtrelerini URL'de taşır; kalıcı haritayı korurken iki istasyonu aynı grafikte karşılaştırır ve eksik günleri açıkça gösterir. Eski `/analytics` bağlantıları filtre kaybetmeden bu moda yönlenir. Yakın dönem dakika serisi Socket.IO üzerinden oynatılabilir, durdurulabilir, hızı değiştirilebilir ve zaman çizelgesinden en yakın gerçek kareye götürülebilir; grafik ile harita canonical replay karesini kullanır.
 
 ## Aşama 5 — Kavşak ve AI İçgörüsü
 

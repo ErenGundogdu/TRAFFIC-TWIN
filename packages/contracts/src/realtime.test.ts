@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { createOperatorNoteSchema, trafficBatchSchema } from "./realtime.js";
+import {
+  createOperatorNoteSchema,
+  replayControlSchema,
+  trafficBatchSchema,
+} from "./realtime.js";
 
 describe("realtime contracts", () => {
   it("trims and validates an operator note", () => {
@@ -33,6 +37,22 @@ describe("realtime contracts", () => {
         emittedAt: "2026-09-04T09:01:01Z",
         stations: [],
       }).success,
+    ).toBe(false);
+  });
+
+  it("validates replay seek timestamps", () => {
+    expect(
+      replayControlSchema.parse({
+        action: "seek",
+        timestamp: "2026-09-03T08:25:00.000Z",
+      }),
+    ).toEqual({
+      action: "seek",
+      timestamp: "2026-09-03T08:25:00.000Z",
+    });
+    expect(
+      replayControlSchema.safeParse({ action: "seek", timestamp: "08:25" })
+        .success,
     ).toBe(false);
   });
 });

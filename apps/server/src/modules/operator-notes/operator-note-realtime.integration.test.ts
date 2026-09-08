@@ -40,6 +40,17 @@ describe("operator note realtime flow", () => {
             },
           ],
         },
+        {
+          timestamp: "2026-09-02T21:01:00Z",
+          values: [
+            {
+              assetId: "fintraffic-tms:20002",
+              averageSpeedKmh: 72,
+              vehicleCount: 14,
+              sampleCount: 14,
+            },
+          ],
+        },
       ],
     },
   );
@@ -177,10 +188,47 @@ describe("operator note realtime flow", () => {
 
     await expect(acknowledgement).resolves.toMatchObject({
       ok: true,
-      frameCount: 1,
+      frameCount: 2,
     });
     await expect(frame).resolves.toMatchObject({
       timestamp: "2026-09-02T21:00:00Z",
+    });
+  });
+
+  it("seeks to the nearest canonical replay frame", async () => {
+    const client = await new Promise<Socket>((resolve) => {
+      const socket = createClient(url, { reconnection: false });
+      clients.push(socket);
+      socket.on("connect", () => resolve(socket));
+    });
+    const acknowledgement = new Promise((resolve) =>
+      client.emit(
+        REALTIME_EVENTS.replayStart,
+        {
+          coverageAreaId: "helsinki",
+          assetIds: ["fintraffic-tms:20002"],
+          direction: 1,
+          from: "2026-09-02T21:00:00Z",
+          to: "2026-09-03T21:00:00Z",
+          speed: 1,
+        },
+        resolve,
+      ),
+    );
+    await acknowledgement;
+    client.emit(REALTIME_EVENTS.replayControl, { action: "pause" });
+
+    const soughtFrame = new Promise((resolve) =>
+      client.once(REALTIME_EVENTS.replayFrame, resolve),
+    );
+    client.emit(REALTIME_EVENTS.replayControl, {
+      action: "seek",
+      timestamp: "2026-09-02T21:00:40Z",
+    });
+
+    await expect(soughtFrame).resolves.toMatchObject({
+      timestamp: "2026-09-02T21:01:00Z",
+      values: [{ averageSpeedKmh: 72, vehicleCount: 14 }],
     });
   });
 });

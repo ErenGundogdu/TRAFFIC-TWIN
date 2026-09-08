@@ -79,6 +79,7 @@ export const replayControlSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("resume") }),
   z.object({ action: z.literal("stop") }),
   z.object({ action: z.literal("set-speed"), speed: replaySpeedSchema }),
+  z.object({ action: z.literal("seek"), timestamp: z.iso.datetime() }),
 ]);
 
 export const replayFrameSchema = z.object({

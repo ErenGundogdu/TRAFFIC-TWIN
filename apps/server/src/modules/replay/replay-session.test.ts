@@ -52,4 +52,29 @@ describe("ReplaySession", () => {
     vi.advanceTimersByTime(500);
     expect(emitEnded).toHaveBeenCalledOnce();
   });
+
+  it("seeks to the nearest real frame and continues from there", () => {
+    vi.useFakeTimers();
+    const emitFrame = vi.fn();
+    const session = new ReplaySession(frames, 1, emitFrame, vi.fn());
+
+    session.start();
+    session.seek("2026-09-02T21:00:40.000Z");
+
+    expect(emitFrame).toHaveBeenCalledWith(frames[1]);
+  });
+
+  it("keeps a paused replay paused after seeking", () => {
+    vi.useFakeTimers();
+    const emitFrame = vi.fn();
+    const session = new ReplaySession(frames, 1, emitFrame, vi.fn());
+
+    session.start();
+    session.pause();
+    session.seek("2026-09-02T21:00:00.000Z");
+    vi.advanceTimersByTime(5_000);
+
+    expect(emitFrame).toHaveBeenCalledTimes(1);
+    expect(emitFrame).toHaveBeenCalledWith(frames[0]);
+  });
 });

@@ -1,7 +1,7 @@
 import type { MapVisualizationMode } from "../model/map-visualization-mode";
 
 const modes: Array<{ value: MapVisualizationMode; label: string }> = [
-  { value: "overview", label: "Yoğunluk" },
+  { value: "overview", label: "Isı haritası" },
   { value: "flow", label: "Yol akışı" },
   { value: "volume-3d", label: "3B hacim" },
 ];

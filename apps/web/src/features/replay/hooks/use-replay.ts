@@ -73,6 +73,9 @@ export function useReplay() {
     socketRef.current?.emit(REALTIME_EVENTS.replayControl, command);
     if (command.action === "pause") setStatus("paused");
     if (command.action === "resume") setStatus("playing");
+    if (command.action === "seek") {
+      setStatus((current) => (current === "ended" ? "paused" : current));
+    }
     if (command.action === "stop") {
       setStatus("idle");
       setFrame(null);
@@ -84,5 +87,12 @@ export function useReplay() {
     [control],
   );
 
-  return { status, frame, frameCount, start, control, setSpeed };
+  const seek = useCallback(
+    (timestamp: string) => control({ action: "seek", timestamp }),
+    [control],
+  );
+
+  return { status, frame, frameCount, start, control, setSpeed, seek };
 }
+
+export type ReplayController = ReturnType<typeof useReplay>;

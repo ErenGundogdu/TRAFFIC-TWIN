@@ -39,8 +39,8 @@ Kanıt: kavşak detay paneli ve haritadaki bağımsız kavşak katmanı.
 
 ## 2:45–4:15 — Harita Görselleştirme Modları
 
-- `Yoğunluk` görünümünde iki yön toplam gerçek araç/saat değerlerinin ısı dağılımını gösterin.
-- TMS 20002'yi seçip `Yol akışı` görünümünde Turunväylä'nın gerçek OSM çizgisini, yön oklarını, hız rengini ve hacim kalınlığını açıklayın.
+- `Isı haritası` görünümünde iki yön toplam gerçek araç/saat değerlerinin ısı dağılımını gösterin.
+- TMS 20002'yi seçip `Yol akışı` görünümünde Turunväylä'nın gerçek OSM çizgisini; dinamik mavi Yön 1/mor Yön 2 kenar ve etiketlerini, hız rengini ve hacim kalınlığını açıklayın.
 - `3B hacim` görünümüne geçin; sütunların fiziksel yükseklik değil, o anki istasyonlar arasında göreli araç/saat ölçeği olduğunu belirtin.
 - Yol bağlamı alınamadığında sensör ölçümünün ve diğer harita katmanlarının çalışmaya devam ettiğini açıklayın.
 
@@ -63,6 +63,7 @@ Kanıt: paylaşılabilir filtre URL'si, sunucu hesaplı KPI özeti, iki serili g
 
 - En fazla iki günlük ve veri içeren aralıkta replay'i başlatın.
 - Duraklatın, hızı değiştirin ve sürdürün.
+- Zaman çizelgesini sürükleyip ardından bir dakika ileri/geri kontrolleriyle farklı gerçek ölçüm karelerine gidin; eksik zamanın uydurulmadığını açıklayın.
 - Grafik zaman imleci ile harita bağlamının aynı canonical Socket.IO replay zamanını kullandığını gösterin.
 - `Canlıya dön` ile replay oturumunu kapatıp aynı haritada canlı moda geçin.
 

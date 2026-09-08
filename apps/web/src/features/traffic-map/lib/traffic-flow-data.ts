@@ -123,6 +123,7 @@ export function createRoadFlowGeoJson(
           id: segment.id,
           assetId: context.assetId,
           direction: segment.direction ?? 0,
+          directionLabel: direction?.label ?? "Yön bilinmiyor",
           name: segment.name ?? `Yol ${segment.roadRef ?? ""}`.trim(),
           speedKmh: direction?.averageSpeedKmh ?? stationSpeed(station) ?? -1,
           flowVehiclesPerHour: direction?.flowVehiclesPerHour ?? 0,

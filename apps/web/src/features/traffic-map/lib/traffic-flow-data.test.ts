@@ -88,6 +88,7 @@ describe("traffic flow map data", () => {
       geometry: { coordinates: roadContext.segments[0]?.coordinates },
       properties: {
         direction: 1,
+        directionLabel: "Yön 1",
         speedKmh: 80,
         flowVehiclesPerHour: 900,
         hasMeasurement: true,

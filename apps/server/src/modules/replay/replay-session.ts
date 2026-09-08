@@ -35,6 +35,27 @@ export class ReplaySession {
     }
   }
 
+  seek(timestamp: string) {
+    if (this.frames.length === 0) return;
+
+    const target = new Date(timestamp).getTime();
+    const nearestIndex = this.frames.reduce((nearest, frame, index) => {
+      const nearestDistance = Math.abs(
+        new Date(this.frames[nearest]!.timestamp).getTime() - target,
+      );
+      const frameDistance = Math.abs(
+        new Date(frame.timestamp).getTime() - target,
+      );
+      return frameDistance < nearestDistance ? index : nearest;
+    }, 0);
+    const wasPaused = this.paused;
+
+    this.clearTimer();
+    this.emitFrame(this.frames[nearestIndex]!);
+    this.index = nearestIndex + 1;
+    if (!wasPaused) this.scheduleNext();
+  }
+
   stop() {
     this.paused = true;
     this.clearTimer();

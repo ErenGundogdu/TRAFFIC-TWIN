@@ -110,6 +110,9 @@ export function createRealtimeServer(
       if (result.data.action === "set-speed") {
         replaySession.setSpeed(result.data.speed);
       }
+      if (result.data.action === "seek") {
+        replaySession.seek(result.data.timestamp);
+      }
     });
 
     socket.on("disconnect", () => replaySession?.stop());

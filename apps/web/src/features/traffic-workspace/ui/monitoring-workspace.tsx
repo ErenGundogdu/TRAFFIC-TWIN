@@ -15,6 +15,7 @@ import { TrafficMap, type MapVisualizationMode } from "@/features/traffic-map";
 import { OperatorNotesPanel } from "@/features/operator-notes";
 import { useStationRoadContext } from "@/features/road-context";
 import { useRealtimeSync } from "@/features/realtime";
+import { applyReplayFrame, useReplay } from "@/features/replay";
 import {
   JunctionDetailPanel,
   useJunctionCatalog,
@@ -53,7 +54,7 @@ export function MonitoringWorkspace({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [mapVisualizationMode, setMapVisualizationMode] =
-    useState<MapVisualizationMode>("overview");
+    useState<MapVisualizationMode>("flow");
   const mode = parseWorkspaceMode(searchParams.get("mode"));
   const requestedStationId = searchParams.get("station");
   const selectedJunctionId = searchParams.get("junction");
@@ -65,6 +66,7 @@ export function MonitoringWorkspace({
     mode === "analysis",
   );
   const realtime = useRealtimeSync(coverageAreaId);
+  const replay = useReplay();
   const requestedStation =
     catalogQuery.data?.stations.find(
       (station) => station.id === requestedStationId,
@@ -114,6 +116,7 @@ export function MonitoringWorkspace({
   ]);
 
   function selectStation(stationId: string) {
+    if (mode === "analysis") replay.control({ action: "stop" });
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("station", stationId);
     nextParams.delete("junction");
@@ -121,6 +124,7 @@ export function MonitoringWorkspace({
   }
 
   function selectJunction(junctionId: string) {
+    replay.control({ action: "stop" });
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("junction", junctionId);
     nextParams.delete("station");
@@ -129,6 +133,7 @@ export function MonitoringWorkspace({
   }
 
   function clearSelection() {
+    replay.control({ action: "stop" });
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete("station");
     nextParams.delete("junction");
@@ -142,6 +147,7 @@ export function MonitoringWorkspace({
   }
 
   function changeMode(nextMode: WorkspaceMode) {
+    if (nextMode === "live") replay.control({ action: "stop" });
     const nextParams = setWorkspaceMode(searchParams, nextMode);
     nextParams.delete("junction");
     if (nextMode === "analysis" && !selectedStationId) {
@@ -194,6 +200,11 @@ export function MonitoringWorkspace({
 
   const { coverageArea, source, stations } = catalogQuery.data;
   const junctions = junctionQuery.data?.junctions ?? [];
+  const replayDirection = searchParams.get("direction") === "2" ? 2 : 1;
+  const mapStations =
+    mode === "analysis" && replay.frame
+      ? applyReplayFrame(stations, replay.frame, replayDirection)
+      : stations;
 
   return (
     <main className="flex h-screen min-h-[680px] flex-col overflow-hidden bg-slate-100 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
@@ -316,7 +327,7 @@ export function MonitoringWorkspace({
         >
           <TrafficMap
             bbox={coverageArea.bbox}
-            stations={stations}
+            stations={mapStations}
             selectedStationId={selectedStationId}
             onSelect={selectStation}
             junctions={junctions}
@@ -383,7 +394,10 @@ export function MonitoringWorkspace({
           <AnalyticsPanel
             catalog={catalogQuery.data}
             selectedStationId={selectedStationId}
-            onReturnLive={() => changeMode("live")}
+            onReturnLive={() => {
+              replay.control({ action: "stop" });
+              changeMode("live");
+            }}
             availability={historyAvailabilityQuery.data?.assets ?? []}
             availabilityStatus={
               historyAvailabilityQuery.isPending
@@ -392,6 +406,7 @@ export function MonitoringWorkspace({
                   ? "error"
                   : "ready"
             }
+            replay={replay}
           />
         ) : (
           <div

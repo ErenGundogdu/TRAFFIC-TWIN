@@ -37,6 +37,7 @@ import {
   roadFlowCasingLayer,
   roadFlowLayer,
   trafficHeatmapLayer,
+  trafficDensityGlowLayer,
   trafficVolumeLayer,
 } from "./traffic-flow-layers";
 import {
@@ -218,6 +219,7 @@ export function TrafficMap({
             data={densityGeoJson}
           >
             <Layer {...trafficHeatmapLayer} />
+            <Layer {...trafficDensityGlowLayer} />
           </Source>
         ) : null}
         {visualizationMode === "flow" ? (
@@ -290,21 +292,13 @@ export function TrafficMap({
         value={visualizationMode}
         onChange={onVisualizationModeChange}
       />
-      <div className="pointer-events-none absolute bottom-8 left-3 max-w-72 rounded-lg border border-white/70 bg-white/90 px-2.5 py-2 text-[10px] leading-4 text-slate-600 shadow backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
-        {visualizationMode === "overview"
-          ? "Isı yoğunluğu, istasyonlardaki gerçek iki yön toplam araç/saat değerini gösterir."
-          : visualizationMode === "volume-3d"
-            ? "Sütun yüksekliği fiziksel yükseklik değildir; görünür istasyonlar arasındaki göreli araç/saat hacmidir."
-            : !selectedStationId
-              ? "Gerçek OSM yol bağlamını görmek için bir ölçüm istasyonu seçin."
-              : roadContextStatus === "loading"
-                ? "Seçili istasyonun gerçek OSM yol geometrisi yükleniyor…"
-                : roadContextStatus === "error"
-                  ? "OSM yol bağlamı alınamadı; istasyon ölçümleri çalışmaya devam ediyor."
-                  : roadContext?.status === "NO_MATCH"
-                    ? "Seçili istasyon için yol referansıyla eşleşen OSM geometrisi bulunamadı."
-                    : "Çizgi gerçek OSM yol geometrisidir; kalınlık araç/saat, renk hız, ok Fintraffic yönüdür."}
-      </div>
+      <MapVisualizationLegend
+        mode={visualizationMode}
+        selectedStationId={selectedStationId}
+        selectedStation={selectedStation}
+        roadContext={roadContext}
+        roadContextStatus={roadContextStatus}
+      />
       {styleFailed ? (
         <p
           role="status"
@@ -313,6 +307,73 @@ export function TrafficMap({
           Harita altlığı kısmen yüklenemedi. Trafik verileri çalışmaya devam
           ediyor.
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+function MapVisualizationLegend({
+  mode,
+  selectedStationId,
+  selectedStation,
+  roadContext,
+  roadContextStatus,
+}: {
+  mode: MapVisualizationMode;
+  selectedStationId: string | null;
+  selectedStation: StationSummary | null;
+  roadContext?: StationRoadContext;
+  roadContextStatus: "idle" | "loading" | "error" | "ready";
+}) {
+  const title =
+    mode === "overview"
+      ? "Canlı trafik yoğunluğu"
+      : mode === "volume-3d"
+        ? "Göreli 3B trafik hacmi"
+        : "Seçili istasyonun yol akışı";
+  const description =
+    mode === "overview"
+      ? "Renk alanı, gerçek iki yön toplam araç/saat değerini gösterir."
+      : mode === "volume-3d"
+        ? "Sütun yüksekliği fiziksel değildir; istasyonlar arasındaki göreli araç/saat hacmidir."
+        : !selectedStationId
+          ? "Gerçek OSM yol bağlamını görmek için bir ölçüm istasyonu seçin."
+          : roadContextStatus === "loading"
+            ? "Gerçek OSM yol geometrisi yükleniyor…"
+            : roadContextStatus === "error"
+              ? "OSM yolu alınamadı; gerçek istasyon ölçümü korunuyor."
+              : roadContext?.status === "NO_MATCH"
+                ? "Yol referansıyla eşleşen OSM geometrisi bulunamadı."
+                : "Gerçek OSM çizgisi: kalınlık araç/saat, iç renk hız, renkli kenar ve ok ölçüm yönüdür.";
+
+  return (
+    <div className="pointer-events-none absolute bottom-8 left-3 max-w-80 rounded-xl border border-white/80 bg-white/95 px-3 py-2.5 text-[10px] leading-4 text-slate-600 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-300">
+      <p className="font-semibold text-slate-900 dark:text-white">{title}</p>
+      <p className="mt-0.5">{description}</p>
+      {mode !== "flow" ? (
+        <div className="mt-2 flex items-center gap-2">
+          <span>Düşük</span>
+          <span className="h-1.5 flex-1 rounded-full bg-gradient-to-r from-sky-400 via-emerald-500 via-50% to-rose-600" />
+          <span>Yüksek</span>
+        </div>
+      ) : selectedStation && roadContext?.status === "MATCHED" ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selectedStation.directions.map((direction) => (
+            <span
+              key={direction.direction}
+              className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-1 dark:bg-slate-800"
+            >
+              <span
+                className={`size-2 rounded-full ${
+                  direction.direction === 1 ? "bg-sky-600" : "bg-violet-600"
+                }`}
+              />
+              {direction.label}:{" "}
+              {formatMetric(direction.averageSpeedKmh, "km/sa")} ·{" "}
+              {formatMetric(direction.flowVehiclesPerHour, "araç/sa")}
+            </span>
+          ))}
+        </div>
       ) : null}
     </div>
   );

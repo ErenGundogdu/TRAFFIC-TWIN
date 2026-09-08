@@ -8,10 +8,9 @@ describe("MapVisualizationSwitcher", () => {
     const onChange = vi.fn();
     render(<MapVisualizationSwitcher value="overview" onChange={onChange} />);
 
-    expect(screen.getByRole("button", { name: "Yoğunluk" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(
+      screen.getByRole("button", { name: "Isı haritası" }),
+    ).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(screen.getByRole("button", { name: "3B hacim" }));
     expect(onChange).toHaveBeenCalledWith("volume-3d");
   });
