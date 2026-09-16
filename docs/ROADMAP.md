@@ -90,7 +90,7 @@ Anomali kanıtı: TMS 20002 için önceki 6 cumartesinin resmî Fintraffic artif
 - [x] `kararlar.md`, mimari ve demo senaryosunun güncellenmesi
 - [x] Yaklaşık 10 dakikalık demo hazırlığı
 
-Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/PostGIS 3.5 veritabanında bütün commitli migration'lar sıfırdan uygulanıp 10 uygulama tablosu doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 62 unit/component testi, 7 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim ve iki istasyonlu geçmiş grafik tarayıcıda kontrol edildi.
+Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş PostgreSQL/PostGIS 3.5 veritabanında 16 commitli migration ve 16 uygulama tablosu doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 147 unit/component testi, 12 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim, 59 yol olayı, istasyon–olay bağlamı ve geçmiş analiz çalışma alanı tarayıcıda kontrol edildi.
 
 Çıkış kriteri: **Tamamlandı.** Temiz kurulumdan çalışan demo üretilebilir ve brief'in bütün zorunlu maddeleri `docs/DEMO.md` akışında kanıtlanabilir.
 
@@ -116,7 +116,83 @@ Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş bir PostgreSQL/Pos
 - [x] Göreli ölçekli ve açıklamalı 3B hacim sütunları
 - [x] Seçili istasyon için yol referanslı gerçek OSM geometrisi
 - [x] Fintraffic bearing ile yön eşleştirme ve yol üzeri akış okları
+- [x] Yön başına dinamik derece/pusula kimliği ve ortak detay–analiz–replay–harita sunumu
 - [x] OSM başarısızlık/no-match durumunda ölçümü koruyan bozulma davranışı
+
+### İstasyona göre normalize canlı akış
+
+- [x] Fintraffic yön bazlı serbest-akış ve kapasite oranlarının normalize edilmesi
+- [x] Mevsimsel `VVAPAAS1/2` ve `MS1/2` sabitlerinin istasyon-yön profili olarak kalıcılığı
+- [x] Sürümlü ve açıklanabilir akış sınıflandırması; eksik girdide `INSUFFICIENT_DATA`
+- [x] İstasyon kartı ile gerçek OSM yol katmanında aynı akış durumunun gösterimi
+
+### Dinamik yol olayı bağlamı
+
+- [x] Resmî Fintraffic yol çalışması ve trafik duyurusu istemcisi
+- [x] GeoJSON geometri, kaynak zamanı, yaşam döngüsü ve önem normalizasyonu
+- [x] Helsinki geometrik kapsama süzmesi ve kalıcı güncel snapshot
+- [x] Bağımsız MapLibre katman anahtarları, olay özeti ve bozulma davranışı
+- [x] Yön, bildirilen etkiler ve gönderen kurumun kayıpsız normalizasyonu
+- [x] Kısa hover özeti ve tıklamayla açılan kalıcı ayrıntı kartı
+
+Doğrulama kanıtı: 14 Eylül 2026 canlı sağlayıcı senkronunda Helsinki kapsama alanıyla kesişen 51 gerçek olay (49 yol çalışması, 2 trafik duyurusu) alındı; 45 aktif ve 6 yaklaşan durum ortak sözleşmeye dönüştürüldü. Harita, kategori anahtarları ve bağımsız ikincil sorgu davranışı tarayıcıda doğrulandı. Olay katmanı yoğunluk veya anomali için neden-sonuç iddiası üretmez.
+
+### OSM yol bağlamı dayanıklılığı
+
+- [x] Son doğrulanmış istasyon yol geometrisinin PostgreSQL'de kalıcılığı
+- [x] Başarısız yenilemede kaynak zamanını koruyan `STALE` fallback
+- [x] Beş dakikalık başarısız yenileme geri çekilmesi
+- [x] Upstream HTTP/ağ hatası ayrımı ve görünür sunucu logu
+- [x] `FRESH`/`STALE` durumuna göre React Query yeniden doğrulaması
+
+### Trafik olayı kaynak güncelliği
+
+- [x] Son başarılı senkron zamanından sunucu taraflı `FRESH`/`STALE`/`UNAVAILABLE` sınıflandırması
+- [x] Poll aralığına bağlı dinamik güncellik eşiği
+- [x] Harita katman kontrolünde son başarılı zaman ve açık bozulma durumu
+- [x] Sözleşme, servis ve kullanıcı arayüzü testleri
+
+### Trafik olayı gezgini
+
+- [x] Kaynak metni ve yol numarası araması
+- [x] Kategori, yaşam döngüsü ve etki düzeyi filtreleri
+- [x] URL tabanlı filtre ve olay seçimi
+- [x] Listeden gerçek geometriye harita odağı ve ayrıntı kartı
+- [x] Harita çizimi ile olay keşfi sorumluluklarının feature sınırında ayrılması
+
+### İstasyon–trafik olayı operasyon bağlamı
+
+- [x] İstasyon noktası ile gerçek olay geometrisi arasında PostGIS mesafe hesabı
+- [x] Dinamik yol numarası eşleşmesi ve sürümlü aynı-yol/yakın-çevre politikası
+- [x] Ayrı bağlam servisi, repository ve REST sözleşmesi
+- [x] İstasyon detayından URL ile senkron gerçek olay geometrisi seçimi
+- [x] Yakınlığın nedensellik olmadığını belirten açık kanıt sunumu
+- [x] Saf eşleştirme, servis, sözleşme, UI ve gerçek PostGIS entegrasyon testleri
+
+Doğrulama kanıtı: TMS 20002 canlı doğrulamasında kimlik eşleştirmesi olmadan aynı Yol 1 üzerinde 0 m ve 1,3 km, yakın çevrede Yol 50 üzerinde 478 m uzaklıkta üç gerçek olay bulundu. Bağlam kartı seçimi canonical olay kimliğini URL'ye taşıdı ve mevcut harita olay seçimiyle birleştirildi. `0 m`, istasyon noktasının olay geometrisi üzerinde bulunmasını ifade eder; üretilmiş ölçüm değildir.
+
+### Varlık operasyon günlüğü
+
+- [x] Operatör notunda bakım, arıza, kontrol ve genel not kategorileri
+- [x] Bilgi, işlem gerekli ve çözüldü operasyon durumları
+- [x] Ortak Zod/TypeScript, Socket.IO ve PostgreSQL kısıtlarının aynı sözleşmeye bağlanması
+- [x] Eski kayıtları `Genel not / Bilgi` olarak koruyan migration
+- [x] Form seçimi, canonical broadcast ve liste etiketleri için testler
+
+Bağımsız harita konumuna bırakılan saha bildirimi, operatör günlüğü tablosuna yüklenmeden ayrı bir feature olarak uygulanmıştır.
+
+### Operatör saha bildirimi
+
+- [x] Aynı MapLibre çalışma alanında açık araçla serbest nokta seçimi
+- [x] Kaza, yoğunluk, yol/sinyal/sensör sorunları için tipli kategori ve önem sözleşmesi
+- [x] Kapsama bbox doğrulaması ve server tarafından zorunlu `PENDING_REVIEW` ataması
+- [x] SRID 4326 PostGIS Point kalıcılığı ve GIST konum indeksi
+- [x] REST reconciliation ile Socket.IO create acknowledgement/broadcast akışı
+- [x] Resmî Fintraffic olaylarından bağımsız, kaynak ve onay durumu görünür harita katmanı
+- [x] URL tabanlı kayıt seçimi; yalnız istemcide tutulan kaydedilmemiş konum
+- [x] Contract, servis, form, harita verisi ve gerçek PostgreSQL/iki istemci testleri
+
+Admin doğrulama komutları ve ayrı saha bildirimi yönetim sayfası authentication sonrasına planlanmıştır. Mevcut `field-reports` feature'ı harita kabuğundan ayrıldığı için form, katalog ve detay bileşenleri yeni rotada tekrar kullanılabilir.
 
 Yalnızca Aşama 6 tamamlandıktan ve kalan zaman değerlendirildikten sonra:
 

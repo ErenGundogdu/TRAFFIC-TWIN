@@ -4,7 +4,7 @@
 
 Traffic Twin, gerçek trafik ölçüm istasyonlarını harita üzerinde izlemek, tarihsel davranışı analiz etmek, açıklanabilir anomaliler üretmek ve operatörler arasında gerçek zamanlı not paylaşmak için tasarlanan bir staj projesidir.
 
-> Proje durumu: MVP ve Aşama 6 teslimat sertleştirmesi tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. Aynı harita çalışma alanındaki Analiz modu gerçek geçmiş seriyi karşılaştırır ve senkron replay eder.
+> Proje durumu: MVP ve Aşama 6 teslimat sertleştirmesi tamamlandı. Gerçek Fintraffic TMS istasyonları `/monitoring` ekranında canlı izlenir; resmî yol çalışmaları ve trafik duyuruları aynı haritada bağımsız katmanlar olarak gösterilir. Gerçek OSM kavşak ilişkileri sürümlü yol/mesafe/yön politikasıyla sensörlere eşlenir. Yapılandırılabilir kayan baseline ve median/MAD motoru, hız ve hacmi aynı yerel gün/saat geçmişiyle karşılaştırır; yetersiz veri, aday ve aktif anomali durumlarını açıklama kanıtıyla gösterir. Aynı harita çalışma alanındaki Analiz modu gerçek geçmiş seriyi karşılaştırır ve senkron replay eder. MVP sonrası operatör, bağımsız bir harita konumuna kaynağı ve onay durumu açık saha bildirimi bırakabilir.
 
 ## Hedef MVP
 
@@ -30,6 +30,7 @@ Sensör istasyonları fiziksel veri kaynağıdır. OpenStreetMap yol ağıyla do
 ## Veri Kaynakları
 
 - [Fintraffic Digitraffic TMS](https://www.digitraffic.fi/en/road-traffic/lam/): Gerçek istasyon metadata'sı, hız, yön ve trafik hacmi
+- [Fintraffic Traffic Messages](https://www.digitraffic.fi/en/road-traffic/): Gerçek yol çalışması ve trafik duyurusu geometrileri
 - [OpenStreetMap](https://www.openstreetmap.org/): Yol ve kavşak geometrileri
 - [OpenFreeMap](https://openfreemap.org/): OpenStreetMap tabanlı görsel altlık harita
 
@@ -38,7 +39,7 @@ Sensör istasyonları fiziksel veri kaynağıdır. OpenStreetMap yol ağıyla do
 ## Çalışma Alanı
 
 - `/monitoring`: Aranabilir varlık seçim çubuğu; yoğunluk, gerçek OSM yol akışı ve 3B hacim görünümlü kalıcı harita üzerinde Canlı ile Analiz modları
-- `/monitoring?mode=analysis`: Gerçek geçmiş kullanılabilirliği, uygun tarih önerisi, sunucu hesaplı dönem KPI'ları, tarihsel filtreleme, iki istasyonlu karşılaştırma ve senkron replay
+- `/monitoring?mode=analysis`: Gerçek geçmiş kullanılabilirliği, dahil başlangıç/bitiş günleri, uygun tarih önerisi, sunucu hesaplı dönem KPI'ları, aynı dönemde iki istasyonlu karşılaştırma ve senkron replay
 - `/analytics`: Eski paylaşılmış bağlantıları filtreleri koruyarak yeni Analiz moduna yönlendiren uyumluluk rotası
 
 Harita, panel ve analiz seçimleri ortak URL ve çalışma alanı sözleşmesiyle iki yönlü senkron tutulur.
@@ -72,14 +73,16 @@ pnpm dev
 - Geçmiş analiz: `http://localhost:3000/monitoring?mode=analysis`
 - API sağlık kontrolü: `http://localhost:4000/health`
 - Helsinki istasyon API'si: `http://localhost:4000/api/coverage-areas/helsinki/stations`
+- Helsinki yol olayı API'si: `http://localhost:4000/api/coverage-areas/helsinki/traffic-events`
+- Helsinki saha bildirimi API'si: `http://localhost:4000/api/coverage-areas/helsinki/field-reports`
 - Geçmiş API'si: `http://localhost:4000/api/analytics/helsinki/history`
 - Operatör notu API'si: `http://localhost:4000/api/operator-notes?assetId=fintraffic-tms:20002`
-- Socket.IO: `http://localhost:4000` (canlı trafik, operatör notu ve replay olayları)
+- Socket.IO: `http://localhost:4000` (canlı trafik, operatör notu, saha bildirimi ve replay olayları)
 - PostgreSQL/PostGIS: `localhost:55432`
 
 `POSTGRES_PORT` ve `DATABASE_URL`, başka bir yerel servisle çakışma halinde `.env` üzerinden birlikte değiştirilebilir. Veritabanını durdurmak için `pnpm db:down` kullanılır.
 
-İlk açılışta backend Fintraffic'ten gerçek güncel istasyon kataloğunu ve ölçümleri alır. İnternet veya upstream erişimi yoksa başlangıç hatası açıkça gösterilir; sentetik başlangıç verisi kullanılmaz.
+İlk açılışta backend Fintraffic'ten gerçek güncel istasyon kataloğunu, ölçümleri ve yol olaylarını alır. İnternet veya upstream erişimi yoksa başlangıç hatası açıkça gösterilir; daha önce kalıcılaştırılmış son gerçek snapshot korunur ve sentetik başlangıç verisi kullanılmaz.
 
 ### Demo Verisini Hazırlama
 
@@ -100,7 +103,7 @@ pnpm anomalies:evaluate --coverage helsinki
 
 Bu tarihler uygulamaya gömülü değildir; doğrulanmış demo artifact'lerini tekrar üretmek için belgelenmiş komut girdileridir. Yeni dönemler aynı CLI ile eklenebilir.
 
-`LIVE_POLL_INTERVAL_MS` en az `60000` olabilir. REST istekleri Fintraffic'i ayrıca çağırmaz; kalıcı son snapshot'ı döndürür. Fintraffic geçici olarak erişilemezse son gerçek ölçüm yaşı ve bozulmuş kaynak durumu korunur, veri üretilmez.
+`LIVE_POLL_INTERVAL_MS` en az `60000`, `TRAFFIC_EVENT_POLL_INTERVAL_MS` en az `60000` olabilir. Yol olayları varsayılan olarak beş dakikada bir yenilenir. REST istekleri Fintraffic'i ayrıca çağırmaz; kalıcı son snapshot'ı döndürür. Fintraffic geçici olarak erişilemezse son gerçek ölçüm ve olay snapshot'ı korunur, veri üretilmez.
 
 ## Gerçek Geçmiş Veriyi İçeri Alma
 

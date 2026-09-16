@@ -25,9 +25,10 @@ Kanıt: başlıktaki kaynak durumu, saat dilimi ve harita attribution metinleri.
 - Varlık seçim çubuğunu açıp TMS 20002'yi arayın ve istasyonu seçin; URL'deki `station` parametresinin değiştiğini gösterin.
 - İki yönün son 5 dakikalık kayan hız/hacmini, ölçüm zamanını ve tazelik etiketini açıklayın.
 - Canlı bağlantı ve Fintraffic kaynak durumunun farklı göstergeler olduğunu belirtin.
+- `Yol olayları` kontrolünden yol çalışması ve trafik duyurusu katmanlarını ayrı ayrı kapatıp açın; geometrilerin resmî Fintraffic mesajlarından geldiğini ve yoğunluk/anomali için nedensellik iddiası olmadığını belirtin.
 - Tema düğmesiyle koyu temaya geçin; arayüzün ve MapLibre stilinin birlikte değiştiğini gösterin.
 
-Kanıt: seçim–URL–panel senkronu, gerçek ölçüm zamanı, stale/unknown etiketleri ve kalıcı tema seçimi.
+Kanıt: seçim–URL–panel senkronu, gerçek ölçüm zamanı, 5 dakikalık olay snapshot'ı, bağımsız katman anahtarları, stale/unknown etiketleri ve kalıcı tema seçimi.
 
 ## 3:00–4:15 — Türetilmiş Kavşak
 
@@ -51,7 +52,7 @@ Kanıt: üçlü harita görünüm seçicisi, OSM kaynaklı yol çizgisi ve canl�
 - Üstteki `Analiz` moduna geçin; haritanın ve seçili istasyonun korunduğunu, URL'ye `mode=analysis` eklendiğini gösterin.
 - İstasyon listesindeki geçmiş gün etiketlerini ve verisiz bir seçimde sunulan gerçek verili istasyon önerilerini gösterin.
 - `En son günü aç` eylemiyle seçimin en son ortak verili tarihine geçin.
-- Tarihleri `03.09.2026–04.09.2026`, yönü `1`, çözünürlüğü `Dakika` yapın.
+- Başlangıç ve bitişi `03.09.2026` seçip tek dahil günü açın; yönü `1`, çözünürlüğü `Dakika` yapın.
 - Karşılaştırma istasyonu olarak TMS 20004'ü seçip analizi uygulayın.
 - İki gerçek seriyi, tam/kısmi/eksik gün kapsamasını ve saat dilimini açıklayın.
 - `Dönem özeti` kartlarında ağırlıklı ortalama/medyan hızı, toplam geçişi, yoğun zaman dilimini ve yön dağılımını gösterin; hesapların seçili çözünürlüğün gerçek agregalarından sunucuda üretildiğini belirtin.
@@ -89,6 +90,7 @@ Kanıt: iki istemcide aynı server kimliği ve oluşturulma zamanıyla görünen
 ## Kesinti Olursa
 
 - Fintraffic geçici olarak erişilemezse son ölçüm, yaşı ve kaynak kesintisiyle gösterilir; yeni değer üretilmez.
+- Fintraffic trafik mesajı endpoint'i geçici olarak erişilemezse son gerçek olay snapshot'ı korunur; istasyon izleme akışı çalışmayı sürdürür.
 - Socket.IO kesilirse son bilinen ölçümler etiketi görünür; yeniden bağlantıda REST reconciliation çalışır.
 - OpenFreeMap altlığı yüklenemezse trafik API'si ve paneller çalışmaya devam eder, altlık sorunu ayrı gösterilir.
 - Tarih artifact'i yoksa grafik boşluğu doldurmaz; eksik gün sayısını gösterir.
