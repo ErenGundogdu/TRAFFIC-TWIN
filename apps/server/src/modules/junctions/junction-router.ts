@@ -1,6 +1,10 @@
 import { Router } from "express";
 import type { Router as ExpressRouter } from "express";
 
+import {
+  coverageAreaParamsSchema,
+  parseRequestParams,
+} from "../../common/http/request-validation.js";
 import type { JunctionService } from "./junction-service.js";
 
 export function createJunctionRouter(service: JunctionService): ExpressRouter {
@@ -8,7 +12,11 @@ export function createJunctionRouter(service: JunctionService): ExpressRouter {
 
   router.get("/:coverageAreaId/junctions", async (request, response, next) => {
     try {
-      response.json(await service.getCatalog(request.params.coverageAreaId!));
+      const { coverageAreaId } = parseRequestParams(
+        request,
+        coverageAreaParamsSchema,
+      );
+      response.json(await service.getCatalog(coverageAreaId));
     } catch (error) {
       next(error);
     }

@@ -13,6 +13,8 @@ import {
 } from "@/features/station-monitoring";
 import { TrafficMap, type MapVisualizationMode } from "@/features/traffic-map";
 import { OperatorNotesPanel } from "@/features/operator-notes";
+import { FieldReportComposer, useFieldReports } from "@/features/field-reports";
+import type { FieldReportLocation } from "@traffic-twin/contracts";
 import { useStationRoadContext } from "@/features/road-context";
 import { useRealtimeSync } from "@/features/realtime";
 import { applyReplayFrame, useReplay } from "@/features/replay";
@@ -22,6 +24,17 @@ import {
 } from "@/features/junction-monitoring";
 import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
 import { ThemeToggle } from "@/shared/theme";
+import {
+  defaultTrafficEventFilters,
+  filterTrafficEvents,
+  parseTrafficEventFilters,
+  setTrafficEventFilters,
+  TrafficEventExplorer,
+  StationTrafficEventContextPanel,
+  useTrafficEventCatalog,
+  useStationTrafficEventContext,
+  type TrafficEventFilters,
+} from "@/features/traffic-events";
 
 import { AssetSelectionBar } from "./asset-selection-bar";
 import {
@@ -55,12 +68,42 @@ export function MonitoringWorkspace({
   const searchParams = useSearchParams();
   const [mapVisualizationMode, setMapVisualizationMode] =
     useState<MapVisualizationMode>("flow");
+  const [fieldReportToolActive, setFieldReportToolActive] = useState(false);
+  const [fieldReportDraftLocation, setFieldReportDraftLocation] =
+    useState<FieldReportLocation | null>(null);
   const mode = parseWorkspaceMode(searchParams.get("mode"));
+  const trafficEventFilters = parseTrafficEventFilters(searchParams);
   const requestedStationId = searchParams.get("station");
   const selectedJunctionId = searchParams.get("junction");
   const catalogQuery = useStationCatalog(coverageAreaId);
   const junctionQuery = useJunctionCatalog(coverageAreaId);
   const anomalyQuery = useAnomalyCatalog(coverageAreaId);
+  const trafficEventQuery = useTrafficEventCatalog(coverageAreaId);
+  const fieldReportsQuery = useFieldReports(coverageAreaId);
+  const liveTrafficEvents =
+    trafficEventQuery.data?.events.filter(
+      (event) => event.status !== "ENDED",
+    ) ?? [];
+  const filteredTrafficEvents = filterTrafficEvents(
+    liveTrafficEvents,
+    trafficEventFilters,
+  );
+  const requestedTrafficEventId = searchParams.get("event");
+  const selectedTrafficEventId = filteredTrafficEvents.some(
+    (event) => event.id === requestedTrafficEventId,
+  )
+    ? requestedTrafficEventId
+    : null;
+  const requestedFieldReportId = searchParams.get("report");
+  const fieldReports = fieldReportsQuery.data ?? [];
+  const selectedFieldReportId = fieldReports.some(
+    (report) =>
+      report.id === requestedFieldReportId &&
+      report.status !== "REJECTED" &&
+      report.status !== "RESOLVED",
+  )
+    ? requestedFieldReportId
+    : null;
   const historyAvailabilityQuery = useHistoryAvailability(
     coverageAreaId,
     mode === "analysis",
@@ -83,6 +126,10 @@ export function MonitoringWorkspace({
     catalogQuery.data?.stations.find(
       (station) => station.id === selectedStationId,
     ) ?? null;
+  const trafficEventContextQuery = useStationTrafficEventContext(
+    coverageAreaId,
+    selectedStationId,
+  );
   const selectedJunction =
     junctionQuery.data?.junctions.find(
       (junction) => junction.id === selectedJunctionId,
@@ -120,6 +167,8 @@ export function MonitoringWorkspace({
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("station", stationId);
     nextParams.delete("junction");
+    nextParams.delete("event");
+    nextParams.delete("report");
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
@@ -129,6 +178,8 @@ export function MonitoringWorkspace({
     nextParams.set("junction", junctionId);
     nextParams.delete("station");
     nextParams.delete("mode");
+    nextParams.delete("event");
+    nextParams.delete("report");
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
   }
 
@@ -137,9 +188,57 @@ export function MonitoringWorkspace({
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete("station");
     nextParams.delete("junction");
+    nextParams.delete("report");
     if (mode === "analysis") {
       nextParams.delete("mode");
     }
+    const query = nextParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
+
+  function changeTrafficEventFilters(filters: TrafficEventFilters) {
+    replaceSearchParams(setTrafficEventFilters(searchParams, filters));
+  }
+
+  function selectTrafficEvent(eventId: string | null) {
+    const selectedEventIsVisible = filteredTrafficEvents.some(
+      (event) => event.id === eventId,
+    );
+    const nextParams =
+      eventId && !selectedEventIsVisible
+        ? setTrafficEventFilters(searchParams, defaultTrafficEventFilters)
+        : new URLSearchParams(searchParams.toString());
+    if (eventId) nextParams.set("event", eventId);
+    else nextParams.delete("event");
+    if (eventId) nextParams.delete("report");
+    replaceSearchParams(nextParams);
+  }
+
+  function selectFieldReport(reportId: string | null) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (reportId) {
+      nextParams.set("report", reportId);
+      nextParams.delete("event");
+    } else {
+      nextParams.delete("report");
+    }
+    replaceSearchParams(nextParams);
+  }
+
+  function startFieldReport() {
+    setFieldReportToolActive(true);
+    setFieldReportDraftLocation(null);
+    selectFieldReport(null);
+  }
+
+  function cancelFieldReport() {
+    setFieldReportToolActive(false);
+    setFieldReportDraftLocation(null);
+  }
+
+  function replaceSearchParams(nextParams: URLSearchParams) {
     const query = nextParams.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
@@ -327,6 +426,7 @@ export function MonitoringWorkspace({
         >
           <TrafficMap
             bbox={coverageArea.bbox}
+            timeZone={coverageArea.timeZone}
             stations={mapStations}
             selectedStationId={selectedStationId}
             onSelect={selectStation}
@@ -334,6 +434,15 @@ export function MonitoringWorkspace({
             selectedJunctionId={selectedJunctionId}
             onSelectJunction={selectJunction}
             anomalies={anomalyQuery.data?.evaluations}
+            trafficEvents={filteredTrafficEvents}
+            selectedTrafficEventId={selectedTrafficEventId}
+            onSelectTrafficEvent={selectTrafficEvent}
+            fieldReports={fieldReports}
+            selectedFieldReportId={selectedFieldReportId}
+            onSelectFieldReport={selectFieldReport}
+            fieldReportPickMode={fieldReportToolActive}
+            fieldReportDraftLocation={fieldReportDraftLocation}
+            onPickFieldReportLocation={setFieldReportDraftLocation}
             visualizationMode={mapVisualizationMode}
             onVisualizationModeChange={setMapVisualizationMode}
             roadContext={roadContextQuery.data}
@@ -346,6 +455,45 @@ export function MonitoringWorkspace({
                     ? "error"
                     : "ready"
             }
+          />
+          <TrafficEventExplorer
+            events={filteredTrafficEvents}
+            allEvents={liveTrafficEvents}
+            filters={trafficEventFilters}
+            onFiltersChange={changeTrafficEventFilters}
+            selectedEventId={selectedTrafficEventId}
+            onSelectEvent={selectTrafficEvent}
+            source={trafficEventQuery.data?.source}
+            timeZone={coverageArea.timeZone}
+            status={
+              trafficEventQuery.isPending
+                ? "loading"
+                : trafficEventQuery.isError
+                  ? "error"
+                  : "ready"
+            }
+            onRetry={() => void trafficEventQuery.refetch()}
+          />
+          <FieldReportComposer
+            coverageAreaId={coverageAreaId}
+            active={fieldReportToolActive}
+            location={fieldReportDraftLocation}
+            realtimeConnected={realtime.status === "connected"}
+            catalogStatus={
+              fieldReportsQuery.isPending
+                ? "loading"
+                : fieldReportsQuery.isError
+                  ? "error"
+                  : "ready"
+            }
+            createReport={realtime.createFieldReport}
+            onStart={startFieldReport}
+            onCancel={cancelFieldReport}
+            onCreated={(reportId) => {
+              cancelFieldReport();
+              selectFieldReport(reportId);
+            }}
+            onRetryCatalog={() => void fieldReportsQuery.refetch()}
           />
           {realtime.status === "disconnected" ? (
             <div
@@ -378,6 +526,10 @@ export function MonitoringWorkspace({
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full border-2 border-rose-500" />
               Anomali
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-amber-500 ring-2 ring-white" />
+              Saha bildirimi
             </span>
           </div>
           <a
@@ -433,8 +585,22 @@ export function MonitoringWorkspace({
                 footer={
                   selectedStation ? (
                     <>
+                      <StationTrafficEventContextPanel
+                        context={trafficEventContextQuery.data}
+                        timeZone={coverageArea.timeZone}
+                        status={
+                          trafficEventContextQuery.isPending
+                            ? "loading"
+                            : trafficEventContextQuery.isError
+                              ? "error"
+                              : "ready"
+                        }
+                        onRetry={() => void trafficEventContextQuery.refetch()}
+                        onSelectEvent={(eventId) => selectTrafficEvent(eventId)}
+                      />
                       <AnomalyPanel
                         evaluations={selectedAnomalies}
+                        directions={selectedStation.directions}
                         status={
                           anomalyQuery.isPending
                             ? "loading"

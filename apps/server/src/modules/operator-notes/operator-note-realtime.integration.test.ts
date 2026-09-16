@@ -18,6 +18,15 @@ import { PostgresOperatorNoteRepository } from "./operator-note-repository.js";
 import { OperatorNoteService } from "./operator-note-service.js";
 import { createRealtimeServer } from "../../realtime/create-realtime-server.js";
 
+const unknownTrafficFlow = {
+  status: "INSUFFICIENT_DATA" as const,
+  speedPercentOfFreeFlow: null,
+  flowPercentOfCapacity: null,
+  freeFlowSpeedKmh: null,
+  maximumFlowVehiclesPerHour: null,
+  policyVersion: "fintraffic-flow-v1" as const,
+};
+
 describe("operator note realtime flow", () => {
   const connection = createDatabase(
     parseEnv({ NODE_ENV: "test" }).DATABASE_URL,
@@ -73,17 +82,27 @@ describe("operator note realtime flow", () => {
           directions: [
             {
               direction: 1,
-              label: "Yön 1",
+              heading: {
+                degrees: 298,
+                compassPoint: "NW",
+                determination: "PROVIDER_REPORTED",
+              },
               averageSpeedKmh: 93,
               flowVehiclesPerHour: 1488,
               measuredAt: "2026-09-04T09:03:35Z",
+              trafficFlow: unknownTrafficFlow,
             },
             {
               direction: 2,
-              label: "Yön 2",
+              heading: {
+                degrees: 118,
+                compassPoint: "SE",
+                determination: "DERIVED_OPPOSITE",
+              },
               averageSpeedKmh: 103,
               flowVehiclesPerHour: 612,
               measuredAt: "2026-09-04T09:03:35Z",
+              trafficFlow: unknownTrafficFlow,
             },
           ],
         },
@@ -135,6 +154,8 @@ describe("operator note realtime flow", () => {
         {
           assetId: "fintraffic-tms:20002",
           author: "Test Operatörü",
+          category: "MAINTENANCE",
+          status: "RESOLVED",
           content: "Entegrasyon testi saha notu.",
         },
         resolve,
@@ -156,6 +177,8 @@ describe("operator note realtime flow", () => {
       .from(operatorNotes)
       .where(eq(operatorNotes.id, firstNote.id));
     expect(persisted?.content).toBe("Entegrasyon testi saha notu.");
+    expect(persisted?.category).toBe("MAINTENANCE");
+    expect(persisted?.status).toBe("RESOLVED");
 
     await connection.db
       .delete(operatorNotes)

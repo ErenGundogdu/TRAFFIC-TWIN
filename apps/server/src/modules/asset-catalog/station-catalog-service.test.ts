@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   stationDataCollectionSchema,
   stationFeatureCollectionSchema,
+  stationSensorConstantsCollectionSchema,
 } from "../providers/fintraffic/schemas.js";
 import { readFixture } from "../providers/fintraffic/test-fixtures.js";
 import type {
@@ -49,6 +50,30 @@ describe("StationCatalogService", () => {
             ),
           ),
         ),
+        getSensorConstants: vi.fn(async () =>
+          stationSensorConstantsCollectionSchema.parse({
+            dataUpdatedTime: "2026-09-04T06:00:00Z",
+            stations: [
+              {
+                id: 20002,
+                sensorConstantValues: [
+                  {
+                    name: "VVAPAAS1",
+                    value: 100,
+                    validFrom: "01-01",
+                    validTo: "12-31",
+                  },
+                  {
+                    name: "MS1",
+                    value: 3600,
+                    validFrom: "01-01",
+                    validTo: "12-31",
+                  },
+                ],
+              },
+            ],
+          }),
+        ),
       },
       () => new Date("2026-09-04T09:04:00Z"),
     );
@@ -57,6 +82,16 @@ describe("StationCatalogService", () => {
 
     expect(result.source.status).toBe("AVAILABLE");
     expect(result.stations[0]?.directions[0]?.averageSpeedKmh).toBe(93);
+    expect(result.stations[0]?.directions[0]?.heading).toEqual({
+      degrees: 298,
+      compassPoint: "NW",
+      determination: "PROVIDER_REPORTED",
+    });
+    expect(result.stations[0]?.directions[0]?.trafficFlow).toMatchObject({
+      status: "FREE_FLOW",
+      speedPercentOfFreeFlow: 93,
+      flowPercentOfCapacity: 41.3,
+    });
     expect(repository.upsertStations).toHaveBeenCalledOnce();
   });
 
@@ -75,6 +110,9 @@ describe("StationCatalogService", () => {
     const service = new StationCatalogService(repository, {
       getStations: vi.fn(async () => Promise.reject(new Error("offline"))),
       getCurrentStationData: vi.fn(async () =>
+        Promise.reject(new Error("offline")),
+      ),
+      getSensorConstants: vi.fn(async () =>
         Promise.reject(new Error("offline")),
       ),
     });
@@ -101,6 +139,7 @@ describe("StationCatalogService", () => {
     const client = {
       getStations: vi.fn(),
       getCurrentStationData: vi.fn(),
+      getSensorConstants: vi.fn(),
     };
     const service = new StationCatalogService(
       repository,
@@ -115,6 +154,8 @@ describe("StationCatalogService", () => {
             measuredAt: "2026-09-04T09:03:35Z",
             averageSpeedKmh: 93,
             flowVehiclesPerHour: 1488,
+            speedPercentOfFreeFlow: 93,
+            flowPercentOfCapacity: 41,
             sourceUpdatedAt: "2026-09-04T09:03:35Z",
           },
         ]),
@@ -126,6 +167,11 @@ describe("StationCatalogService", () => {
     expect(result.source.status).toBe("AVAILABLE");
     expect(result.stations[0]?.directions[0]?.averageSpeedKmh).toBe(93);
     expect(result.stations[0]?.directions[1]?.averageSpeedKmh).toBeNull();
+    expect(result.stations[0]?.directions[1]?.heading).toEqual({
+      degrees: 118,
+      compassPoint: "SE",
+      determination: "DERIVED_OPPOSITE",
+    });
     expect(client.getStations).not.toHaveBeenCalled();
     expect(client.getCurrentStationData).not.toHaveBeenCalled();
   });

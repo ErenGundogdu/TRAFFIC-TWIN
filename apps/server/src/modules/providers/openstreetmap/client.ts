@@ -8,8 +8,16 @@ import {
 } from "./schemas.js";
 
 export class OverpassResponseError extends Error {
-  constructor(status: number) {
-    super(`Overpass responded with HTTP ${status}.`);
+  constructor(
+    readonly status: number | null,
+    options?: ErrorOptions,
+  ) {
+    super(
+      status === null
+        ? "Overpass request failed before receiving an HTTP response."
+        : `Overpass responded with HTTP ${status}.`,
+      options,
+    );
     this.name = "OverpassResponseError";
   }
 }
@@ -30,13 +38,7 @@ export class OpenStreetMapClient {
     ].join("");
     const url = new URL(this.baseUrl);
     url.searchParams.set("data", query);
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": this.userAgent,
-      },
-      signal: AbortSignal.timeout(35_000),
-    });
+    const response = await this.request(url, 35_000);
 
     if (!response.ok) {
       throw new OverpassResponseError(response.status);
@@ -60,13 +62,7 @@ export class OpenStreetMapClient {
     ].join("");
     const url = new URL(this.baseUrl);
     url.searchParams.set("data", query);
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": this.userAgent,
-      },
-      signal: AbortSignal.timeout(30_000),
-    });
+    const response = await this.request(url, 30_000);
 
     if (!response.ok) throw new OverpassResponseError(response.status);
 
@@ -75,5 +71,19 @@ export class OpenStreetMapClient {
       sourceUpdatedAt: payload.osm3s.timestamp_osm_base,
       segments: normalizeRoadContext(payload, input, input.roadRef),
     };
+  }
+
+  private async request(url: URL, timeoutMs: number) {
+    try {
+      return await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": this.userAgent,
+        },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (error) {
+      throw new OverpassResponseError(null, { cause: error });
+    }
   }
 }

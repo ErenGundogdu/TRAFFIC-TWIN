@@ -3,11 +3,14 @@
 import type {
   AnomalyEvaluation,
   CoverageArea,
+  FieldReport,
+  FieldReportLocation,
   JunctionSummary,
   StationRoadContext,
   StationSummary,
+  TrafficEvent,
 } from "@traffic-twin/contracts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
   Map,
@@ -19,11 +22,20 @@ import {
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 
 import { useTheme } from "@/shared/theme";
+import { formatTrafficDirectionLabel } from "@/shared/traffic";
+import { TrafficEventDetailCard } from "@/features/traffic-events";
+import {
+  FIELD_REPORT_LAYER_ID,
+  FieldReportDetailCard,
+  FieldReportMapLayer,
+} from "@/features/field-reports";
 
 import {
   createAnomalyGeoJson,
   createJunctionGeoJson,
   createStationGeoJson,
+  createTrafficEventGeoJson,
+  getTrafficEventAnchor,
 } from "../lib/traffic-map-data";
 import {
   createRoadFlowGeoJson,
@@ -47,10 +59,14 @@ import {
   selectedStationLabelLayer,
   stationHaloLayer,
   stationLayer,
+  trafficEventAreaLayer,
+  trafficEventLineLayer,
+  trafficEventPointLayer,
 } from "./traffic-map-layers";
 
 interface TrafficMapProps {
   bbox: CoverageArea["bbox"];
+  timeZone: CoverageArea["timeZone"];
   stations: StationSummary[];
   selectedStationId: string | null;
   onSelect: (stationId: string) => void;
@@ -58,6 +74,15 @@ interface TrafficMapProps {
   selectedJunctionId?: string | null;
   onSelectJunction?: (junctionId: string) => void;
   anomalies?: AnomalyEvaluation[];
+  trafficEvents?: TrafficEvent[];
+  selectedTrafficEventId?: string | null;
+  onSelectTrafficEvent?: (eventId: string | null) => void;
+  fieldReports?: FieldReport[];
+  selectedFieldReportId?: string | null;
+  onSelectFieldReport?: (reportId: string | null) => void;
+  fieldReportPickMode?: boolean;
+  fieldReportDraftLocation?: FieldReportLocation | null;
+  onPickFieldReportLocation?: (location: FieldReportLocation) => void;
   roadContext?: StationRoadContext;
   roadContextStatus?: "idle" | "loading" | "error" | "ready";
   visualizationMode: MapVisualizationMode;
@@ -78,6 +103,7 @@ function formatMetric(value: number | null, suffix: string) {
 
 export function TrafficMap({
   bbox,
+  timeZone,
   stations,
   selectedStationId,
   onSelect,
@@ -85,6 +111,15 @@ export function TrafficMap({
   selectedJunctionId = null,
   onSelectJunction,
   anomalies = [],
+  trafficEvents = [],
+  selectedTrafficEventId = null,
+  onSelectTrafficEvent,
+  fieldReports = [],
+  selectedFieldReportId = null,
+  onSelectFieldReport,
+  fieldReportPickMode = false,
+  fieldReportDraftLocation = null,
+  onPickFieldReportLocation,
   roadContext,
   roadContextStatus = "idle",
   visualizationMode,
@@ -103,6 +138,20 @@ export function TrafficMap({
     ? (stations.find((station) => station.id === selectedStationId) ?? null)
     : null;
   const roadFlowGeoJson = createRoadFlowGeoJson(roadContext, selectedStation);
+  const trafficEventGeoJson = createTrafficEventGeoJson(trafficEvents);
+  const selectedTrafficEvent = selectedTrafficEventId
+    ? (trafficEvents.find((event) => event.id === selectedTrafficEventId) ??
+      null)
+    : null;
+  const selectedTrafficEventAnchor = useMemo(
+    () =>
+      selectedTrafficEvent ? getTrafficEventAnchor(selectedTrafficEvent) : null,
+    [selectedTrafficEvent],
+  );
+  const selectedFieldReport = selectedFieldReportId
+    ? (fieldReports.find((report) => report.id === selectedFieldReportId) ??
+      null)
+    : null;
 
   useEffect(() => {
     const selectedAsset = selectedStationId
@@ -140,16 +189,70 @@ export function TrafficMap({
       duration: reduceMotion ? 0 : 500,
     });
   }, [visualizationMode]);
+
+  useEffect(() => {
+    if (!selectedTrafficEventAnchor) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    mapRef.current?.flyTo({
+      center: [
+        selectedTrafficEventAnchor.longitude,
+        selectedTrafficEventAnchor.latitude,
+      ],
+      zoom: Math.max(mapRef.current.getZoom(), 11),
+      duration: reduceMotion ? 0 : 700,
+      essential: false,
+    });
+  }, [selectedTrafficEventAnchor]);
+  useEffect(() => {
+    if (!selectedFieldReport) return;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    mapRef.current?.flyTo({
+      center: [
+        selectedFieldReport.location.longitude,
+        selectedFieldReport.location.latitude,
+      ],
+      zoom: Math.max(mapRef.current.getZoom(), 13),
+      duration: reduceMotion ? 0 : 700,
+      essential: false,
+    });
+  }, [selectedFieldReport]);
   const anomalyGeoJson = createAnomalyGeoJson(stations, anomalies);
 
   function handleMapClick(event: MapLayerMouseEvent) {
-    const stationId = event.features?.[0]?.properties?.id as string | undefined;
-    const kind = event.features?.[0]?.properties?.kind as string | undefined;
+    if (fieldReportPickMode) {
+      onPickFieldReportLocation?.({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+      });
+      return;
+    }
 
-    if (stationId && kind === "junction") {
-      onSelectJunction?.(stationId);
-    } else if (stationId) {
-      onSelect(stationId);
+    const feature = event.features?.[0];
+    const assetId = feature?.properties?.id as string | undefined;
+    const kind = feature?.properties?.kind as string | undefined;
+
+    if (kind === "field-report" && assetId) {
+      onSelectFieldReport?.(assetId);
+      onSelectTrafficEvent?.(null);
+      setHoveredAsset(null);
+      return;
+    }
+    onSelectFieldReport?.(null);
+    if (kind === "traffic-event" && assetId) {
+      onSelectTrafficEvent?.(assetId);
+      setHoveredAsset(null);
+      return;
+    }
+    onSelectTrafficEvent?.(null);
+    if (assetId && kind === "junction") {
+      onSelectJunction?.(assetId);
+    } else if (assetId) {
+      onSelect(assetId);
     }
   }
 
@@ -159,7 +262,42 @@ export function TrafficMap({
       feature?.geometry.type === "Point" ? feature.geometry.coordinates : null;
 
     if (!feature || !coordinates) {
+      if (feature?.properties.kind === "traffic-event") {
+        setHoveredAsset({
+          longitude: event.lngLat.lng,
+          latitude: event.lngLat.lat,
+          name: String(feature.properties.title),
+          category: formatTrafficEventCategory(
+            String(feature.properties.category),
+            String(feature.properties.status),
+            String(feature.properties.language),
+          ),
+          detail:
+            typeof feature.properties.description === "string"
+              ? feature.properties.description
+              : "Konum açıklaması sağlanmadı.",
+        });
+        return;
+      }
       setHoveredAsset(null);
+      return;
+    }
+
+    if (feature.properties.kind === "traffic-event") {
+      setHoveredAsset({
+        longitude: coordinates[0],
+        latitude: coordinates[1],
+        name: String(feature.properties.title),
+        category: formatTrafficEventCategory(
+          String(feature.properties.category),
+          String(feature.properties.status),
+          String(feature.properties.language),
+        ),
+        detail:
+          typeof feature.properties.description === "string"
+            ? feature.properties.description
+            : "Konum açıklaması sağlanmadı.",
+      });
       return;
     }
 
@@ -195,13 +333,22 @@ export function TrafficMap({
           zoom: selectedStation ? 12 : 9.2,
         }}
         mapStyle={`https://tiles.openfreemap.org/styles/${theme === "dark" ? "dark" : "liberty"}`}
-        interactiveLayerIds={["traffic-stations", "traffic-junctions"]}
+        interactiveLayerIds={[
+          "traffic-stations",
+          "traffic-junctions",
+          "traffic-event-points",
+          "traffic-event-lines",
+          "traffic-event-areas",
+          FIELD_REPORT_LAYER_ID,
+        ]}
         onClick={handleMapClick}
         onMouseMove={handlePointerMove}
         onMouseLeave={() => setHoveredAsset(null)}
         onError={() => setStyleFailed(true)}
         onLoad={() => setStyleFailed(false)}
-        cursor={hoveredAsset ? "pointer" : "grab"}
+        cursor={
+          fieldReportPickMode ? "crosshair" : hoveredAsset ? "pointer" : "grab"
+        }
         attributionControl={{ compact: true }}
         maxPitch={65}
         reuseMaps
@@ -243,6 +390,20 @@ export function TrafficMap({
           </Source>
         ) : null}
         <Source
+          id="traffic-events-source"
+          type="geojson"
+          data={trafficEventGeoJson}
+        >
+          <Layer {...trafficEventAreaLayer} />
+          <Layer {...trafficEventLineLayer} />
+          <Layer {...trafficEventPointLayer} />
+        </Source>
+        <FieldReportMapLayer
+          reports={fieldReports}
+          selectedReportId={selectedFieldReportId}
+          draftLocation={fieldReportDraftLocation}
+        />
+        <Source
           id="traffic-stations-source"
           type="geojson"
           data={stationGeoJson}
@@ -266,7 +427,41 @@ export function TrafficMap({
           <Layer {...junctionHaloLayer} />
           <Layer {...junctionLayer} />
         </Source>
-        {hoveredAsset ? (
+        {selectedFieldReport ? (
+          <Popup
+            longitude={selectedFieldReport.location.longitude}
+            latitude={selectedFieldReport.location.latitude}
+            offset={16}
+            closeButton={false}
+            closeOnClick={false}
+            onClose={() => onSelectFieldReport?.(null)}
+            className="traffic-event-detail-popup"
+            maxWidth="none"
+          >
+            <FieldReportDetailCard
+              report={selectedFieldReport}
+              timeZone={timeZone}
+              onClose={() => onSelectFieldReport?.(null)}
+            />
+          </Popup>
+        ) : selectedTrafficEvent && selectedTrafficEventAnchor ? (
+          <Popup
+            longitude={selectedTrafficEventAnchor.longitude}
+            latitude={selectedTrafficEventAnchor.latitude}
+            offset={16}
+            closeButton={false}
+            closeOnClick={false}
+            onClose={() => onSelectTrafficEvent?.(null)}
+            className="traffic-event-detail-popup"
+            maxWidth="none"
+          >
+            <TrafficEventDetailCard
+              event={selectedTrafficEvent}
+              timeZone={timeZone}
+              onClose={() => onSelectTrafficEvent?.(null)}
+            />
+          </Popup>
+        ) : hoveredAsset ? (
           <Popup
             longitude={hoveredAsset.longitude}
             latitude={hoveredAsset.latitude}
@@ -294,6 +489,7 @@ export function TrafficMap({
       />
       <MapVisualizationLegend
         mode={visualizationMode}
+        timeZone={timeZone}
         selectedStationId={selectedStationId}
         selectedStation={selectedStation}
         roadContext={roadContext}
@@ -312,14 +508,32 @@ export function TrafficMap({
   );
 }
 
+function formatTrafficEventCategory(
+  category: string,
+  status: string,
+  language: string,
+) {
+  const categoryLabel =
+    category === "ROAD_WORK" ? "Yol çalışması" : "Trafik duyurusu";
+  const statusLabel =
+    status === "UPCOMING"
+      ? "Yaklaşan"
+      : status === "ACTIVE"
+        ? "Aktif"
+        : "Sona ermiş";
+  return `${categoryLabel} · ${statusLabel} · Kaynak dili: ${language.toUpperCase()}`;
+}
+
 function MapVisualizationLegend({
   mode,
+  timeZone,
   selectedStationId,
   selectedStation,
   roadContext,
   roadContextStatus,
 }: {
   mode: MapVisualizationMode;
+  timeZone: string;
   selectedStationId: string | null;
   selectedStation: StationSummary | null;
   roadContext?: StationRoadContext;
@@ -342,9 +556,13 @@ function MapVisualizationLegend({
             ? "Gerçek OSM yol geometrisi yükleniyor…"
             : roadContextStatus === "error"
               ? "OSM yolu alınamadı; gerçek istasyon ölçümü korunuyor."
-              : roadContext?.status === "NO_MATCH"
-                ? "Yol referansıyla eşleşen OSM geometrisi bulunamadı."
-                : "Gerçek OSM çizgisi: kalınlık araç/saat, iç renk hız, renkli kenar ve ok ölçüm yönüdür.";
+              : roadContext?.freshness === "STALE"
+                ? roadContext.status === "MATCHED"
+                  ? `OpenStreetMap geçici olarak yenilenemedi; ${formatRoadContextFetchedAt(roadContext.source.fetchedAt, timeZone)} tarihinde alınan son gerçek yol geometrisi gösteriliyor.`
+                  : `OpenStreetMap geçici olarak yenilenemedi; ${formatRoadContextFetchedAt(roadContext.source.fetchedAt, timeZone)} tarihli son kontrolde eşleşen yol bulunmamıştı.`
+                : roadContext?.status === "NO_MATCH"
+                  ? "Yol referansıyla eşleşen OSM geometrisi bulunamadı."
+                  : "Gerçek OSM çizgisi: kalınlık araç/saat, iç renk istasyona özgü serbest akış oranı, renkli kenar ve ok ölçüm yönüdür.";
 
   return (
     <div className="pointer-events-none absolute bottom-8 left-3 max-w-80 rounded-xl border border-white/80 bg-white/95 px-3 py-2.5 text-[10px] leading-4 text-slate-600 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-300">
@@ -368,7 +586,7 @@ function MapVisualizationLegend({
                   direction.direction === 1 ? "bg-sky-600" : "bg-violet-600"
                 }`}
               />
-              {direction.label}:{" "}
+              {formatTrafficDirectionLabel(direction)}:{" "}
               {formatMetric(direction.averageSpeedKmh, "km/sa")} ·{" "}
               {formatMetric(direction.flowVehiclesPerHour, "araç/sa")}
             </span>
@@ -377,4 +595,12 @@ function MapVisualizationLegend({
       ) : null}
     </div>
   );
+}
+
+function formatRoadContextFetchedAt(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("tr-TR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(value));
 }

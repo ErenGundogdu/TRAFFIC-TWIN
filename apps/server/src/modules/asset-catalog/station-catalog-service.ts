@@ -4,12 +4,14 @@ import type {
 } from "@traffic-twin/contracts";
 
 import type { FintrafficClient } from "../providers/fintraffic/client.js";
+import { normalizeDirectionHeading } from "../providers/fintraffic/normalize-direction-heading.js";
 import { normalizeStations } from "../providers/fintraffic/normalize-stations.js";
 import type {
   PersistedDirection,
   TrafficObservationRepository,
 } from "../telemetry/traffic-observation-repository.js";
 import { classifyMeasurementFreshness } from "../telemetry/classify-measurement-freshness.js";
+import { classifyTrafficFlow } from "../telemetry/classify-traffic-flow.js";
 import type {
   PersistedStation,
   StationCatalogRepository,
@@ -30,17 +32,41 @@ export class CoverageAreaNotFoundError extends Error {
   }
 }
 
+function toStationIdentity(station: PersistedStation) {
+  return {
+    id: station.id,
+    providerStationId: station.providerStationId,
+    tmsNumber: station.tmsNumber,
+    name: station.name,
+    longitude: station.longitude,
+    latitude: station.latitude,
+    bearing: station.bearing,
+  };
+}
+
 function toUnavailableStation(station: PersistedStation): StationSummary {
   return {
-    ...station,
+    ...toStationIdentity(station),
     freshness: "UNAVAILABLE",
-    directions: [1, 2].map((direction) => ({
-      direction: direction as 1 | 2,
-      label: `Yön ${direction}`,
-      averageSpeedKmh: null,
-      flowVehiclesPerHour: null,
-      measuredAt: null,
-    })),
+    directions: [1, 2].map((direction) => {
+      const profile = station.directionProfiles?.find(
+        (item) => item.direction === direction,
+      );
+      return {
+        direction: direction as 1 | 2,
+        heading: normalizeDirectionHeading(station.bearing, direction as 1 | 2),
+        averageSpeedKmh: null,
+        flowVehiclesPerHour: null,
+        measuredAt: null,
+        trafficFlow: classifyTrafficFlow({
+          averageSpeedKmh: null,
+          flowVehiclesPerHour: null,
+          freeFlowSpeedKmh: profile?.freeFlowSpeedKmh ?? null,
+          maximumFlowVehiclesPerHour:
+            profile?.maximumFlowVehiclesPerHour ?? null,
+        }),
+      };
+    }),
   };
 }
 
@@ -53,13 +79,24 @@ function toPersistedStation(
     const persisted = directions.find(
       (item) => item.assetId === station.id && item.direction === direction,
     );
+    const profile = station.directionProfiles?.find(
+      (item) => item.direction === direction,
+    );
 
     return {
       direction: direction as 1 | 2,
-      label: `Yön ${direction}`,
+      heading: normalizeDirectionHeading(station.bearing, direction as 1 | 2),
       averageSpeedKmh: persisted?.averageSpeedKmh ?? null,
       flowVehiclesPerHour: persisted?.flowVehiclesPerHour ?? null,
       measuredAt: persisted?.measuredAt ?? null,
+      trafficFlow: classifyTrafficFlow({
+        averageSpeedKmh: persisted?.averageSpeedKmh ?? null,
+        flowVehiclesPerHour: persisted?.flowVehiclesPerHour ?? null,
+        freeFlowSpeedKmh: profile?.freeFlowSpeedKmh ?? null,
+        maximumFlowVehiclesPerHour: profile?.maximumFlowVehiclesPerHour ?? null,
+        reportedSpeedPercent: persisted?.speedPercentOfFreeFlow ?? null,
+        reportedFlowPercent: persisted?.flowPercentOfCapacity ?? null,
+      }),
     };
   }) as StationSummary["directions"];
   const newestMeasurement = stationDirections
@@ -69,7 +106,7 @@ function toPersistedStation(
     .at(-1);
 
   return {
-    ...station,
+    ...toStationIdentity(station),
     freshness: classifyMeasurementFreshness(newestMeasurement, now),
     directions: stationDirections,
   };
@@ -80,7 +117,7 @@ export class StationCatalogService {
     private readonly repository: StationCatalogRepository,
     private readonly fintrafficClient: Pick<
       FintrafficClient,
-      "getStations" | "getCurrentStationData"
+      "getStations" | "getCurrentStationData" | "getSensorConstants"
     >,
     private readonly clock: () => Date = () => new Date(),
     private readonly observationRepository?: TrafficObservationRepository,
@@ -134,21 +171,25 @@ export class StationCatalogService {
     }
 
     try {
-      const [stationCollection, dataCollection] = await Promise.all([
-        this.fintrafficClient.getStations(),
-        this.fintrafficClient.getCurrentStationData(),
-      ]);
+      const [stationCollection, dataCollection, sensorConstants] =
+        await Promise.all([
+          this.fintrafficClient.getStations(),
+          this.fintrafficClient.getCurrentStationData(),
+          this.fintrafficClient.getSensorConstants().catch(() => null),
+        ]);
       const stations = normalizeStations(
         stationCollection,
         dataCollection,
         coverageArea,
         fetchedAt,
+        sensorConstants,
       );
 
       await this.repository.upsertStations(
         coverageArea.id,
         stations,
         new Date(stationCollection.dataUpdatedTime),
+        sensorConstants ? new Date(sensorConstants.dataUpdatedTime) : undefined,
       );
       await this.observationRepository?.insertBatch(
         stations,

@@ -12,11 +12,15 @@ describe("realtime contracts", () => {
       createOperatorNoteSchema.parse({
         assetId: "fintraffic-tms:20002",
         author: "  Eren  ",
+        category: "MAINTENANCE",
+        status: "RESOLVED",
         content: "  Şerit kontrol edildi.  ",
       }),
     ).toEqual({
       assetId: "fintraffic-tms:20002",
       author: "Eren",
+      category: "MAINTENANCE",
+      status: "RESOLVED",
       content: "Şerit kontrol edildi.",
     });
 
@@ -24,6 +28,8 @@ describe("realtime contracts", () => {
       createOperatorNoteSchema.safeParse({
         assetId: "fintraffic-tms:20002",
         author: "E",
+        category: "FAULT",
+        status: "ACTION_REQUIRED",
         content: "",
       }).success,
     ).toBe(false);

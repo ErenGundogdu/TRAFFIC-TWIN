@@ -38,6 +38,8 @@ function createDependencies() {
         measuredAt: "2026-09-05T09:05:00.000Z",
         averageSpeedKmh: 30,
         flowVehiclesPerHour: null,
+        speedPercentOfFreeFlow: null,
+        flowPercentOfCapacity: null,
         sourceUpdatedAt: "2026-09-05T09:05:30.000Z",
       },
     ]),

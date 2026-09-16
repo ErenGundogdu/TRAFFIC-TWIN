@@ -13,6 +13,15 @@ import { HistoryImportRepository } from "../ingestion/history-import-repository.
 import { PostgresStationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import { HistoryRepository } from "./history-repository.js";
 
+const unknownTrafficFlow = {
+  status: "INSUFFICIENT_DATA" as const,
+  speedPercentOfFreeFlow: null,
+  flowPercentOfCapacity: null,
+  freeFlowSpeedKmh: null,
+  maximumFlowVehiclesPerHour: null,
+  policyVersion: "fintraffic-flow-v1" as const,
+};
+
 describe("HistoryRepository", () => {
   const connection = createDatabase(
     parseEnv({ NODE_ENV: "test" }).DATABASE_URL,
@@ -36,17 +45,27 @@ describe("HistoryRepository", () => {
           directions: [
             {
               direction: 1,
-              label: "Yön 1",
+              heading: {
+                degrees: 298,
+                compassPoint: "NW",
+                determination: "PROVIDER_REPORTED",
+              },
               averageSpeedKmh: 82.5,
               flowVehiclesPerHour: 42,
               measuredAt: "2020-01-15T10:00:00Z",
+              trafficFlow: unknownTrafficFlow,
             },
             {
               direction: 2,
-              label: "Yön 2",
+              heading: {
+                degrees: 118,
+                compassPoint: "SE",
+                determination: "DERIVED_OPPOSITE",
+              },
               averageSpeedKmh: null,
               flowVehiclesPerHour: null,
               measuredAt: null,
+              trafficFlow: unknownTrafficFlow,
             },
           ],
         },

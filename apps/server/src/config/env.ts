@@ -12,12 +12,20 @@ const envSchema = z.object({
       "postgresql://traffic_twin:traffic_twin@localhost:55432/traffic_twin",
     ),
   FINTRAFFIC_BASE_URL: z.url().default("https://tie.digitraffic.fi/api/tms/v1"),
+  FINTRAFFIC_TRAFFIC_MESSAGE_BASE_URL: z
+    .url()
+    .default("https://tie.digitraffic.fi/api/traffic-message/v2"),
   FINTRAFFIC_USER: z
     .string()
     .min(3)
     .default("TrafficTwin/InternshipProject 0.1"),
   OVERPASS_BASE_URL: z.url().default("https://overpass-api.de/api/interpreter"),
   LIVE_POLL_INTERVAL_MS: z.coerce.number().int().min(60_000).default(60_000),
+  TRAFFIC_EVENT_POLL_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .min(60_000)
+    .default(300_000),
   ANOMALY_BASELINE_WEEKS: z.coerce.number().int().min(6).max(52).default(12),
   ANOMALY_MINIMUM_SAMPLES: z.coerce.number().int().min(3).max(52).default(6),
   ANOMALY_PERSISTENCE_COUNT: z.coerce.number().int().min(2).max(10).default(2),

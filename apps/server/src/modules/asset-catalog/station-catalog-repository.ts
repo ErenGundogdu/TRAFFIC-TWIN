@@ -1,9 +1,10 @@
 import type { CoverageArea, StationSummary } from "@traffic-twin/contracts";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import {
   coverageAreas,
+  trafficDirectionProfiles,
   trafficAssets,
 } from "../../infrastructure/database/schema.js";
 
@@ -15,6 +16,11 @@ export interface PersistedStation {
   longitude: number;
   latitude: number;
   bearing: number | null;
+  directionProfiles?: Array<{
+    direction: 1 | 2;
+    freeFlowSpeedKmh: number | null;
+    maximumFlowVehiclesPerHour: number | null;
+  }>;
 }
 
 export interface StationCatalogRepository {
@@ -24,6 +30,7 @@ export interface StationCatalogRepository {
     coverageAreaId: string,
     stations: StationSummary[],
     sourceUpdatedAt: Date,
+    referenceSourceUpdatedAt?: Date,
   ): Promise<void>;
 }
 
@@ -66,6 +73,19 @@ export class PostgresStationCatalogRepository implements StationCatalogRepositor
       .where(eq(trafficAssets.coverageAreaId, coverageAreaId))
       .orderBy(trafficAssets.name);
 
+    const profiles =
+      rows.length === 0
+        ? []
+        : await this.database
+            .select()
+            .from(trafficDirectionProfiles)
+            .where(
+              inArray(
+                trafficDirectionProfiles.assetId,
+                rows.map((row) => row.id),
+              ),
+            );
+
     return rows.map((row) => ({
       id: row.id,
       providerStationId: row.providerStationId,
@@ -74,6 +94,18 @@ export class PostgresStationCatalogRepository implements StationCatalogRepositor
       longitude: row.location.x,
       latitude: row.location.y,
       bearing: row.bearing,
+      directionProfiles: profiles.flatMap((profile) =>
+        profile.assetId === row.id &&
+        (profile.direction === 1 || profile.direction === 2)
+          ? [
+              {
+                direction: profile.direction,
+                freeFlowSpeedKmh: profile.freeFlowSpeedKmh,
+                maximumFlowVehiclesPerHour: profile.maximumFlowVehiclesPerHour,
+              },
+            ]
+          : [],
+      ),
     }));
   }
 
@@ -81,6 +113,7 @@ export class PostgresStationCatalogRepository implements StationCatalogRepositor
     coverageAreaId: string,
     stations: StationSummary[],
     sourceUpdatedAt: Date,
+    referenceSourceUpdatedAt?: Date,
   ): Promise<void> {
     if (stations.length === 0) {
       return;
@@ -120,5 +153,42 @@ export class PostgresStationCatalogRepository implements StationCatalogRepositor
           updatedAt: new Date(),
         },
       });
+
+    const profiles = stations.flatMap((station) =>
+      station.directions.flatMap((direction) =>
+        direction.trafficFlow.freeFlowSpeedKmh === null &&
+        direction.trafficFlow.maximumFlowVehiclesPerHour === null
+          ? []
+          : [
+              {
+                assetId: station.id,
+                direction: direction.direction,
+                freeFlowSpeedKmh: direction.trafficFlow.freeFlowSpeedKmh,
+                maximumFlowVehiclesPerHour:
+                  direction.trafficFlow.maximumFlowVehiclesPerHour,
+                sourceUpdatedAt: referenceSourceUpdatedAt,
+                updatedAt: new Date(),
+              },
+            ],
+      ),
+    );
+
+    if (profiles.length > 0) {
+      await this.database
+        .insert(trafficDirectionProfiles)
+        .values(profiles)
+        .onConflictDoUpdate({
+          target: [
+            trafficDirectionProfiles.assetId,
+            trafficDirectionProfiles.direction,
+          ],
+          set: {
+            freeFlowSpeedKmh: sql`excluded.free_flow_speed_kmh`,
+            maximumFlowVehiclesPerHour: sql`excluded.maximum_flow_vehicles_per_hour`,
+            sourceUpdatedAt: sql`excluded.source_updated_at`,
+            updatedAt: new Date(),
+          },
+        });
+    }
   }
 }

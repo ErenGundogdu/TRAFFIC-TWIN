@@ -1,11 +1,10 @@
 import { historyAvailabilityResponseSchema } from "@traffic-twin/contracts";
 
-import { httpClient } from "@/shared/api/http-client";
+import { apiClient } from "@/shared/api/api-client";
 
 export async function getHistoryAvailability(coverageAreaId: string) {
-  const response = await httpClient.get(
+  return apiClient.get(
     `/api/analytics/${encodeURIComponent(coverageAreaId)}/availability`,
+    historyAvailabilityResponseSchema,
   );
-
-  return historyAvailabilityResponseSchema.parse(response.data);
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "traffic_direction_profiles" ADD COLUMN "source_updated_at" timestamp with time zone;

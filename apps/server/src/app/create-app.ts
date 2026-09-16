@@ -3,32 +3,26 @@ import express from "express";
 import type { Express } from "express";
 
 import type { AppEnv } from "../config/env.js";
+import { attachRequestId } from "../common/http/request-id.js";
 import { createStationCatalogRouter } from "../modules/asset-catalog/station-catalog-router.js";
 import { createHistoryRouter } from "../modules/analytics/history-router.js";
 import type { HistoryService } from "../modules/analytics/history-service.js";
-import {
-  HistoryAssetNotFoundError,
-  HistoryCoverageAreaNotFoundError,
-} from "../modules/analytics/history-service.js";
-import {
-  CoverageAreaNotFoundError,
-  type StationCatalogService,
-} from "../modules/asset-catalog/station-catalog-service.js";
-import { FintrafficResponseError } from "../modules/providers/fintraffic/client.js";
-import { OverpassResponseError } from "../modules/providers/openstreetmap/client.js";
+import type { StationCatalogService } from "../modules/asset-catalog/station-catalog-service.js";
 import { createRoadContextRouter } from "../modules/road-context/road-context-router.js";
-import {
-  RoadContextNotFoundError,
-  type RoadContextService,
-} from "../modules/road-context/road-context-service.js";
+import type { RoadContextService } from "../modules/road-context/road-context-service.js";
 import { createOperatorNoteRouter } from "../modules/operator-notes/operator-note-router.js";
-import { AssetNotFoundError } from "../modules/operator-notes/operator-note-repository.js";
 import type { OperatorNoteService } from "../modules/operator-notes/operator-note-service.js";
 import { createJunctionRouter } from "../modules/junctions/junction-router.js";
 import type { JunctionService } from "../modules/junctions/junction-service.js";
 import { createAnomalyRouter } from "../modules/anomalies/anomaly-router.js";
 import type { AnomalyService } from "../modules/anomalies/anomaly-service.js";
-import { ZodError } from "zod";
+import { createTrafficEventRouter } from "../modules/traffic-events/traffic-event-router.js";
+import type { TrafficEventService } from "../modules/traffic-events/traffic-event-service.js";
+import { createTrafficEventContextRouter } from "../modules/traffic-events/traffic-event-context-router.js";
+import type { TrafficEventContextService } from "../modules/traffic-events/traffic-event-context-service.js";
+import { createFieldReportRouter } from "../modules/field-reports/field-report-router.js";
+import type { FieldReportService } from "../modules/field-reports/field-report-service.js";
+import { errorHandler } from "./error-handler.js";
 
 interface AppDependencies {
   stationCatalogService?: StationCatalogService;
@@ -37,6 +31,9 @@ interface AppDependencies {
   junctionService?: JunctionService;
   anomalyService?: AnomalyService;
   roadContextService?: RoadContextService;
+  trafficEventService?: TrafficEventService;
+  trafficEventContextService?: TrafficEventContextService;
+  fieldReportService?: FieldReportService;
 }
 
 export function createApp(
@@ -46,6 +43,7 @@ export function createApp(
   const app = express();
 
   app.disable("x-powered-by");
+  app.use(attachRequestId);
   app.use(
     cors({
       origin: env.CLIENT_ORIGIN,
@@ -96,85 +94,28 @@ export function createApp(
     );
   }
 
-  app.use(
-    (
-      error: unknown,
-      _request: express.Request,
-      response: express.Response,
-      _next: express.NextFunction,
-    ) => {
-      void _next;
+  if (dependencies.trafficEventService) {
+    app.use(
+      "/api/coverage-areas",
+      createTrafficEventRouter(dependencies.trafficEventService),
+    );
+  }
 
-      if (error instanceof CoverageAreaNotFoundError) {
-        response.status(404).json({
-          error: { code: "COVERAGE_AREA_NOT_FOUND", message: error.message },
-        });
-        return;
-      }
+  if (dependencies.trafficEventContextService) {
+    app.use(
+      "/api/coverage-areas",
+      createTrafficEventContextRouter(dependencies.trafficEventContextService),
+    );
+  }
 
-      if (
-        error instanceof HistoryCoverageAreaNotFoundError ||
-        error instanceof HistoryAssetNotFoundError
-      ) {
-        response.status(404).json({
-          error: { code: "HISTORY_SCOPE_NOT_FOUND", message: error.message },
-        });
-        return;
-      }
+  if (dependencies.fieldReportService) {
+    app.use(
+      "/api/coverage-areas",
+      createFieldReportRouter(dependencies.fieldReportService),
+    );
+  }
 
-      if (error instanceof FintrafficResponseError) {
-        response.status(502).json({
-          error: {
-            code: "FINTRAFFIC_UNAVAILABLE",
-            message: "Fintraffic verisi şu anda alınamıyor.",
-          },
-        });
-        return;
-      }
-
-      if (error instanceof OverpassResponseError) {
-        response.status(502).json({
-          error: {
-            code: "OPENSTREETMAP_UNAVAILABLE",
-            message: "OpenStreetMap yol bağlamı şu anda alınamıyor.",
-          },
-        });
-        return;
-      }
-
-      if (error instanceof RoadContextNotFoundError) {
-        response.status(404).json({
-          error: {
-            code: "ROAD_CONTEXT_SCOPE_NOT_FOUND",
-            message: "İstasyon veya kapsama alanı bulunamadı.",
-          },
-        });
-        return;
-      }
-
-      if (error instanceof AssetNotFoundError) {
-        response.status(404).json({
-          error: { code: "TRAFFIC_ASSET_NOT_FOUND", message: error.message },
-        });
-        return;
-      }
-
-      if (error instanceof ZodError) {
-        response.status(400).json({
-          error: { code: "INVALID_REQUEST", message: "İstek doğrulanamadı." },
-        });
-        return;
-      }
-
-      console.error(error);
-      response.status(500).json({
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Beklenmeyen bir sunucu hatası oluştu.",
-        },
-      });
-    },
-  );
+  app.use(errorHandler);
 
   return app;
 }

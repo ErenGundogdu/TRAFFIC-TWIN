@@ -2,8 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  historyMetricSchema,
-  historyResolutionSchema,
   type HistoryAssetAvailability,
   type HistoryQuery,
   type HistoryResponse,
@@ -13,38 +11,29 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
-import { z } from "zod";
 
 import { ReplayTimeline, type ReplayController } from "@/features/replay";
-import {
-  dateLabelAt,
-  shiftDateLabel,
-  zonedDateStartIso,
-} from "@/shared/time/zoned-date";
+import { InlineQueryError } from "@/shared/ui";
+import { formatTrafficDirectionLabel } from "@/shared/traffic";
+import { dateLabelAt, shiftDateLabel } from "@/shared/time/zoned-date";
 
 import { useTrafficHistory } from "../hooks/use-traffic-history";
 import {
   commonAvailableDates,
   findAssetAvailability,
 } from "../lib/history-availability";
+import {
+  createDirectionSeriesLabels,
+  formatStationDirectionLabel,
+} from "../lib/direction-series-labels";
+import {
+  analyticsFilterSchema,
+  createInclusiveHistoryRange,
+  parseAnalyticsUrlFilters,
+  type AnalyticsFilterValues,
+} from "../lib/analytics-filters";
 import { HistoryChart } from "./history-chart";
 import { HistorySummaryPanel } from "./history-summary-panel";
-
-const filterSchema = z
-  .object({
-    compareAssetId: z.string(),
-    metric: historyMetricSchema,
-    direction: z.union([z.literal("1"), z.literal("2")]),
-    resolution: historyResolutionSchema,
-    fromDate: z.iso.date(),
-    toDate: z.iso.date(),
-  })
-  .refine((value) => value.fromDate < value.toDate, {
-    message: "Bitiş tarihi başlangıçtan sonra olmalıdır.",
-    path: ["toDate"],
-  });
-
-type FilterValues = z.infer<typeof filterSchema>;
 
 interface AnalyticsPanelProps {
   catalog: StationCatalogResponse;
@@ -54,6 +43,15 @@ interface AnalyticsPanelProps {
   availabilityStatus: "loading" | "error" | "ready";
   replay: ReplayController;
 }
+
+const FILTER_PARAMETER_LABELS: Record<string, string> = {
+  compare: "karşılaştırma istasyonu",
+  direction: "yön",
+  from: "başlangıç tarihi",
+  metric: "metrik",
+  resolution: "çözünürlük",
+  to: "bitiş tarihi",
+};
 
 export function AnalyticsPanel({
   catalog,
@@ -74,45 +72,52 @@ export function AnalyticsPanel({
   )
     ? requestedComparison
     : "";
-  const values: FilterValues = {
+  const selectedAssetIds = [selectedStationId, compareAssetId].filter(Boolean);
+  const sharedDates = commonAvailableDates(availability, selectedAssetIds);
+  const firstSharedDate = sharedDates[0] ?? null;
+  const lastSharedDate = sharedDates.at(-1) ?? null;
+  const { values, ignoredParameters } = parseAnalyticsUrlFilters(searchParams, {
     compareAssetId,
-    metric: historyMetricSchema
-      .catch("average-speed-kmh")
-      .parse(searchParams.get("metric")),
-    direction: searchParams.get("direction") === "2" ? "2" : "1",
-    resolution: historyResolutionSchema
-      .catch("auto")
-      .parse(searchParams.get("resolution")),
-    fromDate: searchParams.get("from") ?? shiftDateLabel(today, -1),
-    toDate: searchParams.get("to") ?? today,
-  };
-  const form = useForm<FilterValues>({
-    resolver: zodResolver(filterSchema),
+    defaultDate: lastSharedDate ?? today,
+    comparisonWasIgnored: requestedComparison !== "" && compareAssetId === "",
+  });
+  const form = useForm<AnalyticsFilterValues>({
+    resolver: zodResolver(analyticsFilterSchema),
     values,
   });
+  const historyRange = createInclusiveHistoryRange(
+    values.fromDate,
+    values.toDate,
+    catalog.coverageArea.timeZone,
+  );
   const query: HistoryQuery = {
     assetIds: [selectedStationId, values.compareAssetId].filter(Boolean),
     metric: values.metric,
     direction: Number(values.direction) as 1 | 2,
     resolution: values.resolution,
-    from: zonedDateStartIso(values.fromDate, catalog.coverageArea.timeZone),
-    to: zonedDateStartIso(values.toDate, catalog.coverageArea.timeZone),
+    from: historyRange.from,
+    to: historyRange.to,
   };
   const history = useTrafficHistory(catalog.coverageArea.id, query);
   const [replaySpeed, setReplaySpeed] = useState<ReplaySpeed>(8);
   const selectedStation = catalog.stations.find(
     (station) => station.id === selectedStationId,
   );
+  const directionNumber = Number(values.direction) as 1 | 2;
+  const comparisonStation = catalog.stations.find(
+    (station) => station.id === values.compareAssetId,
+  );
+  const analyzedStations = [selectedStation, comparisonStation].filter(
+    (station): station is NonNullable<typeof station> => Boolean(station),
+  );
+  const directionSeriesLabels = createDirectionSeriesLabels(
+    analyzedStations,
+    directionNumber,
+  );
   const selectedAvailability = findAssetAvailability(
     availability,
     selectedStationId,
   );
-  const selectedAssetIds = [selectedStationId, values.compareAssetId].filter(
-    Boolean,
-  );
-  const sharedDates = commonAvailableDates(availability, selectedAssetIds);
-  const firstSharedDate = sharedDates[0] ?? null;
-  const lastSharedDate = sharedDates.at(-1) ?? null;
   const availableStationIds = new Set(availability.map((item) => item.assetId));
   const suggestedStations = catalog.stations.filter((station) =>
     availableStationIds.has(station.id),
@@ -128,7 +133,7 @@ export function AnalyticsPanel({
   const replayStart = replayTimestamps[0] ?? null;
   const replayEnd = replayTimestamps.at(-1) ?? null;
 
-  function submit(next: FilterValues) {
+  function submit(next: AnalyticsFilterValues) {
     replay.control({ action: "stop" });
     const params = new URLSearchParams(searchParams.toString());
     params.set("mode", "analysis");
@@ -148,10 +153,10 @@ export function AnalyticsPanel({
   }
 
   function applyRange(days: number) {
-    const rangeEnd = lastSharedDate ? shiftDateLabel(lastSharedDate, 1) : today;
+    const rangeEnd = lastSharedDate ?? today;
     submit({
       ...form.getValues(),
-      fromDate: shiftDateLabel(rangeEnd, -days),
+      fromDate: shiftDateLabel(rangeEnd, 1 - days),
       toDate: rangeEnd,
     });
   }
@@ -161,7 +166,7 @@ export function AnalyticsPanel({
     submit({
       ...form.getValues(),
       fromDate: lastSharedDate,
-      toDate: shiftDateLabel(lastSharedDate, 1),
+      toDate: lastSharedDate,
       resolution: "minute",
     });
   }
@@ -177,7 +182,7 @@ export function AnalyticsPanel({
     params.delete("junction");
     params.delete("compare");
     params.set("from", assetAvailability.lastDate);
-    params.set("to", shiftDateLabel(assetAvailability.lastDate, 1));
+    params.set("to", assetAvailability.lastDate);
     params.set("resolution", "minute");
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
@@ -282,8 +287,21 @@ export function AnalyticsPanel({
 
           <form
             onSubmit={form.handleSubmit(submit)}
+            noValidate
             className="mt-3 space-y-2.5"
           >
+            {ignoredParameters.length > 0 ? (
+              <p
+                role="status"
+                className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] leading-4 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+              >
+                Paylaşılan bağlantıdaki geçersiz filtreler uygulanmadı:{" "}
+                {ignoredParameters
+                  .map((parameter) => FILTER_PARAMETER_LABELS[parameter])
+                  .join(", ")}
+                .
+              </p>
+            ) : null}
             <FilterSelect
               label="Karşılaştırma istasyonu"
               registration={form.register("compareAssetId")}
@@ -317,10 +335,32 @@ export function AnalyticsPanel({
                 label="Yön"
                 registration={form.register("direction")}
               >
-                <option value="1">Yön 1</option>
-                <option value="2">Yön 2</option>
+                {selectedStation?.directions.map((direction) => (
+                  <option key={direction.direction} value={direction.direction}>
+                    {formatTrafficDirectionLabel(direction)}
+                  </option>
+                )) ?? (
+                  <>
+                    <option value="1">Yön 1</option>
+                    <option value="2">Yön 2</option>
+                  </>
+                )}
               </FilterSelect>
             </div>
+            {comparisonStation && selectedStation ? (
+              <p className="rounded-lg bg-sky-50 px-2.5 py-2 text-[11px] leading-4 text-sky-800 dark:bg-sky-950 dark:text-sky-200">
+                İki istasyon aynı tarih aralığı ve metrikte karşılaştırılır.
+                <br />
+                {formatStationDirectionLabel(selectedStation, directionNumber)}
+                <br />
+                {formatStationDirectionLabel(
+                  comparisonStation,
+                  directionNumber,
+                )}
+                <br />
+                Yön numarası her istasyonun kendi doğrultusunu ifade eder.
+              </p>
+            ) : null}
             <FilterSelect
               label="Çözünürlük"
               registration={form.register("resolution")}
@@ -332,29 +372,20 @@ export function AnalyticsPanel({
             </FilterSelect>
             <div className="grid grid-cols-2 gap-2">
               <FilterInput
-                label="Başlangıç"
+                label="Başlangıç (dahil)"
                 registration={form.register("fromDate")}
                 min={firstSharedDate ?? undefined}
                 max={lastSharedDate ?? undefined}
+                error={form.formState.errors.fromDate?.message}
               />
               <FilterInput
-                label="Bitiş"
+                label="Bitiş (dahil)"
                 registration={form.register("toDate")}
-                min={
-                  firstSharedDate
-                    ? shiftDateLabel(firstSharedDate, 1)
-                    : undefined
-                }
-                max={
-                  lastSharedDate ? shiftDateLabel(lastSharedDate, 1) : undefined
-                }
+                min={firstSharedDate ?? undefined}
+                max={lastSharedDate ?? undefined}
+                error={form.formState.errors.toDate?.message}
               />
             </div>
-            {form.formState.errors.toDate?.message ? (
-              <p className="text-xs text-rose-600">
-                {form.formState.errors.toDate.message}
-              </p>
-            ) : null}
             <button className="w-full rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white dark:bg-sky-700">
               Analizi uygula
             </button>
@@ -451,6 +482,7 @@ export function AnalyticsPanel({
               ))}
             </select>
             <span className="text-xs text-slate-500">
+              {query.assetIds.length} istasyon · Yön {values.direction} ·{" "}
               {replay.frame
                 ? new Intl.DateTimeFormat("tr-TR", {
                     dateStyle: "medium",
@@ -485,10 +517,8 @@ export function AnalyticsPanel({
                   key={value.assetId}
                   className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300"
                 >
-                  {catalog.stations.find(
-                    (station) => station.id === value.assetId,
-                  )?.name ?? value.assetId}
-                  : {value.averageSpeedKmh.toFixed(1)} km/sa ·{" "}
+                  {directionSeriesLabels[value.assetId] ?? value.assetId}:{" "}
+                  {value.averageSpeedKmh.toFixed(1)} km/sa ·{" "}
                   {value.vehicleCount} araç/dk
                 </span>
               ))}
@@ -501,17 +531,12 @@ export function AnalyticsPanel({
                 Gerçek geçmiş verisi sorgulanıyor…
               </div>
             ) : history.isError || !history.data ? (
-              <div className="grid h-80 place-items-center text-center text-sm text-rose-600 dark:text-rose-300">
-                <div>
-                  <p>Geçmiş verisi alınamadı.</p>
-                  <button
-                    type="button"
-                    onClick={() => void history.refetch()}
-                    className="mt-2 font-semibold underline underline-offset-2"
-                  >
-                    Tekrar dene
-                  </button>
-                </div>
+              <div className="grid h-80 place-items-center">
+                <InlineQueryError
+                  className="w-full max-w-md text-center text-sm"
+                  message="Geçmiş verisi alınamadı."
+                  onRetry={() => void history.refetch()}
+                />
               </div>
             ) : history.data.coverage.status === "NO_DATA" ? (
               <HistoryDiscoveryEmptyState
@@ -526,6 +551,7 @@ export function AnalyticsPanel({
               <HistoryChart
                 history={history.data}
                 cursorTimestamp={replay.frame?.timestamp}
+                seriesLabels={directionSeriesLabels}
               />
             )}
           </div>
@@ -562,12 +588,16 @@ function FilterInput({
   registration,
   min,
   max,
+  error,
 }: {
   label: string;
   registration: UseFormRegisterReturn;
   min?: string;
   max?: string;
+  error?: string;
 }) {
+  const errorId = `${registration.name}-error`;
+
   return (
     <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
       {label}
@@ -575,9 +605,20 @@ function FilterInput({
         type="date"
         min={min}
         max={max}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
         {...registration}
-        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+        className={`mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-xs dark:bg-slate-950 dark:text-slate-100 ${
+          error
+            ? "border-rose-400 dark:border-rose-700"
+            : "border-slate-200 dark:border-slate-700"
+        }`}
       />
+      {error ? (
+        <span id={errorId} className="mt-1 block text-[11px] text-rose-600">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

@@ -3,6 +3,8 @@ import type {
   StationSummary,
 } from "@traffic-twin/contracts";
 
+import { formatTrafficDirectionLabel } from "@/shared/traffic";
+
 function stationFlow(station: StationSummary) {
   const values = station.directions
     .map((direction) => direction.flowVehiclesPerHour)
@@ -123,10 +125,18 @@ export function createRoadFlowGeoJson(
           id: segment.id,
           assetId: context.assetId,
           direction: segment.direction ?? 0,
-          directionLabel: direction?.label ?? "Yön bilinmiyor",
+          directionLabel: direction
+            ? formatTrafficDirectionLabel(direction, "short")
+            : "Yön bilinmiyor",
           name: segment.name ?? `Yol ${segment.roadRef ?? ""}`.trim(),
           speedKmh: direction?.averageSpeedKmh ?? stationSpeed(station) ?? -1,
           flowVehiclesPerHour: direction?.flowVehiclesPerHour ?? 0,
+          trafficFlowStatus:
+            direction?.trafficFlow.status ?? "INSUFFICIENT_DATA",
+          speedPercentOfFreeFlow:
+            direction?.trafficFlow.speedPercentOfFreeFlow ?? -1,
+          flowPercentOfCapacity:
+            direction?.trafficFlow.flowPercentOfCapacity ?? -1,
           hasMeasurement: Boolean(
             direction &&
             direction.averageSpeedKmh !== null &&

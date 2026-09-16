@@ -19,6 +19,7 @@ export const roadSegmentSchema = z.object({
 export const stationRoadContextSchema = z.object({
   assetId: z.string().min(1),
   status: z.enum(["MATCHED", "NO_MATCH"]),
+  freshness: z.enum(["FRESH", "STALE"]),
   roadRef: z.string().min(1).nullable(),
   matchingPolicy: z.literal("osm-ref-nearest-bearing-v1"),
   source: z.object({

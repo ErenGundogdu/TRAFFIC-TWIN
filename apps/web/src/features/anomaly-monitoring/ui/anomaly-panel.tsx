@@ -1,7 +1,14 @@
-import type { AnomalyEvaluation } from "@traffic-twin/contracts";
+import type {
+  AnomalyEvaluation,
+  TrafficDirection,
+} from "@traffic-twin/contracts";
+
+import { formatTrafficDirectionLabel } from "@/shared/traffic";
+import { InlineQueryError } from "@/shared/ui";
 
 interface AnomalyPanelProps {
   evaluations: AnomalyEvaluation[];
+  directions?: TrafficDirection[];
   status?: "loading" | "error" | "ready";
   onRetry?: () => void;
 }
@@ -31,6 +38,7 @@ function format(value: number | null, metric: AnomalyEvaluation["metric"]) {
 
 export function AnomalyPanel({
   evaluations,
+  directions,
   status = "ready",
   onRetry,
 }: AnomalyPanelProps) {
@@ -61,18 +69,11 @@ export function AnomalyPanel({
           Anomali değerlendirmeleri yükleniyor…
         </p>
       ) : status === "error" ? (
-        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs leading-5 text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200">
-          <p>Anomali değerlendirmeleri alınamadı.</p>
-          {onRetry ? (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="mt-1 font-semibold underline underline-offset-2"
-            >
-              Tekrar dene
-            </button>
-          ) : null}
-        </div>
+        <InlineQueryError
+          className="mt-3"
+          message="Anomali değerlendirmeleri alınamadı."
+          onRetry={onRetry}
+        />
       ) : evaluations.length === 0 ? (
         <p className="mt-3 rounded-xl bg-slate-100 p-3 text-xs leading-5 text-slate-600">
           Bu istasyon için henüz değerlendirme üretilmedi. Sistem eksik geçmişte
@@ -93,7 +94,9 @@ export function AnomalyPanel({
             >
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  Yön {evaluation.direction} · {metricLabel(evaluation.metric)}
+                  {formatEvaluationDirection(evaluation.direction, directions)}
+                  {" · "}
+                  {metricLabel(evaluation.metric)}
                 </span>
                 <span className="font-medium text-slate-600 dark:text-slate-300">
                   {STATUS_LABELS[evaluation.status]}
@@ -131,4 +134,12 @@ export function AnomalyPanel({
       )}
     </section>
   );
+}
+
+function formatEvaluationDirection(
+  direction: 1 | 2,
+  directions: TrafficDirection[] | undefined,
+) {
+  const identity = directions?.find((item) => item.direction === direction);
+  return identity ? formatTrafficDirectionLabel(identity) : `Yön ${direction}`;
 }

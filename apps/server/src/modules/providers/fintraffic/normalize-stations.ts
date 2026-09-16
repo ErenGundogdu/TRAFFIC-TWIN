@@ -8,18 +8,27 @@ import type {
   FintrafficStationCollection,
   FintrafficStationData,
   FintrafficStationDataCollection,
+  FintrafficStationSensorConstantsCollection,
 } from "./schemas.js";
 
 import { classifyMeasurementFreshness } from "../../telemetry/classify-measurement-freshness.js";
+import { classifyTrafficFlow } from "../../telemetry/classify-traffic-flow.js";
+import { normalizeDirectionHeading } from "./normalize-direction-heading.js";
+import type { DirectionReference } from "./normalize-sensor-constants.js";
+import { normalizeStationReferences } from "./normalize-sensor-constants.js";
 
 const SENSOR_NAMES = {
   1: {
     speed: "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA1",
     flow: "OHITUKSET_5MIN_LIUKUVA_SUUNTA1",
+    speedPercent: "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA1_VVAPAAS1",
+    flowPercent: "OHITUKSET_5MIN_LIUKUVA_SUUNTA1_MS1",
   },
   2: {
     speed: "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA2",
     flow: "OHITUKSET_5MIN_LIUKUVA_SUUNTA2",
+    speedPercent: "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA2_VVAPAAS2",
+    flowPercent: "OHITUKSET_5MIN_LIUKUVA_SUUNTA2_MS2",
   },
 } as const;
 
@@ -39,6 +48,8 @@ function isInsideCoverage(
 function normalizeDirection(
   stationData: FintrafficStationData | undefined,
   direction: 1 | 2,
+  reference: DirectionReference,
+  providerBearing: number | null,
 ): TrafficDirection {
   const names = SENSOR_NAMES[direction];
   const speed = stationData?.sensorValues.find(
@@ -47,17 +58,36 @@ function normalizeDirection(
   const flow = stationData?.sensorValues.find(
     (sensor) => sensor.name === names.flow && sensor.unit === "kpl/h",
   );
-  const measuredAt = [speed?.measuredTime, flow?.measuredTime]
+  const speedPercent = stationData?.sensorValues.find(
+    (sensor) => sensor.name === names.speedPercent,
+  );
+  const flowPercent = stationData?.sensorValues.find(
+    (sensor) => sensor.name === names.flowPercent,
+  );
+  const measuredAt = [
+    speed?.measuredTime,
+    flow?.measuredTime,
+    speedPercent?.measuredTime,
+    flowPercent?.measuredTime,
+  ]
     .filter((value): value is string => value !== undefined)
     .sort()
     .at(-1);
 
   return {
     direction,
-    label: `Yön ${direction}`,
+    heading: normalizeDirectionHeading(providerBearing, direction),
     averageSpeedKmh: speed?.value ?? null,
     flowVehiclesPerHour: flow?.value ?? null,
     measuredAt: measuredAt ?? null,
+    trafficFlow: classifyTrafficFlow({
+      averageSpeedKmh: speed?.value ?? null,
+      flowVehiclesPerHour: flow?.value ?? null,
+      freeFlowSpeedKmh: reference.freeFlowSpeedKmh,
+      maximumFlowVehiclesPerHour: reference.maximumFlowVehiclesPerHour,
+      reportedSpeedPercent: speedPercent?.value ?? null,
+      reportedFlowPercent: flowPercent?.value ?? null,
+    }),
   };
 }
 
@@ -66,6 +96,7 @@ export function normalizeStations(
   dataCollection: FintrafficStationDataCollection,
   coverageArea: CoverageArea,
   now = new Date(),
+  sensorConstants: FintrafficStationSensorConstantsCollection | null = null,
 ): StationSummary[] {
   const dataByStationId = new Map(
     dataCollection.stations.map((station) => [station.id, station]),
@@ -79,9 +110,25 @@ export function normalizeStations(
     })
     .map((feature) => {
       const stationData = dataByStationId.get(feature.id);
+      const references = normalizeStationReferences(
+        sensorConstants,
+        feature.id,
+        now,
+        coverageArea.timeZone,
+      );
       const directions = [
-        normalizeDirection(stationData, 1),
-        normalizeDirection(stationData, 2),
+        normalizeDirection(
+          stationData,
+          1,
+          references[0],
+          feature.properties.bearing,
+        ),
+        normalizeDirection(
+          stationData,
+          2,
+          references[1],
+          feature.properties.bearing,
+        ),
       ] satisfies [TrafficDirection, TrafficDirection];
       const newestMeasurement = directions
         .map((direction) => direction.measuredAt)

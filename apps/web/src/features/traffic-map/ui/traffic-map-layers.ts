@@ -1,4 +1,5 @@
 import type { LayerProps } from "react-map-gl/maplibre";
+import type { ExpressionSpecification } from "maplibre-gl";
 
 export const stationLayer: LayerProps = {
   id: "traffic-stations",
@@ -135,5 +136,57 @@ export const anomalyLayer: LayerProps = {
       "#f59e0b",
     ],
     "circle-opacity": 0.95,
+  },
+};
+
+function trafficEventColor(): ExpressionSpecification {
+  return ["match", ["get", "category"], "ROAD_WORK", "#f97316", "#e11d48"];
+}
+
+export const trafficEventAreaLayer: LayerProps = {
+  id: "traffic-event-areas",
+  type: "fill",
+  filter: [
+    "any",
+    ["==", ["geometry-type"], "Polygon"],
+    ["==", ["geometry-type"], "MultiPolygon"],
+  ],
+  paint: {
+    "fill-color": trafficEventColor(),
+    "fill-opacity": ["case", ["==", ["get", "status"], "UPCOMING"], 0.18, 0.3],
+    "fill-outline-color": trafficEventColor(),
+  },
+};
+
+export const trafficEventLineLayer: LayerProps = {
+  id: "traffic-event-lines",
+  type: "line",
+  filter: [
+    "any",
+    ["==", ["geometry-type"], "LineString"],
+    ["==", ["geometry-type"], "MultiLineString"],
+  ],
+  paint: {
+    "line-color": trafficEventColor(),
+    "line-width": ["interpolate", ["linear"], ["zoom"], 7, 2, 13, 6],
+    "line-opacity": ["case", ["==", ["get", "status"], "UPCOMING"], 0.55, 0.9],
+  },
+};
+
+export const trafficEventPointLayer: LayerProps = {
+  id: "traffic-event-points",
+  type: "circle",
+  filter: ["==", ["geometry-type"], "Point"],
+  paint: {
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 5, 13, 9],
+    "circle-color": trafficEventColor(),
+    "circle-opacity": [
+      "case",
+      ["==", ["get", "status"], "UPCOMING"],
+      0.6,
+      0.95,
+    ],
+    "circle-stroke-color": "#ffffff",
+    "circle-stroke-width": 2,
   },
 };

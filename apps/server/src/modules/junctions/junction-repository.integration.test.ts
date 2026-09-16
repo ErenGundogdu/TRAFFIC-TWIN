@@ -13,6 +13,15 @@ import {
 import { PostgresStationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import { PostgresJunctionCatalogRepository } from "./junction-repository.js";
 
+const unknownTrafficFlow = {
+  status: "INSUFFICIENT_DATA" as const,
+  speedPercentOfFreeFlow: null,
+  flowPercentOfCapacity: null,
+  freeFlowSpeedKmh: null,
+  maximumFlowVehiclesPerHour: null,
+  policyVersion: "fintraffic-flow-v1" as const,
+};
+
 describe("PostgresJunctionCatalogRepository", () => {
   const connection = createDatabase(
     parseEnv({ NODE_ENV: "test" }).DATABASE_URL,
@@ -49,17 +58,27 @@ describe("PostgresJunctionCatalogRepository", () => {
           directions: [
             {
               direction: 1,
-              label: "Yön 1",
+              heading: {
+                degrees: 335,
+                compassPoint: "NW",
+                determination: "PROVIDER_REPORTED",
+              },
               averageSpeedKmh: null,
               flowVehiclesPerHour: null,
               measuredAt: null,
+              trafficFlow: unknownTrafficFlow,
             },
             {
               direction: 2,
-              label: "Yön 2",
+              heading: {
+                degrees: 155,
+                compassPoint: "SE",
+                determination: "DERIVED_OPPOSITE",
+              },
               averageSpeedKmh: null,
               flowVehiclesPerHour: null,
               measuredAt: null,
+              trafficFlow: unknownTrafficFlow,
             },
           ],
         },

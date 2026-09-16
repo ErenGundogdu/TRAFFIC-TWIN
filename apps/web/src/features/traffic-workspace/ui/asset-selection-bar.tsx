@@ -7,6 +7,8 @@ import type {
 } from "@traffic-twin/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { InlineQueryError } from "@/shared/ui";
+
 interface AssetSelectionBarProps {
   stations: StationSummary[];
   junctions: JunctionSummary[];
@@ -288,15 +290,12 @@ export function AssetSelectionBar({
               </li>
             ) : null}
             {assetKind === "junction" && junctionStatus === "error" ? (
-              <li className="col-span-full rounded-xl border border-rose-200 bg-rose-50 p-4 text-center text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200">
-                <p>Kavşak kataloğu alınamadı.</p>
-                <button
-                  type="button"
-                  onClick={onRetryJunctions}
-                  className="mt-2 font-semibold underline underline-offset-2"
-                >
-                  Tekrar dene
-                </button>
+              <li className="col-span-full">
+                <InlineQueryError
+                  className="p-4 text-center text-sm"
+                  message="Kavşak kataloğu alınamadı."
+                  onRetry={onRetryJunctions}
+                />
               </li>
             ) : null}
             {assetKind === "station"

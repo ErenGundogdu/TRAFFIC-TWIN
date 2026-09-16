@@ -1,10 +1,10 @@
 import { junctionCatalogResponseSchema } from "@traffic-twin/contracts";
 
-import { httpClient } from "@/shared/api/http-client";
+import { apiClient } from "@/shared/api/api-client";
 
 export async function getJunctionCatalog(coverageAreaId: string) {
-  const response = await httpClient.get(
+  return apiClient.get(
     `/api/coverage-areas/${encodeURIComponent(coverageAreaId)}/junctions`,
+    junctionCatalogResponseSchema,
   );
-  return junctionCatalogResponseSchema.parse(response.data);
 }

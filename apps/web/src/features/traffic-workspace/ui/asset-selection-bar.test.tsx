@@ -5,6 +5,15 @@ import { AssetSelectionBar } from "./asset-selection-bar";
 
 afterEach(cleanup);
 
+const unknownTrafficFlow = {
+  status: "INSUFFICIENT_DATA" as const,
+  speedPercentOfFreeFlow: null,
+  flowPercentOfCapacity: null,
+  freeFlowSpeedKmh: null,
+  maximumFlowVehiclesPerHour: null,
+  policyVersion: "fintraffic-flow-v1" as const,
+};
+
 const stations = [
   {
     id: "fintraffic-tms:20002",
@@ -18,17 +27,27 @@ const stations = [
     directions: [
       {
         direction: 1 as const,
-        label: "Yön 1",
+        heading: {
+          degrees: 298,
+          compassPoint: "NW" as const,
+          determination: "PROVIDER_REPORTED" as const,
+        },
         averageSpeedKmh: 93,
         flowVehiclesPerHour: 1488,
         measuredAt: "2026-09-04T09:03:35Z",
+        trafficFlow: unknownTrafficFlow,
       },
       {
         direction: 2 as const,
-        label: "Yön 2",
+        heading: {
+          degrees: 118,
+          compassPoint: "SE" as const,
+          determination: "DERIVED_OPPOSITE" as const,
+        },
         averageSpeedKmh: 103,
         flowVehiclesPerHour: 612,
         measuredAt: "2026-09-04T09:03:35Z",
+        trafficFlow: unknownTrafficFlow,
       },
     ],
   },
@@ -44,17 +63,19 @@ const stations = [
     directions: [
       {
         direction: 1 as const,
-        label: "Yön 1",
+        heading: null,
         averageSpeedKmh: null,
         flowVehiclesPerHour: null,
         measuredAt: null,
+        trafficFlow: unknownTrafficFlow,
       },
       {
         direction: 2 as const,
-        label: "Yön 2",
+        heading: null,
         averageSpeedKmh: null,
         flowVehiclesPerHour: null,
         measuredAt: null,
+        trafficFlow: unknownTrafficFlow,
       },
     ],
   },

@@ -10,7 +10,10 @@ export function useStationRoadContext(
     queryKey: ["station-road-context", coverageAreaId, assetId],
     queryFn: () => getStationRoadContext(coverageAreaId, assetId!),
     enabled: Boolean(assetId),
-    staleTime: 24 * 60 * 60 * 1_000,
+    staleTime: (query) =>
+      query.state.data?.freshness === "STALE"
+        ? 5 * 60 * 1_000
+        : 24 * 60 * 60 * 1_000,
     retry: 1,
   });
 }

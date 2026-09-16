@@ -1,4 +1,7 @@
-import type { StationCatalogResponse } from "@traffic-twin/contracts";
+import type {
+  FieldReport,
+  StationCatalogResponse,
+} from "@traffic-twin/contracts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -84,5 +87,25 @@ describe("useRealtimeSync", () => {
         "helsinki",
       ])?.source.updatedAt,
     ).toBe("2026-09-04T09:01:00Z");
+
+    act(() =>
+      socket.listeners.get("field-report:created")?.({
+        id: "087b305a-829a-48fa-a94a-3394d59ca68a",
+        coverageAreaId: "helsinki",
+        source: "OPERATOR",
+        author: "Eren",
+        category: "ACCIDENT",
+        severity: "HIGH",
+        status: "PENDING_REVIEW",
+        description: "Sağ şerit kapalı.",
+        location: { longitude: 24.94, latitude: 60.17 },
+        observedAt: "2026-09-15T08:00:00.000Z",
+        createdAt: "2026-09-15T08:00:00.000Z",
+      }),
+    );
+
+    expect(
+      queryClient.getQueryData<FieldReport[]>(["field-reports", "helsinki"]),
+    ).toHaveLength(1);
   });
 });

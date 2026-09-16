@@ -6,10 +6,14 @@ import type {
   HttpValidators,
 } from "../providers/fintraffic/client.js";
 import { normalizeStations } from "../providers/fintraffic/normalize-stations.js";
-import type { FintrafficStationCollection } from "../providers/fintraffic/schemas.js";
+import type {
+  FintrafficStationCollection,
+  FintrafficStationSensorConstantsCollection,
+} from "../providers/fintraffic/schemas.js";
 import type { TrafficObservationRepository } from "../telemetry/traffic-observation-repository.js";
 
 const METADATA_TTL_MS = 24 * 60 * 60 * 1_000;
+const SENSOR_CONSTANTS_RETRY_MS = 15 * 60 * 1_000;
 
 interface PollResult {
   status: "updated" | "not-modified";
@@ -19,6 +23,11 @@ interface PollResult {
 export class LiveTrafficPoller {
   private validators: HttpValidators = {};
   private metadata: FintrafficStationCollection | null = null;
+  private sensorConstants: FintrafficStationSensorConstantsCollection | null =
+    null;
+  private sensorConstantsRefresh: Promise<void> | null = null;
+  private sensorConstantsFetchedAt = 0;
+  private sensorConstantsAttemptedAt = 0;
   private metadataFetchedAt = 0;
   private lastSourceUpdatedAt: string | undefined;
   private timer: NodeJS.Timeout | undefined;
@@ -31,7 +40,7 @@ export class LiveTrafficPoller {
     private readonly observationRepository: TrafficObservationRepository,
     private readonly client: Pick<
       FintrafficClient,
-      "getStations" | "getCurrentStationDataConditional"
+      "getStations" | "getSensorConstants" | "getCurrentStationDataConditional"
     >,
     private readonly publish: (batch: TrafficBatch) => void,
     private readonly clock: () => Date = () => new Date(),
@@ -66,6 +75,26 @@ export class LiveTrafficPoller {
         this.metadataFetchedAt = now.getTime();
       }
 
+      if (
+        !this.sensorConstantsRefresh &&
+        (this.sensorConstants
+          ? now.getTime() - this.sensorConstantsFetchedAt >= METADATA_TTL_MS
+          : now.getTime() - this.sensorConstantsAttemptedAt >=
+            SENSOR_CONSTANTS_RETRY_MS)
+      ) {
+        this.sensorConstantsAttemptedAt = now.getTime();
+        this.sensorConstantsRefresh = this.client
+          .getSensorConstants()
+          .then((sensorConstants) => {
+            this.sensorConstants = sensorConstants;
+            this.sensorConstantsFetchedAt = this.clock().getTime();
+          })
+          .catch(this.onError)
+          .finally(() => {
+            this.sensorConstantsRefresh = null;
+          });
+      }
+
       const result = await this.client.getCurrentStationDataConditional(
         this.validators,
       );
@@ -84,6 +113,7 @@ export class LiveTrafficPoller {
         result.data,
         coverageArea,
         now,
+        this.sensorConstants,
       );
       const sourceUpdatedAt = new Date(result.data.dataUpdatedTime);
 
@@ -91,6 +121,9 @@ export class LiveTrafficPoller {
         coverageArea.id,
         stations,
         new Date(this.metadata.dataUpdatedTime),
+        this.sensorConstants
+          ? new Date(this.sensorConstants.dataUpdatedTime)
+          : undefined,
       );
       const insertedObservationCount =
         await this.observationRepository.insertBatch(stations, sourceUpdatedAt);

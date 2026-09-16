@@ -1,17 +1,22 @@
 import {
   REALTIME_EVENTS,
   coverageSubscriptionSchema,
+  createFieldReportSchema,
   createOperatorNoteSchema,
   replayControlSchema,
   replayStartSchema,
   type NoteAcknowledgement,
+  type FieldReportAcknowledgement,
   type ReplayStartAcknowledgement,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
   type TrafficBatch,
 } from "@traffic-twin/contracts";
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 
 import type { OperatorNoteService } from "../modules/operator-notes/operator-note-service.js";
+import type { FieldReportService } from "../modules/field-reports/field-report-service.js";
 import type { ReplayService } from "../modules/replay/replay-service.js";
 import { ReplaySession } from "../modules/replay/replay-session.js";
 
@@ -22,10 +27,14 @@ export function createRealtimeServer(
   clientOrigin: string,
   noteService: OperatorNoteService,
   replayService: Pick<ReplayService, "load">,
+  fieldReportService?: FieldReportService,
 ) {
-  const io = new Server(httpServer, {
-    cors: { origin: clientOrigin },
-  });
+  const io = new Server<ClientToServerEvents, ServerToClientEvents>(
+    httpServer,
+    {
+      cors: { origin: clientOrigin },
+    },
+  );
 
   io.on("connection", (socket) => {
     let replaySession: ReplaySession | undefined;
@@ -60,6 +69,47 @@ export function createRealtimeServer(
             error: {
               code: "INVALID_OPERATOR_NOTE",
               message: "Not kaydedilemedi. Alanları ve istasyonu kontrol edin.",
+            },
+          });
+        }
+      },
+    );
+
+    socket.on(
+      REALTIME_EVENTS.fieldReportCreate,
+      async (
+        payload: unknown,
+        acknowledge:
+          ((acknowledgement: FieldReportAcknowledgement) => void) | undefined,
+      ) => {
+        const respond =
+          typeof acknowledge === "function" ? acknowledge : () => undefined;
+        if (!fieldReportService) {
+          respond({
+            ok: false,
+            error: {
+              code: "FIELD_REPORTS_UNAVAILABLE",
+              message: "Saha bildirimi servisi kullanılamıyor.",
+            },
+          });
+          return;
+        }
+
+        try {
+          const command = createFieldReportSchema.parse(payload);
+          const report = await fieldReportService.create(command);
+          respond({ ok: true, report });
+          io.to(coverageRoom(report.coverageAreaId)).emit(
+            REALTIME_EVENTS.fieldReportCreated,
+            report,
+          );
+        } catch {
+          respond({
+            ok: false,
+            error: {
+              code: "INVALID_FIELD_REPORT",
+              message:
+                "Bildirim kaydedilemedi. Alanları ve konumu kontrol edin.",
             },
           });
         }

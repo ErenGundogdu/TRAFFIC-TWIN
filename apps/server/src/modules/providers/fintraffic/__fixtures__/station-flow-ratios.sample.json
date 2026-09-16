@@ -1,0 +1,48 @@
+{
+  "dataUpdatedTime": "2026-09-08T07:25:11Z",
+  "stations": [
+    {
+      "id": 20002,
+      "tmsNumber": 20002,
+      "dataUpdatedTime": "2026-09-08T07:25:11Z",
+      "sensorValues": [
+        {
+          "id": 5158,
+          "stationId": 20002,
+          "name": "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA1_VVAPAAS1",
+          "shortName": "LTila1",
+          "measuredTime": "2026-09-08T07:25:03Z",
+          "unit": "***",
+          "value": 87
+        },
+        {
+          "id": 5161,
+          "stationId": 20002,
+          "name": "KESKINOPEUS_5MIN_LIUKUVA_SUUNTA2_VVAPAAS2",
+          "shortName": "LTila2",
+          "measuredTime": "2026-09-08T07:25:03Z",
+          "unit": "***",
+          "value": 94
+        },
+        {
+          "id": 5164,
+          "stationId": 20002,
+          "name": "OHITUKSET_5MIN_LIUKUVA_SUUNTA1_MS1",
+          "shortName": "MTila1",
+          "measuredTime": "2026-09-08T07:25:03Z",
+          "unit": "***",
+          "value": 27
+        },
+        {
+          "id": 5168,
+          "stationId": 20002,
+          "name": "OHITUKSET_5MIN_LIUKUVA_SUUNTA2_MS2",
+          "shortName": "MTila2",
+          "measuredTime": "2026-09-08T07:25:03Z",
+          "unit": "***",
+          "value": 14
+        }
+      ]
+    }
+  ]
+}

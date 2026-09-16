@@ -63,6 +63,28 @@ body {
   border-top-color: white;
 }
 
+.traffic-event-detail-popup .maplibregl-popup-content {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 22px 60px rgb(15 23 42 / 25%);
+}
+
+.traffic-event-detail-popup .maplibregl-popup-tip {
+  border-top-color: white;
+}
+
+html[data-theme="dark"] .traffic-map-popup .maplibregl-popup-content,
+html[data-theme="dark"] .traffic-event-detail-popup .maplibregl-popup-content {
+  border-color: #334155;
+  background: #0f172a;
+}
+
+html[data-theme="dark"] .traffic-map-popup .maplibregl-popup-tip,
+html[data-theme="dark"] .traffic-event-detail-popup .maplibregl-popup-tip {
+  border-top-color: #0f172a;
+}
+
 .app-loading {
   display: grid;
   min-height: 100vh;

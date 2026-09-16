@@ -2,31 +2,44 @@
 
 import {
   REALTIME_EVENTS,
+  fieldReportAcknowledgementSchema,
+  fieldReportSchema,
   noteAcknowledgementSchema,
   operatorNoteSchema,
   trafficBatchSchema,
+  type CreateFieldReport,
   type CreateOperatorNote,
+  type FieldReport,
+  type FieldReportAcknowledgement,
   type NoteAcknowledgement,
   type OperatorNote,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
   type StationCatalogResponse,
 } from "@traffic-twin/contracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
-import { operatorNotesQueryKey } from "@/features/operator-notes/hooks/use-operator-notes";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { operatorNotesQueryKey } from "@/features/operator-notes";
+import { fieldReportsQueryKey } from "@/features/field-reports";
+import { webConfig } from "@/shared/config";
 
 export type RealtimeStatus = "connecting" | "connected" | "disconnected";
 
 export function useRealtimeSync(coverageAreaId: string) {
   const queryClient = useQueryClient();
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<Socket<
+    ServerToClientEvents,
+    ClientToServerEvents
+  > | null>(null);
   const [status, setStatus] = useState<RealtimeStatus>("connecting");
 
   useEffect(() => {
-    const socket = io(apiUrl, { autoConnect: false });
+    const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+      webConfig.backendUrl,
+      { autoConnect: false },
+    );
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -36,6 +49,7 @@ export function useRealtimeSync(coverageAreaId: string) {
         queryKey: ["station-catalog", coverageAreaId],
       });
       void queryClient.invalidateQueries({ queryKey: ["operator-notes"] });
+      void queryClient.invalidateQueries({ queryKey: ["field-reports"] });
     });
     socket.on("disconnect", () => setStatus("disconnected"));
     socket.on(REALTIME_EVENTS.trafficBatch, (payload: unknown) => {
@@ -70,6 +84,19 @@ export function useRealtimeSync(coverageAreaId: string) {
         (current = []) => [
           result.data,
           ...current.filter((note) => note.id !== result.data.id),
+        ],
+      );
+    });
+    socket.on(REALTIME_EVENTS.fieldReportCreated, (payload: unknown) => {
+      const result = fieldReportSchema.safeParse(payload);
+      if (!result.success || result.data.coverageAreaId !== coverageAreaId)
+        return;
+
+      queryClient.setQueryData<FieldReport[]>(
+        fieldReportsQueryKey(coverageAreaId),
+        (current = []) => [
+          result.data,
+          ...current.filter((report) => report.id !== result.data.id),
         ],
       );
     });
@@ -132,5 +159,57 @@ export function useRealtimeSync(coverageAreaId: string) {
     [],
   );
 
-  return { status, createNote };
+  const createFieldReport = useCallback(
+    (input: CreateFieldReport): Promise<FieldReportAcknowledgement> =>
+      new Promise((resolve) => {
+        const socket = socketRef.current;
+        if (!socket?.connected) {
+          resolve({
+            ok: false,
+            error: {
+              code: "REALTIME_DISCONNECTED",
+              message: "Canlı bağlantı kurulmadan bildirim kaydedilemez.",
+            },
+          });
+          return;
+        }
+
+        socket
+          .timeout(8_000)
+          .emit(
+            REALTIME_EVENTS.fieldReportCreate,
+            input,
+            (error: Error | null, payload: unknown) => {
+              if (error) {
+                resolve({
+                  ok: false,
+                  error: {
+                    code: "ACK_TIMEOUT",
+                    message: "Sunucudan bildirim onayı alınamadı.",
+                  },
+                });
+                return;
+              }
+
+              const result =
+                fieldReportAcknowledgementSchema.safeParse(payload);
+              resolve(
+                result.success
+                  ? result.data
+                  : {
+                      ok: false,
+                      error: {
+                        code: "INVALID_ACK",
+                        message:
+                          "Sunucudan geçersiz bir bildirim yanıtı alındı.",
+                      },
+                    },
+              );
+            },
+          );
+      }),
+    [],
+  );
+
+  return { status, createNote, createFieldReport };
 }

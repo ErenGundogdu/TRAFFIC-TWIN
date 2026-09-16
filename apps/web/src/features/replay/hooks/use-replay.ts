@@ -8,23 +8,30 @@ import {
   type ReplayFrame,
   type ReplaySpeed,
   type ReplayStart,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
 } from "@traffic-twin/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { webConfig } from "@/shared/config";
 
 export type ReplayStatus =
   "idle" | "loading" | "playing" | "paused" | "ended" | "error";
 
 export function useReplay() {
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<Socket<
+    ServerToClientEvents,
+    ClientToServerEvents
+  > | null>(null);
   const [status, setStatus] = useState<ReplayStatus>("idle");
   const [frame, setFrame] = useState<ReplayFrame | null>(null);
   const [frameCount, setFrameCount] = useState(0);
 
   useEffect(() => {
-    const socket = io(apiUrl);
+    const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+      webConfig.backendUrl,
+    );
     socketRef.current = socket;
     socket.on(REALTIME_EVENTS.replayFrame, (payload: unknown) => {
       const result = replayFrameSchema.safeParse(payload);

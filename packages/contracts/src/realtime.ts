@@ -1,12 +1,20 @@
 import { z } from "zod";
 
 import { stationSummarySchema } from "./station-catalog.js";
+import { apiErrorDescriptorSchema } from "./api-error.js";
+import type {
+  CreateFieldReport,
+  FieldReport,
+  FieldReportAcknowledgement,
+} from "./field-report.js";
 
 export const REALTIME_EVENTS = {
   coverageSubscribe: "coverage:subscribe",
   trafficBatch: "traffic:batch",
   noteCreate: "operator-note:create",
   noteCreated: "operator-note:created",
+  fieldReportCreate: "field-report:create",
+  fieldReportCreated: "field-report:created",
   replayStart: "replay:start",
   replayControl: "replay:control",
   replayFrame: "replay:frame",
@@ -20,9 +28,24 @@ export const trafficBatchSchema = z.object({
   stations: z.array(stationSummarySchema),
 });
 
+export const operatorNoteCategorySchema = z.enum([
+  "GENERAL",
+  "MAINTENANCE",
+  "FAULT",
+  "INSPECTION",
+]);
+
+export const operatorNoteStatusSchema = z.enum([
+  "INFORMATIONAL",
+  "ACTION_REQUIRED",
+  "RESOLVED",
+]);
+
 export const createOperatorNoteSchema = z.object({
   assetId: z.string().min(1),
   author: z.string().trim().min(2).max(80),
+  category: operatorNoteCategorySchema,
+  status: operatorNoteStatusSchema,
   content: z.string().trim().min(3).max(1_000),
 });
 
@@ -40,7 +63,7 @@ export const noteAcknowledgementSchema = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(true), note: operatorNoteSchema }),
   z.object({
     ok: z.literal(false),
-    error: z.object({ code: z.string().min(1), message: z.string().min(1) }),
+    error: apiErrorDescriptorSchema,
   }),
 ]);
 
@@ -98,13 +121,15 @@ export const replayStartAcknowledgementSchema = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(true), frameCount: z.number().int().nonnegative() }),
   z.object({
     ok: z.literal(false),
-    error: z.object({ code: z.string(), message: z.string() }),
+    error: apiErrorDescriptorSchema,
   }),
 ]);
 
 export type TrafficBatch = z.infer<typeof trafficBatchSchema>;
 export type CreateOperatorNote = z.infer<typeof createOperatorNoteSchema>;
 export type OperatorNote = z.infer<typeof operatorNoteSchema>;
+export type OperatorNoteCategory = z.infer<typeof operatorNoteCategorySchema>;
+export type OperatorNoteStatus = z.infer<typeof operatorNoteStatusSchema>;
 export type NoteAcknowledgement = z.infer<typeof noteAcknowledgementSchema>;
 export type ReplaySpeed = z.infer<typeof replaySpeedSchema>;
 export type ReplayStart = z.infer<typeof replayStartSchema>;
@@ -113,3 +138,30 @@ export type ReplayFrame = z.infer<typeof replayFrameSchema>;
 export type ReplayStartAcknowledgement = z.infer<
   typeof replayStartAcknowledgementSchema
 >;
+
+export interface ServerToClientEvents {
+  "field-report:created": (report: FieldReport) => void;
+  "operator-note:created": (note: OperatorNote) => void;
+  "replay:ended": () => void;
+  "replay:frame": (frame: ReplayFrame) => void;
+  "traffic:batch": (batch: TrafficBatch) => void;
+}
+
+export interface ClientToServerEvents {
+  "coverage:subscribe": (subscription: CoverageSubscription) => void;
+  "field-report:create": (
+    command: CreateFieldReport,
+    acknowledge: (response: FieldReportAcknowledgement) => void,
+  ) => void;
+  "operator-note:create": (
+    command: CreateOperatorNote,
+    acknowledge: (response: NoteAcknowledgement) => void,
+  ) => void;
+  "replay:control": (command: ReplayControl) => void;
+  "replay:start": (
+    command: ReplayStart,
+    acknowledge: (response: ReplayStartAcknowledgement) => void,
+  ) => void;
+}
+
+export type CoverageSubscription = z.infer<typeof coverageSubscriptionSchema>;

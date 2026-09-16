@@ -7,6 +7,7 @@ describe("station road context contract", () => {
     const result = stationRoadContextSchema.parse({
       assetId: "fintraffic-tms:20002",
       status: "MATCHED",
+      freshness: "FRESH",
       roadRef: "1",
       matchingPolicy: "osm-ref-nearest-bearing-v1",
       source: {

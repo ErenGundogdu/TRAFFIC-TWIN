@@ -23,6 +23,12 @@ export function applyReplayFrame(
             : null,
         measuredAt:
           value && item.direction === direction ? frame.timestamp : null,
+        trafficFlow: {
+          ...item.trafficFlow,
+          status: "INSUFFICIENT_DATA",
+          speedPercentOfFreeFlow: null,
+          flowPercentOfCapacity: null,
+        },
       })),
     };
   });

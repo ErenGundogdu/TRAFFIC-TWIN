@@ -19,6 +19,8 @@ export interface PersistedDirection {
   averageSpeedKmh: number | null;
   flowVehiclesPerHour: number | null;
   sourceUpdatedAt: string;
+  speedPercentOfFreeFlow: number | null;
+  flowPercentOfCapacity: number | null;
 }
 
 export class PostgresTrafficObservationRepository implements TrafficObservationRepository {
@@ -44,6 +46,8 @@ export class PostgresTrafficObservationRepository implements TrafficObservationR
           measuredAt: new Date(direction.measuredAt),
           averageSpeedKmh: direction.averageSpeedKmh,
           flowVehiclesPerHour: direction.flowVehiclesPerHour,
+          speedPercentOfFreeFlow: direction.trafficFlow.speedPercentOfFreeFlow,
+          flowPercentOfCapacity: direction.trafficFlow.flowPercentOfCapacity,
           sourceUpdatedAt,
         };
       }),
@@ -89,6 +93,8 @@ export class PostgresTrafficObservationRepository implements TrafficObservationR
         measuredAt: row.measuredAt.toISOString(),
         averageSpeedKmh: row.averageSpeedKmh,
         flowVehiclesPerHour: row.flowVehiclesPerHour,
+        speedPercentOfFreeFlow: row.speedPercentOfFreeFlow,
+        flowPercentOfCapacity: row.flowPercentOfCapacity,
         sourceUpdatedAt: row.sourceUpdatedAt.toISOString(),
       };
     });

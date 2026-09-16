@@ -3,6 +3,7 @@ import type { z } from "zod";
 import {
   stationDataCollectionSchema,
   stationFeatureCollectionSchema,
+  stationSensorConstantsCollectionSchema,
 } from "./schemas.js";
 
 export class FintrafficResponseError extends Error {
@@ -42,6 +43,13 @@ export class FintrafficClient {
 
   getCurrentStationData() {
     return this.get("stations/data", stationDataCollectionSchema);
+  }
+
+  getSensorConstants() {
+    return this.get(
+      "stations/sensor-constants",
+      stationSensorConstantsCollectionSchema,
+    );
   }
 
   async getCurrentStationDataConditional(

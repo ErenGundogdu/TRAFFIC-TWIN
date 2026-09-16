@@ -1,9 +1,13 @@
 import { Router } from "express";
 import { z } from "zod";
 
+import {
+  identifierSchema,
+  parseRequestQuery,
+} from "../../common/http/request-validation.js";
 import type { OperatorNoteService } from "./operator-note-service.js";
 
-const querySchema = z.object({ assetId: z.string().min(1) });
+const querySchema = z.object({ assetId: identifierSchema });
 
 export function createOperatorNoteRouter(
   service: OperatorNoteService,
@@ -12,7 +16,7 @@ export function createOperatorNoteRouter(
 
   router.get("/", async (request, response, next) => {
     try {
-      const { assetId } = querySchema.parse(request.query);
+      const { assetId } = parseRequestQuery(request, querySchema);
       response.json({ notes: await service.listForAsset(assetId) });
     } catch (error) {
       next(error);

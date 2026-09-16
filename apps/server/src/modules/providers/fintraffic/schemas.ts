@@ -50,6 +50,24 @@ export const stationDataCollectionSchema = z.object({
   stations: z.array(stationDataSchema),
 });
 
+const sensorConstantValueSchema = z.object({
+  name: z.string().min(1),
+  value: z.number().int(),
+  validFrom: z.string().regex(/^\d{2}-\d{2}$/),
+  validTo: z.string().regex(/^\d{2}-\d{2}$/),
+});
+
+const stationSensorConstantsSchema = z.object({
+  id: z.number().int().positive(),
+  dataUpdatedTime: z.iso.datetime().optional(),
+  sensorConstantValues: z.array(sensorConstantValueSchema),
+});
+
+export const stationSensorConstantsCollectionSchema = z.object({
+  dataUpdatedTime: z.iso.datetime(),
+  stations: z.array(stationSensorConstantsSchema).default([]),
+});
+
 export type FintrafficStationCollection = z.infer<
   typeof stationFeatureCollectionSchema
 >;
@@ -58,3 +76,6 @@ export type FintrafficStationDataCollection = z.infer<
 >;
 export type FintrafficStationFeature = z.infer<typeof stationFeatureSchema>;
 export type FintrafficStationData = z.infer<typeof stationDataSchema>;
+export type FintrafficStationSensorConstantsCollection = z.infer<
+  typeof stationSensorConstantsCollectionSchema
+>;

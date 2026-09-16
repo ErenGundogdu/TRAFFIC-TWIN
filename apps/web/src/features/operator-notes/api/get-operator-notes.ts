@@ -1,11 +1,13 @@
 import { operatorNoteListSchema } from "@traffic-twin/contracts";
 
-import { httpClient } from "@/shared/api/http-client";
+import { apiClient } from "@/shared/api/api-client";
 
 export async function getOperatorNotes(assetId: string) {
-  const response = await httpClient.get("/api/operator-notes", {
-    params: { assetId },
-  });
+  const response = await apiClient.get(
+    "/api/operator-notes",
+    operatorNoteListSchema,
+    { params: { assetId } },
+  );
 
-  return operatorNoteListSchema.parse(response.data).notes;
+  return response.notes;
 }

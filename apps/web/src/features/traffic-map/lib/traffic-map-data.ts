@@ -2,6 +2,7 @@ import type {
   AnomalyEvaluation,
   JunctionSummary,
   StationSummary,
+  TrafficEvent,
 } from "@traffic-twin/contracts";
 
 export function createStationGeoJson(
@@ -90,4 +91,70 @@ export function createAnomalyGeoJson(
         : [];
     }),
   };
+}
+
+export function createTrafficEventGeoJson(events: TrafficEvent[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: events
+      .filter((event) => event.status !== "ENDED")
+      .map((event) => ({
+        type: "Feature" as const,
+        geometry: event.geometry,
+        properties: {
+          id: event.id,
+          kind: "traffic-event",
+          category: event.category,
+          status: event.status,
+          severity: event.severity,
+          title: event.title,
+          language: event.language,
+          description: event.description,
+          startsAt: event.startsAt,
+          endsAt: event.endsAt,
+          roadNumbers: event.roadNumbers.join(", "),
+        },
+      })),
+  };
+}
+
+export function getTrafficEventAnchor(event: TrafficEvent) {
+  const positions = getGeometryPositions(event.geometry);
+  if (positions.length === 0) return null;
+
+  const bounds = positions.reduce(
+    (current, [longitude, latitude]) => ({
+      minLongitude: Math.min(current.minLongitude, longitude),
+      minLatitude: Math.min(current.minLatitude, latitude),
+      maxLongitude: Math.max(current.maxLongitude, longitude),
+      maxLatitude: Math.max(current.maxLatitude, latitude),
+    }),
+    {
+      minLongitude: Number.POSITIVE_INFINITY,
+      minLatitude: Number.POSITIVE_INFINITY,
+      maxLongitude: Number.NEGATIVE_INFINITY,
+      maxLatitude: Number.NEGATIVE_INFINITY,
+    },
+  );
+
+  return {
+    longitude: (bounds.minLongitude + bounds.maxLongitude) / 2,
+    latitude: (bounds.minLatitude + bounds.maxLatitude) / 2,
+  };
+}
+
+function getGeometryPositions(
+  geometry: TrafficEvent["geometry"],
+): Array<[number, number]> {
+  switch (geometry.type) {
+    case "Point":
+      return [geometry.coordinates];
+    case "LineString":
+      return geometry.coordinates;
+    case "MultiLineString":
+    case "Polygon":
+      return geometry.coordinates.flat();
+    case "MultiPolygon":
+      return geometry.coordinates.flat(2);
+  }
 }

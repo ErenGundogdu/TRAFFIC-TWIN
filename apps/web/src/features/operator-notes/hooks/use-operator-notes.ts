@@ -1,11 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { getOperatorNotes } from "../api/get-operator-notes";
-
-export const operatorNotesQueryKey = (assetId: string) => [
-  "operator-notes",
-  assetId,
-];
+import { operatorNotesQueryKey } from "../model/operator-notes-query-key";
 
 export function useOperatorNotes(assetId: string) {
   return useQuery({

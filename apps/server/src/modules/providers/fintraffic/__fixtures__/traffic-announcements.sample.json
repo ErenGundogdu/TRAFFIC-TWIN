@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "dataUpdatedTime": "2026-09-14T05:43:11.014Z",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [23.77148, 61.490436] },
+      "properties": {
+        "situationId": "GUID50470546",
+        "situationType": "traffic announcement",
+        "trafficAnnouncementType": "general",
+        "version": 1,
+        "releaseTime": "2026-09-10T19:22:30.151Z",
+        "versionTime": "2026-09-10T19:22:30.120Z",
+        "announcements": [
+          {
+            "language": "fi",
+            "title": "Hatanpään valtatie, Tampere. Liikennetiedote. ",
+            "location": {
+              "description": "Hatanpään valtatie, Tampere.\nTarkempi paikka: Jokikatu."
+            },
+            "locationDetails": {
+              "roadAddressLocation": {
+                "primaryPoint": { "roadAddress": {} },
+                "direction": "unknown"
+              }
+            },
+            "features": [{ "name": "Liikennejärjestelyt ovat muuttuneet" }],
+            "roadWorkPhases": [],
+            "comment": "Jokikatu on avattu yksisuuntaisena Tampereen valtatien suunnasta kohti Hatanpäätä.",
+            "sender": "Tampereen kaupunki",
+            "timeAndDuration": {
+              "startTime": "2026-09-10T19:17:00.000Z",
+              "endTime": "2026-09-20T09:00:00.000Z"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

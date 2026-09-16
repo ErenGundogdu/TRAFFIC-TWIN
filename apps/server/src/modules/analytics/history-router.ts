@@ -1,7 +1,29 @@
 import { historyQuerySchema } from "@traffic-twin/contracts";
 import { Router } from "express";
+import { z } from "zod";
 
+import {
+  coverageAreaParamsSchema,
+  parseRequestParams,
+  parseRequestQuery,
+} from "../../common/http/request-validation.js";
 import type { HistoryService } from "./history-service.js";
+
+const historyHttpQuerySchema = z
+  .object({
+    assetIds: z.string(),
+    metric: z.string(),
+    direction: z.coerce.number(),
+    from: z.string(),
+    to: z.string(),
+    resolution: z.string().default("auto"),
+  })
+  .transform((query) =>
+    historyQuerySchema.parse({
+      ...query,
+      assetIds: query.assetIds.split(",").filter(Boolean),
+    }),
+  );
 
 export function createHistoryRouter(
   service: HistoryService,
@@ -12,9 +34,11 @@ export function createHistoryRouter(
     "/:coverageAreaId/availability",
     async (request, response, next) => {
       try {
-        response.json(
-          await service.getAvailability(request.params.coverageAreaId!),
+        const { coverageAreaId } = parseRequestParams(
+          request,
+          coverageAreaParamsSchema,
         );
+        response.json(await service.getAvailability(coverageAreaId));
       } catch (error) {
         next(error);
       }
@@ -23,18 +47,12 @@ export function createHistoryRouter(
 
   router.get("/:coverageAreaId/history", async (request, response, next) => {
     try {
-      const query = historyQuerySchema.parse({
-        assetIds:
-          typeof request.query.assetIds === "string"
-            ? request.query.assetIds.split(",").filter(Boolean)
-            : [],
-        metric: request.query.metric,
-        direction: Number(request.query.direction),
-        from: request.query.from,
-        to: request.query.to,
-        resolution: request.query.resolution ?? "auto",
-      });
-      response.json(await service.query(request.params.coverageAreaId!, query));
+      const { coverageAreaId } = parseRequestParams(
+        request,
+        coverageAreaParamsSchema,
+      );
+      const query = parseRequestQuery(request, historyHttpQuerySchema);
+      response.json(await service.query(coverageAreaId, query));
     } catch (error) {
       next(error);
     }

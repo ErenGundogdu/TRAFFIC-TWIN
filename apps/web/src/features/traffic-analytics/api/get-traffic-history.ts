@@ -3,14 +3,15 @@ import {
   type HistoryQuery,
 } from "@traffic-twin/contracts";
 
-import { httpClient } from "@/shared/api/http-client";
+import { apiClient } from "@/shared/api/api-client";
 
 export async function getTrafficHistory(
   coverageAreaId: string,
   query: HistoryQuery,
 ) {
-  const response = await httpClient.get(
+  return apiClient.get(
     `/api/analytics/${encodeURIComponent(coverageAreaId)}/history`,
+    historyResponseSchema,
     {
       params: {
         ...query,
@@ -18,6 +19,4 @@ export async function getTrafficHistory(
       },
     },
   );
-
-  return historyResponseSchema.parse(response.data);
 }

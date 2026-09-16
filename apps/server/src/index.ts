@@ -23,6 +23,15 @@ import { AnomalyService } from "./modules/anomalies/anomaly-service.js";
 import { PostgresAnomalyRepository } from "./modules/anomalies/anomaly-repository.js";
 import { DEFAULT_ANOMALY_POLICY } from "./modules/anomalies/anomaly-engine.js";
 import { RoadContextService } from "./modules/road-context/road-context-service.js";
+import { PostgresRoadContextRepository } from "./modules/road-context/road-context-repository.js";
+import { FintrafficTrafficMessageClient } from "./modules/providers/fintraffic/traffic-message-client.js";
+import { PostgresTrafficEventRepository } from "./modules/traffic-events/traffic-event-repository.js";
+import { TrafficEventService } from "./modules/traffic-events/traffic-event-service.js";
+import { TrafficEventPoller } from "./modules/ingestion/traffic-event-poller.js";
+import { PostgresTrafficEventContextRepository } from "./modules/traffic-events/traffic-event-context-repository.js";
+import { TrafficEventContextService } from "./modules/traffic-events/traffic-event-context-service.js";
+import { PostgresFieldReportRepository } from "./modules/field-reports/field-report-repository.js";
+import { FieldReportService } from "./modules/field-reports/field-report-service.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -38,6 +47,10 @@ const fintrafficClient = new FintrafficClient(
   env.FINTRAFFIC_BASE_URL,
   env.FINTRAFFIC_USER,
 );
+const trafficMessageClient = new FintrafficTrafficMessageClient(
+  env.FINTRAFFIC_TRAFFIC_MESSAGE_BASE_URL,
+  env.FINTRAFFIC_USER,
+);
 const stationCatalogService = new StationCatalogService(
   stationRepository,
   fintrafficClient,
@@ -46,6 +59,10 @@ const stationCatalogService = new StationCatalogService(
 );
 const operatorNoteService = new OperatorNoteService(
   new PostgresOperatorNoteRepository(db),
+);
+const fieldReportService = new FieldReportService(
+  stationRepository,
+  new PostgresFieldReportRepository(db),
 );
 const historyService = new HistoryService(
   stationRepository,
@@ -67,6 +84,24 @@ const junctionService = new JunctionService(
 const roadContextService = new RoadContextService(
   stationRepository,
   openStreetMapClient,
+  new PostgresRoadContextRepository(db),
+  undefined,
+  (error) =>
+    console.warn(
+      "OpenStreetMap refresh failed; persisted road context is being served.",
+      error,
+    ),
+);
+const trafficEventService = new TrafficEventService(
+  stationRepository,
+  new PostgresTrafficEventRepository(db),
+  trafficMessageClient,
+  undefined,
+  env.TRAFFIC_EVENT_POLL_INTERVAL_MS * 2,
+);
+const trafficEventContextService = new TrafficEventContextService(
+  stationRepository,
+  new PostgresTrafficEventContextRepository(db),
 );
 const anomalyService = new AnomalyService(
   stationRepository,
@@ -87,6 +122,9 @@ const httpServer = createServer(
     junctionService,
     anomalyService,
     roadContextService,
+    trafficEventService,
+    trafficEventContextService,
+    fieldReportService,
   }),
 );
 const realtimeServer = createRealtimeServer(
@@ -94,6 +132,7 @@ const realtimeServer = createRealtimeServer(
   env.CLIENT_ORIGIN,
   operatorNoteService,
   replayService,
+  fieldReportService,
 );
 const liveTrafficPoller = new LiveTrafficPoller(
   "helsinki",
@@ -108,6 +147,12 @@ const liveTrafficPoller = new LiveTrafficPoller(
     await anomalyService.evaluateCoverage("helsinki");
   },
 );
+const trafficEventPoller = new TrafficEventPoller(
+  "helsinki",
+  env.TRAFFIC_EVENT_POLL_INTERVAL_MS,
+  trafficEventService,
+  (error) => console.error("Traffic event sync failed.", error),
+);
 
 try {
   const result = await liveTrafficPoller.runOnce();
@@ -119,7 +164,18 @@ try {
   );
 }
 
+try {
+  const result = await trafficEventPoller.runOnce();
+  console.log(`Initial traffic event sync: ${result?.eventCount ?? 0} events.`);
+} catch (error) {
+  console.error(
+    "Initial traffic event sync failed; persisted events remain available.",
+    error,
+  );
+}
+
 liveTrafficPoller.start();
+trafficEventPoller.start();
 
 httpServer.listen(env.PORT, () => {
   console.log(`Traffic Twin server listening on http://localhost:${env.PORT}`);
@@ -133,6 +189,7 @@ async function shutdown(signal: NodeJS.Signals) {
 
   console.log(`Received ${signal}; closing HTTP server.`);
   liveTrafficPoller.stop();
+  trafficEventPoller.stop();
   try {
     await realtimeServer.close();
     await pool.end();

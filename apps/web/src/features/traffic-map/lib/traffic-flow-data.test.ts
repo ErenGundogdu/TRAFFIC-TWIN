@@ -10,6 +10,15 @@ import {
   createTrafficVolumeGeoJson,
 } from "./traffic-flow-data";
 
+const trafficFlow = {
+  status: "PLATOONING" as const,
+  speedPercentOfFreeFlow: 80,
+  flowPercentOfCapacity: 50,
+  freeFlowSpeedKmh: 100,
+  maximumFlowVehiclesPerHour: 1_800,
+  policyVersion: "fintraffic-flow-v1" as const,
+};
+
 const station: StationSummary = {
   id: "fintraffic-tms:20002",
   providerStationId: 20002,
@@ -22,17 +31,27 @@ const station: StationSummary = {
   directions: [
     {
       direction: 1,
-      label: "Yön 1",
+      heading: {
+        degrees: 298,
+        compassPoint: "NW",
+        determination: "PROVIDER_REPORTED",
+      },
       averageSpeedKmh: 80,
       flowVehiclesPerHour: 900,
       measuredAt: "2026-09-07T12:00:00.000Z",
+      trafficFlow,
     },
     {
       direction: 2,
-      label: "Yön 2",
+      heading: {
+        degrees: 118,
+        compassPoint: "SE",
+        determination: "DERIVED_OPPOSITE",
+      },
       averageSpeedKmh: 70,
       flowVehiclesPerHour: 600,
       measuredAt: "2026-09-07T12:00:00.000Z",
+      trafficFlow,
     },
   ],
 };
@@ -40,6 +59,7 @@ const station: StationSummary = {
 const roadContext: StationRoadContext = {
   assetId: station.id,
   status: "MATCHED",
+  freshness: "FRESH",
   roadRef: "1",
   matchingPolicy: "osm-ref-nearest-bearing-v1",
   source: {
@@ -88,10 +108,13 @@ describe("traffic flow map data", () => {
       geometry: { coordinates: roadContext.segments[0]?.coordinates },
       properties: {
         direction: 1,
-        directionLabel: "Yön 1",
+        directionLabel: "Yön 1 · KB",
         speedKmh: 80,
         flowVehiclesPerHour: 900,
         hasMeasurement: true,
+        trafficFlowStatus: "PLATOONING",
+        speedPercentOfFreeFlow: 80,
+        flowPercentOfCapacity: 50,
       },
     });
   });

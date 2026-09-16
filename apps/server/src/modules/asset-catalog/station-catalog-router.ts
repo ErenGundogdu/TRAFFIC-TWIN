@@ -1,6 +1,10 @@
 import { Router } from "express";
 import type { Router as ExpressRouter } from "express";
 
+import {
+  coverageAreaParamsSchema,
+  parseRequestParams,
+} from "../../common/http/request-validation.js";
 import type { StationCatalogService } from "./station-catalog-service.js";
 
 export function createStationCatalogRouter(
@@ -10,9 +14,11 @@ export function createStationCatalogRouter(
 
   router.get("/:coverageAreaId/stations", async (request, response, next) => {
     try {
-      response.json(
-        await service.getCoverageStations(request.params.coverageAreaId),
+      const { coverageAreaId } = parseRequestParams(
+        request,
+        coverageAreaParamsSchema,
       );
+      response.json(await service.getCoverageStations(coverageAreaId));
     } catch (error) {
       next(error);
     }

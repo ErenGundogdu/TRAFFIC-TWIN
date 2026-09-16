@@ -1,0 +1,1 @@
+CREATE INDEX "traffic_events_geometry_geography_gix" ON "traffic_events" USING gist ((ST_SetSRID(ST_GeomFromGeoJSON("geometry"::text), 4326)::geography));

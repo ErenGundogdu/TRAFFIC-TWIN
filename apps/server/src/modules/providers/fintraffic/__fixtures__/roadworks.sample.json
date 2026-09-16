@@ -1,0 +1,63 @@
+{
+  "type": "FeatureCollection",
+  "dataUpdatedTime": "2026-09-14T07:36:51.015Z",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [25.979026, 60.491785],
+            [25.979538, 60.491559],
+            [25.98009, 60.491286]
+          ]
+        ]
+      },
+      "properties": {
+        "situationId": "GUID50470676",
+        "situationType": "road work",
+        "trafficAnnouncementType": null,
+        "version": 1,
+        "releaseTime": "2026-09-14T07:36:41.003Z",
+        "versionTime": "2026-09-14T07:36:41.002Z",
+        "announcements": [
+          {
+            "language": "fi",
+            "title": "Tie 170, Loviisa. Tietyö. ",
+            "location": {
+              "description": "Tie 170 välillä Koskenkylä - Kotka, Loviisa.\nTarkempi paikka: Paikasta Pernajanharju, vaikutusalue 100 m, suuntaan Pernaja."
+            },
+            "locationDetails": {
+              "roadAddressLocation": {
+                "primaryPoint": { "roadAddress": { "road": 170 } },
+                "secondaryPoint": { "roadAddress": { "road": 170 } },
+                "direction": "both",
+                "directionDescription": "Pernaja"
+              }
+            },
+            "features": [
+              { "name": "Nopeusrajoitus" },
+              { "name": "Liikenne ohjataan vuorotellen tapahtumapaikan ohi" }
+            ],
+            "comment": "",
+            "roadWorkPhases": [
+              {
+                "severity": "high",
+                "timeAndDuration": {
+                  "startTime": "2026-09-14T21:00:00.000Z",
+                  "endTime": "2026-09-15T20:59:59.999Z"
+                }
+              }
+            ],
+            "timeAndDuration": {
+              "startTime": "2026-09-14T21:00:00.000Z",
+              "endTime": "2026-09-15T20:59:59.999Z"
+            },
+            "sender": "Fintraffic Tieliikennekeskus Helsinki"
+          }
+        ]
+      }
+    }
+  ]
+}

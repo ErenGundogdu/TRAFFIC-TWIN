@@ -36,6 +36,10 @@ describe("LiveTrafficPoller", () => {
     };
     const client = {
       getStations: vi.fn(async () => metadata),
+      getSensorConstants: vi.fn(async () => ({
+        dataUpdatedTime: "2026-09-04T06:00:00Z",
+        stations: [],
+      })),
       getCurrentStationDataConditional: vi
         .fn()
         .mockResolvedValueOnce({

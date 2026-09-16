@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import type { CreateOperatorNote, OperatorNote } from "@traffic-twin/contracts";
+import {
+  operatorNoteSchema,
+  type CreateOperatorNote,
+  type OperatorNote,
+} from "@traffic-twin/contracts";
 import { desc, eq } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
@@ -46,7 +50,7 @@ export class PostgresOperatorNoteRepository implements OperatorNoteRepository {
 
     if (!row) throw new Error("Operator note could not be persisted.");
 
-    return { ...row, createdAt: row.createdAt.toISOString() };
+    return toOperatorNote(row);
   }
 
   async listForAsset(assetId: string): Promise<OperatorNote[]> {
@@ -56,9 +60,13 @@ export class PostgresOperatorNoteRepository implements OperatorNoteRepository {
       .where(eq(operatorNotes.assetId, assetId))
       .orderBy(desc(operatorNotes.createdAt));
 
-    return rows.map((row) => ({
-      ...row,
-      createdAt: row.createdAt.toISOString(),
-    }));
+    return rows.map(toOperatorNote);
   }
+}
+
+function toOperatorNote(row: typeof operatorNotes.$inferSelect): OperatorNote {
+  return operatorNoteSchema.parse({
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+  });
 }

@@ -97,10 +97,19 @@ export const roadFlowLayer: LayerProps = {
   type: "line",
   paint: {
     "line-color": [
-      "case",
-      ["==", ["get", "hasMeasurement"], false],
+      "match",
+      ["get", "trafficFlowStatus"],
+      "FREE_FLOW",
+      "#10b981",
+      "PLATOONING",
+      "#84cc16",
+      "SLOW",
+      "#f59e0b",
+      "QUEUING",
+      "#f97316",
+      "STATIONARY",
+      "#e11d48",
       "#64748b",
-      ["step", ["get", "speedKmh"], "#e11d48", 45, "#f59e0b", 70, "#10b981"],
     ],
     "line-opacity": 0.92,
     "line-width": [

@@ -8,7 +8,16 @@ import {
 } from "@traffic-twin/contracts";
 import { useForm } from "react-hook-form";
 
+import { InlineQueryError } from "@/shared/ui";
+
 import { useOperatorNotes } from "../hooks/use-operator-notes";
+import {
+  getOperatorNoteCategoryLabel,
+  getOperatorNoteStatusClassName,
+  getOperatorNoteStatusLabel,
+  operatorNoteCategoryOptions,
+  operatorNoteStatusOptions,
+} from "../model/operator-note-presentation";
 
 interface OperatorNotesPanelProps {
   assetId: string;
@@ -26,7 +35,13 @@ export function OperatorNotesPanel({
   const notesQuery = useOperatorNotes(assetId);
   const form = useForm<CreateOperatorNote>({
     resolver: zodResolver(createOperatorNoteSchema),
-    defaultValues: { assetId, author: "", content: "" },
+    defaultValues: {
+      assetId,
+      author: "",
+      category: "GENERAL",
+      status: "INFORMATIONAL",
+      content: "",
+    },
   });
 
   async function submit(input: CreateOperatorNote) {
@@ -37,7 +52,13 @@ export function OperatorNotesPanel({
       return;
     }
 
-    form.reset({ assetId, author: input.author, content: "" });
+    form.reset({
+      assetId,
+      author: input.author,
+      category: input.category,
+      status: input.status,
+      content: "",
+    });
   }
 
   return (
@@ -53,7 +74,35 @@ export function OperatorNotesPanel({
 
       <form onSubmit={form.handleSubmit(submit)} className="mt-3 space-y-3">
         <input type="hidden" {...form.register("assetId")} value={assetId} />
-        <label className="block text-xs font-medium text-slate-600">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Kategori
+            <select
+              {...form.register("category")}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              {operatorNoteCategoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
+            Durum
+            <select
+              {...form.register("status")}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              {operatorNoteStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
           Operatör
           <input
             {...form.register("author")}
@@ -64,7 +113,7 @@ export function OperatorNotesPanel({
             {form.formState.errors.author?.message}
           </span>
         </label>
-        <label className="block text-xs font-medium text-slate-600">
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
           Not
           <textarea
             {...form.register("content")}
@@ -98,24 +147,30 @@ export function OperatorNotesPanel({
         {notesQuery.isPending ? (
           <p className="text-xs text-slate-500">Notlar yükleniyor…</p>
         ) : notesQuery.isError ? (
-          <div className="text-xs text-rose-700 dark:text-rose-300">
-            <p>Operatör notları alınamadı.</p>
-            <button
-              type="button"
-              onClick={() => void notesQuery.refetch()}
-              className="mt-1 font-semibold underline underline-offset-2"
-            >
-              Tekrar dene
-            </button>
-          </div>
+          <InlineQueryError
+            message="Operatör notları alınamadı."
+            onRetry={() => void notesQuery.refetch()}
+          />
         ) : notesQuery.data?.length ? (
           notesQuery.data.map((note) => (
             <article
               key={note.id}
               className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
             >
-              <div className="flex items-center justify-between gap-2 text-[11px]">
-                <strong className="text-slate-700">{note.author}</strong>
+              <div className="flex items-start justify-between gap-2 text-[11px]">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <strong className="text-slate-700 dark:text-slate-200">
+                    {note.author}
+                  </strong>
+                  <span className="rounded-full bg-sky-50 px-2 py-0.5 font-medium text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                    {getOperatorNoteCategoryLabel(note.category)}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-medium ${getOperatorNoteStatusClassName(note.status)}`}
+                  >
+                    {getOperatorNoteStatusLabel(note.status)}
+                  </span>
+                </div>
                 <time className="text-slate-400">
                   {new Intl.DateTimeFormat("tr-TR", {
                     dateStyle: "short",

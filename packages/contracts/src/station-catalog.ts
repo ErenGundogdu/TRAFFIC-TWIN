@@ -1,11 +1,47 @@
 import { z } from "zod";
 
+export const trafficFlowStatusSchema = z.enum([
+  "FREE_FLOW",
+  "PLATOONING",
+  "SLOW",
+  "QUEUING",
+  "STATIONARY",
+  "INSUFFICIENT_DATA",
+]);
+
+export const trafficFlowInsightSchema = z.object({
+  status: trafficFlowStatusSchema,
+  speedPercentOfFreeFlow: z.number().nonnegative().nullable(),
+  flowPercentOfCapacity: z.number().nonnegative().nullable(),
+  freeFlowSpeedKmh: z.number().positive().nullable(),
+  maximumFlowVehiclesPerHour: z.number().positive().nullable(),
+  policyVersion: z.literal("fintraffic-flow-v1"),
+});
+
+export const compassPointSchema = z.enum([
+  "N",
+  "NE",
+  "E",
+  "SE",
+  "S",
+  "SW",
+  "W",
+  "NW",
+]);
+
+export const trafficDirectionHeadingSchema = z.object({
+  degrees: z.number().min(0).lt(360),
+  compassPoint: compassPointSchema,
+  determination: z.enum(["PROVIDER_REPORTED", "DERIVED_OPPOSITE"]),
+});
+
 export const trafficDirectionSchema = z.object({
   direction: z.union([z.literal(1), z.literal(2)]),
-  label: z.string().min(1),
+  heading: trafficDirectionHeadingSchema.nullable(),
   averageSpeedKmh: z.number().nonnegative().nullable(),
   flowVehiclesPerHour: z.number().nonnegative().nullable(),
   measuredAt: z.iso.datetime().nullable(),
+  trafficFlow: trafficFlowInsightSchema,
 });
 
 export const stationFreshnessSchema = z.enum([
@@ -51,6 +87,12 @@ export const stationCatalogResponseSchema = z.object({
 });
 
 export type TrafficDirection = z.infer<typeof trafficDirectionSchema>;
+export type TrafficDirectionHeading = z.infer<
+  typeof trafficDirectionHeadingSchema
+>;
+export type CompassPoint = z.infer<typeof compassPointSchema>;
+export type TrafficFlowInsight = z.infer<typeof trafficFlowInsightSchema>;
+export type TrafficFlowStatus = z.infer<typeof trafficFlowStatusSchema>;
 export type StationSummary = z.infer<typeof stationSummarySchema>;
 export type CoverageArea = z.infer<typeof coverageAreaSchema>;
 export type DataSource = z.infer<typeof dataSourceSchema>;

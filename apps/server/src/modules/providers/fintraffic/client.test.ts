@@ -59,4 +59,39 @@ describe("FintrafficClient", () => {
       "Fri, 04 Sep 2026 09:00:00 GMT",
     );
   });
+
+  it("validates station-specific sensor constants", async () => {
+    const fetchImplementation = vi.fn<typeof fetch>(async () =>
+      Promise.resolve(
+        Response.json({
+          dataUpdatedTime: "2026-09-08T06:00:00Z",
+          stations: [
+            {
+              id: 20002,
+              sensorConstantValues: [
+                {
+                  name: "VVAPAAS1",
+                  value: 100,
+                  validFrom: "01-01",
+                  validTo: "12-31",
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+    const client = new FintrafficClient(
+      "https://tie.digitraffic.fi/api/tms/v1",
+      "TrafficTwin/Test",
+      fetchImplementation,
+    );
+
+    await expect(client.getSensorConstants()).resolves.toMatchObject({
+      stations: [{ id: 20002 }],
+    });
+    expect(String(fetchImplementation.mock.calls[0]?.[0])).toBe(
+      "https://tie.digitraffic.fi/api/tms/v1/stations/sensor-constants",
+    );
+  });
 });

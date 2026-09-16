@@ -1,4 +1,8 @@
 import { sql } from "drizzle-orm";
+import type {
+  RoadSegment,
+  TrafficEventGeometry,
+} from "@traffic-twin/contracts";
 import {
   boolean,
   bigint,
@@ -65,6 +69,59 @@ export const anomalyConfidence = pgEnum("anomaly_confidence", [
   "LOW",
   "MEDIUM",
   "HIGH",
+]);
+
+export const trafficEventCategory = pgEnum("traffic_event_category", [
+  "TRAFFIC_ANNOUNCEMENT",
+  "ROAD_WORK",
+]);
+
+export const trafficEventStatus = pgEnum("traffic_event_status", [
+  "UPCOMING",
+  "ACTIVE",
+  "ENDED",
+]);
+
+export const trafficEventSeverity = pgEnum("traffic_event_severity", [
+  "UNKNOWN",
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+]);
+
+export const trafficEventDirection = pgEnum("traffic_event_direction", [
+  "BOTH",
+  "POSITIVE",
+  "NEGATIVE",
+  "UNKNOWN",
+]);
+
+export const roadContextStatus = pgEnum("road_context_status", [
+  "MATCHED",
+  "NO_MATCH",
+]);
+
+export const fieldReportCategory = pgEnum("field_report_category", [
+  "ACCIDENT",
+  "CONGESTION",
+  "ROAD_HAZARD",
+  "ROAD_DAMAGE",
+  "SIGNAL_FAILURE",
+  "SENSOR_ISSUE",
+  "OTHER",
+]);
+
+export const fieldReportSeverity = pgEnum("field_report_severity", [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+]);
+
+export const fieldReportStatus = pgEnum("field_report_status", [
+  "PENDING_REVIEW",
+  "VERIFIED",
+  "REJECTED",
+  "RESOLVED",
 ]);
 
 export const coverageAreas = pgTable("coverage_areas", {
@@ -134,6 +191,8 @@ export const trafficObservations = pgTable(
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
     averageSpeedKmh: doublePrecision("average_speed_kmh"),
     flowVehiclesPerHour: doublePrecision("flow_vehicles_per_hour"),
+    speedPercentOfFreeFlow: doublePrecision("speed_percent_of_free_flow"),
+    flowPercentOfCapacity: doublePrecision("flow_percent_of_capacity"),
     sourceUpdatedAt: timestamp("source_updated_at", {
       withTimezone: true,
     }).notNull(),
@@ -161,6 +220,38 @@ export const trafficObservations = pgTable(
   ],
 );
 
+export const trafficDirectionProfiles = pgTable(
+  "traffic_direction_profiles",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    direction: integer("direction").notNull(),
+    freeFlowSpeedKmh: doublePrecision("free_flow_speed_kmh"),
+    maximumFlowVehiclesPerHour: doublePrecision(
+      "maximum_flow_vehicles_per_hour",
+    ),
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_direction_profiles_pk",
+      columns: [table.assetId, table.direction],
+    }),
+    check(
+      "traffic_direction_profiles_direction_check",
+      sql`${table.direction} IN (1, 2)`,
+    ),
+    check(
+      "traffic_direction_profiles_values_check",
+      sql`(${table.freeFlowSpeedKmh} IS NULL OR ${table.freeFlowSpeedKmh} > 0) AND (${table.maximumFlowVehiclesPerHour} IS NULL OR ${table.maximumFlowVehiclesPerHour} > 0)`,
+    ),
+  ],
+);
+
 export const operatorNotes = pgTable(
   "operator_notes",
   {
@@ -172,6 +263,8 @@ export const operatorNotes = pgTable(
       .notNull()
       .references(() => coverageAreas.id, { onDelete: "restrict" }),
     author: text("author").notNull(),
+    category: text("category").default("GENERAL").notNull(),
+    status: text("status").default("INFORMATIONAL").notNull(),
     content: text("content").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -189,6 +282,56 @@ export const operatorNotes = pgTable(
     check(
       "operator_notes_content_length_check",
       sql`char_length(${table.content}) BETWEEN 3 AND 1000`,
+    ),
+    check(
+      "operator_notes_category_check",
+      sql`${table.category} IN ('GENERAL', 'MAINTENANCE', 'FAULT', 'INSPECTION')`,
+    ),
+    check(
+      "operator_notes_status_check",
+      sql`${table.status} IN ('INFORMATIONAL', 'ACTION_REQUIRED', 'RESOLVED')`,
+    ),
+  ],
+);
+
+export const fieldReports = pgTable(
+  "field_reports",
+  {
+    id: text("id").primaryKey(),
+    coverageAreaId: text("coverage_area_id")
+      .notNull()
+      .references(() => coverageAreas.id, { onDelete: "restrict" }),
+    source: text("source").default("OPERATOR").notNull(),
+    author: text("author").notNull(),
+    category: fieldReportCategory("category").notNull(),
+    severity: fieldReportSeverity("severity").notNull(),
+    status: fieldReportStatus("status").default("PENDING_REVIEW").notNull(),
+    description: text("description").notNull(),
+    location: geometry("location", {
+      type: "point",
+      mode: "xy",
+      srid: 4326,
+    }).notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("field_reports_coverage_status_created_idx").on(
+      table.coverageAreaId,
+      table.status,
+      table.createdAt,
+    ),
+    index("field_reports_location_gix").using("gist", table.location),
+    check("field_reports_source_check", sql`${table.source} = 'OPERATOR'`),
+    check(
+      "field_reports_author_length_check",
+      sql`char_length(${table.author}) BETWEEN 2 AND 80`,
+    ),
+    check(
+      "field_reports_description_length_check",
+      sql`char_length(${table.description}) BETWEEN 3 AND 1000`,
     ),
   ],
 );
@@ -435,6 +578,83 @@ export const junctionSensorMatches = pgTable(
     check(
       "junction_sensor_matches_bearing_check",
       sql`${table.bearingDifferenceDegrees} IS NULL OR ${table.bearingDifferenceDegrees} BETWEEN 0 AND 90`,
+    ),
+  ],
+);
+
+export const stationRoadContexts = pgTable("station_road_contexts", {
+  assetId: text("asset_id")
+    .primaryKey()
+    .references(() => trafficAssets.id, { onDelete: "cascade" }),
+  status: roadContextStatus("status").notNull(),
+  roadRef: text("road_ref"),
+  matchingPolicy: text("matching_policy").notNull(),
+  sourceUpdatedAt: timestamp("source_updated_at", {
+    withTimezone: true,
+  }).notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  segments: jsonb("segments").$type<RoadSegment[]>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const trafficEventSyncs = pgTable("traffic_event_syncs", {
+  coverageAreaId: text("coverage_area_id")
+    .primaryKey()
+    .references(() => coverageAreas.id, { onDelete: "cascade" }),
+  sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+});
+
+export const trafficEvents = pgTable(
+  "traffic_events",
+  {
+    id: text("id").primaryKey(),
+    coverageAreaId: text("coverage_area_id")
+      .notNull()
+      .references(() => coverageAreas.id, { onDelete: "cascade" }),
+    providerEventId: text("provider_event_id").notNull(),
+    category: trafficEventCategory("category").notNull(),
+    status: trafficEventStatus("status").notNull(),
+    severity: trafficEventSeverity("severity").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    comment: text("comment"),
+    effects: text("effects")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    direction: trafficEventDirection("direction").notNull().default("UNKNOWN"),
+    directionDescription: text("direction_description"),
+    sender: text("sender"),
+    language: text("language").notNull(),
+    geometry: jsonb("geometry").$type<TrafficEventGeometry>().notNull(),
+    roadNumbers: integer("road_numbers").array().notNull(),
+    releaseTime: timestamp("release_time", { withTimezone: true }).notNull(),
+    versionTime: timestamp("version_time", { withTimezone: true }).notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("traffic_events_provider_event_uidx").on(
+      table.coverageAreaId,
+      table.providerEventId,
+    ),
+    index("traffic_events_coverage_status_idx").on(
+      table.coverageAreaId,
+      table.status,
+      table.startsAt,
+    ),
+    index("traffic_events_geometry_geography_gix").using(
+      "gist",
+      sql`(ST_SetSRID(ST_GeomFromGeoJSON(${table.geometry}::text), 4326)::geography)`,
     ),
   ],
 );

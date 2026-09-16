@@ -20,9 +20,11 @@ const COLORS = ["#0284c7", "#7c3aed"];
 export function HistoryChart({
   history,
   cursorTimestamp,
+  seriesLabels,
 }: {
   history: HistoryResponse;
   cursorTimestamp?: string;
+  seriesLabels?: Record<string, string>;
 }) {
   const { theme } = useTheme();
   const rows = new Map<string, Record<string, number | string>>();
@@ -124,7 +126,7 @@ export function HistoryChart({
               key={series.assetId}
               type="monotone"
               dataKey={series.assetId}
-              name={series.assetName}
+              name={seriesLabels?.[series.assetId] ?? series.assetName}
               stroke={COLORS[index]}
               dot={false}
               connectNulls={false}

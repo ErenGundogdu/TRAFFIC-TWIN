@@ -3,6 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import { applyReplayFrame } from "./apply-replay-frame";
 
+const trafficFlow = {
+  status: "FREE_FLOW" as const,
+  speedPercentOfFreeFlow: 95,
+  flowPercentOfCapacity: 40,
+  freeFlowSpeedKmh: 100,
+  maximumFlowVehiclesPerHour: 1_800,
+  policyVersion: "fintraffic-flow-v1" as const,
+};
+
 const station: StationSummary = {
   id: "fintraffic-tms:20002",
   providerStationId: 20002,
@@ -15,17 +24,27 @@ const station: StationSummary = {
   directions: [
     {
       direction: 1,
-      label: "Yön 1",
+      heading: {
+        degrees: 298,
+        compassPoint: "NW",
+        determination: "PROVIDER_REPORTED",
+      },
       averageSpeedKmh: 90,
       flowVehiclesPerHour: 600,
       measuredAt: "2026-09-07T12:00:00.000Z",
+      trafficFlow,
     },
     {
       direction: 2,
-      label: "Yön 2",
+      heading: {
+        degrees: 118,
+        compassPoint: "SE",
+        determination: "DERIVED_OPPOSITE",
+      },
       averageSpeedKmh: 80,
       flowVehiclesPerHour: 480,
       measuredAt: "2026-09-07T12:00:00.000Z",
+      trafficFlow,
     },
   ],
 };
@@ -49,17 +68,29 @@ describe("applyReplayFrame", () => {
     expect(projected?.directions).toEqual([
       {
         direction: 1,
-        label: "Yön 1",
+        heading: station.directions[0]?.heading,
         averageSpeedKmh: null,
         flowVehiclesPerHour: null,
         measuredAt: null,
+        trafficFlow: {
+          ...trafficFlow,
+          status: "INSUFFICIENT_DATA",
+          speedPercentOfFreeFlow: null,
+          flowPercentOfCapacity: null,
+        },
       },
       {
         direction: 2,
-        label: "Yön 2",
+        heading: station.directions[1]?.heading,
         averageSpeedKmh: 72,
         flowVehiclesPerHour: 840,
         measuredAt: frame.timestamp,
+        trafficFlow: {
+          ...trafficFlow,
+          status: "INSUFFICIENT_DATA",
+          speedPercentOfFreeFlow: null,
+          flowPercentOfCapacity: null,
+        },
       },
     ]);
   });
