@@ -13,6 +13,10 @@ import {
 } from "../modules/field-reports/field-report-service.js";
 import { AssetNotFoundError } from "../modules/operator-notes/operator-note-repository.js";
 import { FintrafficResponseError } from "../modules/providers/fintraffic/client.js";
+import {
+  HistoryImportAssetNotFoundError,
+  HistoryImportCoverageNotFoundError,
+} from "../modules/ingestion/history-import-planning-service.js";
 import { OverpassResponseError } from "../modules/providers/openstreetmap/client.js";
 import { RoadContextNotFoundError } from "../modules/road-context/road-context-service.js";
 import { TrafficEventContextNotFoundError } from "../modules/traffic-events/traffic-event-context-service.js";
@@ -36,7 +40,9 @@ export const errorHandler: ErrorRequestHandler = (
 
   if (
     error instanceof HistoryCoverageAreaNotFoundError ||
-    error instanceof HistoryAssetNotFoundError
+    error instanceof HistoryAssetNotFoundError ||
+    error instanceof HistoryImportCoverageNotFoundError ||
+    error instanceof HistoryImportAssetNotFoundError
   ) {
     sendApiError(response, {
       status: 404,

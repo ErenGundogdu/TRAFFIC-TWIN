@@ -22,6 +22,8 @@ import { createTrafficEventContextRouter } from "../modules/traffic-events/traff
 import type { TrafficEventContextService } from "../modules/traffic-events/traffic-event-context-service.js";
 import { createFieldReportRouter } from "../modules/field-reports/field-report-router.js";
 import type { FieldReportService } from "../modules/field-reports/field-report-service.js";
+import { createHistoryImportRouter } from "../modules/ingestion/history-import-router.js";
+import type { HistoryImportPlanningService } from "../modules/ingestion/history-import-planning-service.js";
 import { errorHandler } from "./error-handler.js";
 
 interface AppDependencies {
@@ -34,6 +36,7 @@ interface AppDependencies {
   trafficEventService?: TrafficEventService;
   trafficEventContextService?: TrafficEventContextService;
   fieldReportService?: FieldReportService;
+  historyImportPlanningService?: HistoryImportPlanningService;
 }
 
 export function createApp(
@@ -71,6 +74,13 @@ export function createApp(
 
   if (dependencies.historyService) {
     app.use("/api/analytics", createHistoryRouter(dependencies.historyService));
+  }
+
+  if (dependencies.historyImportPlanningService) {
+    app.use(
+      "/api/coverage-areas",
+      createHistoryImportRouter(dependencies.historyImportPlanningService),
+    );
   }
 
   if (dependencies.junctionService) {

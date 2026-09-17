@@ -32,6 +32,8 @@ import { PostgresTrafficEventContextRepository } from "./modules/traffic-events/
 import { TrafficEventContextService } from "./modules/traffic-events/traffic-event-context-service.js";
 import { PostgresFieldReportRepository } from "./modules/field-reports/field-report-repository.js";
 import { FieldReportService } from "./modules/field-reports/field-report-service.js";
+import { HistoryImportRepository } from "./modules/ingestion/history-import-repository.js";
+import { HistoryImportPlanningService } from "./modules/ingestion/history-import-planning-service.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -67,6 +69,10 @@ const fieldReportService = new FieldReportService(
 const historyService = new HistoryService(
   stationRepository,
   new HistoryRepository(db),
+);
+const historyImportPlanningService = new HistoryImportPlanningService(
+  stationRepository,
+  new HistoryImportRepository(db),
 );
 const replayService = new ReplayService(
   stationRepository,
@@ -125,6 +131,7 @@ const httpServer = createServer(
     trafficEventService,
     trafficEventContextService,
     fieldReportService,
+    historyImportPlanningService,
   }),
 );
 const realtimeServer = createRealtimeServer(

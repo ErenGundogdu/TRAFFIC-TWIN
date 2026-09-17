@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq, gte, lte } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import {
@@ -29,6 +29,33 @@ export class HistoryImportRepository {
       .where(eq(ingestionArtifacts.id, id))
       .limit(1);
     return artifact ?? null;
+  }
+
+  async listArtifactsForAssetDateRange(
+    assetId: string,
+    from: string,
+    to: string,
+  ) {
+    return this.database
+      .select({
+        id: ingestionArtifacts.id,
+        sourceDate: ingestionArtifacts.sourceDate,
+        status: ingestionArtifacts.status,
+        recordCount: ingestionArtifacts.recordCount,
+        validRecordCount: ingestionArtifacts.validRecordCount,
+        errorMessage: ingestionArtifacts.errorMessage,
+        updatedAt: ingestionArtifacts.updatedAt,
+      })
+      .from(ingestionArtifacts)
+      .where(
+        and(
+          eq(ingestionArtifacts.provider, "fintraffic-tms"),
+          eq(ingestionArtifacts.assetId, assetId),
+          gte(ingestionArtifacts.sourceDate, from),
+          lte(ingestionArtifacts.sourceDate, to),
+        ),
+      )
+      .orderBy(asc(ingestionArtifacts.sourceDate));
   }
 
   async recordDownloaded(artifact: HistoryArtifactRecord) {

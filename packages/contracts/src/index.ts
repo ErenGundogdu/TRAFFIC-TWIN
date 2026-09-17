@@ -87,6 +87,16 @@ export {
   type TrafficBatch,
 } from "./realtime.js";
 export {
+  historyImportDayStatusSchema,
+  historyImportPlanDaySchema,
+  historyImportPlanQuerySchema,
+  historyImportPlanResponseSchema,
+  type HistoryImportDayStatus,
+  type HistoryImportPlanDay,
+  type HistoryImportPlanQuery,
+  type HistoryImportPlanResponse,
+} from "./history-import-plan.js";
+export {
   historyMetricSchema,
   historyAssetAvailabilitySchema,
   historyAvailabilityResponseSchema,

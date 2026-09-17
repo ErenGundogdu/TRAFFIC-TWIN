@@ -75,6 +75,7 @@ pnpm dev
 - Helsinki istasyon API'si: `http://localhost:4000/api/coverage-areas/helsinki/stations`
 - Helsinki yol olayı API'si: `http://localhost:4000/api/coverage-areas/helsinki/traffic-events`
 - Helsinki saha bildirimi API'si: `http://localhost:4000/api/coverage-areas/helsinki/field-reports`
+- Geçmiş import planı API'si: `http://localhost:4000/api/coverage-areas/helsinki/history-import-plan?assetId=fintraffic-tms%3A20002&from=2026-09-01&to=2026-09-03`
 - Geçmiş API'si: `http://localhost:4000/api/analytics/helsinki/history`
 - Operatör notu API'si: `http://localhost:4000/api/operator-notes?assetId=fintraffic-tms:20002`
 - Socket.IO: `http://localhost:4000` (canlı trafik, operatör notu, saha bildirimi ve replay olayları)

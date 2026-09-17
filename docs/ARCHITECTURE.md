@@ -172,6 +172,8 @@ Web'deki ortak `apiClient`, her feature isteğinden bir response Zod şeması is
 
 Import, her istasyon ve kaynak günü için resmî CSV'yi akış hâlinde indirip `.csv.gz` olarak arşivler; SHA-256, byte boyutu, kaynak URL'si, kayıt sayıları ve işlem durumu `ingestion_artifacts` manifest'ine yazılır. Hatalı kaynak kayıtları özetlere katılmaz. Tek transaction dakika/saat/gün özetlerini artifact kökeniyle değiştirir; aynı checksum ve işlem sürümü yeniden geldiğinde sonuç çoğaltılmaz.
 
+Dinamik kapsamın ilk salt-okunur sınırı `GET /api/coverage-areas/:coverageAreaId/history-import-plan` endpoint'idir. Bir istasyon ve iki ucu dahil tarih aralığını alır; kalıcı manifestten her günü `AVAILABLE`, `MISSING`, `FAILED`, `PENDING_PROCESSING` veya `NO_VALID_DATA` olarak sınıflandırır. Sonuç istasyon kimliği, TMS numarası, artifact kimliği, kayıt sayıları ve son manifest zamanını korur. Planlama sağlayıcı çağrısı veya veritabanı yazımı yapmaz. Sonraki yürütme dilimi, bu planın eksik/başarısız günlerini kalıcı ve yeniden başlatılabilir bir iş üzerinden işleyecektir.
+
 `traffic_observations` canlı yakın dönem serisidir. `traffic_aggregates` geçmiş dakika/saat/gün serisini tutar. Bakım komutu çalıştırıldığında varsayılan olarak canlı observation ve dakika özetlerini 90 günden sonra siler; saat ve gün özetleriyle artifact manifest'i kalır. Bu komut MVP'de zamanlanmış değildir. Sıkıştırılmış ham arşivin yaşam döngüsü veritabanından ayrıdır ve bilinçli bir arşiv politikası değişikliği olmadan otomatik silinmez.
 
 ## Kavşak Türetme

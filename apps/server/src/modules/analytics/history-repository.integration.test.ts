@@ -143,6 +143,22 @@ describe("HistoryRepository", () => {
       sourceDate: "2020-01-15",
     });
 
+    const importPlanRows =
+      await importRepository.listArtifactsForAssetDateRange(
+        "fintraffic-tms:20002",
+        "2020-01-15",
+        "2020-01-16",
+      );
+    expect(importPlanRows).toContainEqual({
+      id: artifactId,
+      sourceDate: "2020-01-15",
+      status: "PROCESSED",
+      recordCount: 43,
+      validRecordCount: 42,
+      errorMessage: null,
+      updatedAt: expect.any(Date),
+    });
+
     await connection.db
       .delete(trafficAggregates)
       .where(eq(trafficAggregates.artifactId, artifactId));
