@@ -66,6 +66,7 @@ describe("HistoryImportPlanningService", () => {
         listStations: vi.fn(async () => [station]),
       },
       { listArtifactsForAssetDateRange },
+      () => new Date("2026-09-06T12:00:00Z"),
     );
 
     const result = await service.createPlan("helsinki", {
@@ -85,6 +86,7 @@ describe("HistoryImportPlanningService", () => {
       failedDayCount: 1,
       pendingProcessingDayCount: 1,
       noValidDataDayCount: 1,
+      notYetAvailableDayCount: 0,
     });
     expect(
       result.days.map(({ sourceDate, status }) => ({ sourceDate, status })),
@@ -102,6 +104,30 @@ describe("HistoryImportPlanningService", () => {
       updatedAt: null,
       errorMessage: null,
     });
+  });
+
+  it("keeps current and future local dates out of the importable backlog", async () => {
+    const service = new HistoryImportPlanningService(
+      {
+        findCoverageArea: vi.fn(async () => coverageArea),
+        listStations: vi.fn(async () => [station]),
+      },
+      { listArtifactsForAssetDateRange: vi.fn(async () => []) },
+      () => new Date("2026-09-06T21:30:00Z"),
+    );
+
+    const result = await service.createPlan("helsinki", {
+      assetId: station.id,
+      from: "2026-09-06",
+      to: "2026-09-08",
+    });
+
+    expect(result.days.map((day) => day.status)).toEqual([
+      "MISSING",
+      "NOT_YET_AVAILABLE",
+      "NOT_YET_AVAILABLE",
+    ]);
+    expect(result.summary.notYetAvailableDayCount).toBe(2);
   });
 
   it("rejects a station outside the requested coverage area", async () => {

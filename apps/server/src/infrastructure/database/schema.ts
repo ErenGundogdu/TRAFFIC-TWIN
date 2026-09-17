@@ -35,6 +35,14 @@ export const artifactStatus = pgEnum("artifact_status", [
   "FAILED",
 ]);
 
+export const historyImportJobStatus = pgEnum("history_import_job_status", [
+  "QUEUED",
+  "RUNNING",
+  "COMPLETED",
+  "PARTIAL_FAILURE",
+  "FAILED",
+]);
+
 export const aggregateResolution = pgEnum("aggregate_resolution", [
   "minute",
   "hour",
@@ -374,6 +382,59 @@ export const ingestionArtifacts = pgTable(
     check(
       "ingestion_artifacts_checksum_check",
       sql`char_length(${table.checksumSha256}) = 64`,
+    ),
+  ],
+);
+
+export const historyImportJobs = pgTable(
+  "history_import_jobs",
+  {
+    id: text("id").primaryKey(),
+    coverageAreaId: text("coverage_area_id")
+      .notNull()
+      .references(() => coverageAreas.id, { onDelete: "restrict" }),
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "restrict" }),
+    fromDate: date("from_date", { mode: "string" }).notNull(),
+    toDate: date("to_date", { mode: "string" }).notNull(),
+    requestedDayCount: integer("requested_day_count").notNull(),
+    targetDayCount: integer("target_day_count").notNull(),
+    sourceDates: jsonb("source_dates").$type<string[]>().notNull(),
+    completedDayCount: integer("completed_day_count").default(0).notNull(),
+    successfulDayCount: integer("successful_day_count").default(0).notNull(),
+    failedDayCount: integer("failed_day_count").default(0).notNull(),
+    skippedDayCount: integer("skipped_day_count").default(0).notNull(),
+    currentSourceDate: date("current_source_date", { mode: "string" }),
+    status: historyImportJobStatus("status").default("QUEUED").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("history_import_jobs_status_created_idx").on(
+      table.status,
+      table.createdAt,
+    ),
+    uniqueIndex("history_import_jobs_active_range_uidx")
+      .on(table.coverageAreaId, table.assetId, table.fromDate, table.toDate)
+      .where(sql`${table.status} IN ('QUEUED', 'RUNNING')`),
+    check(
+      "history_import_jobs_range_check",
+      sql`${table.fromDate} <= ${table.toDate}`,
+    ),
+    check(
+      "history_import_jobs_counts_check",
+      sql`${table.requestedDayCount} >= ${table.targetDayCount} AND ${table.targetDayCount} > 0 AND ${table.completedDayCount} >= 0 AND ${table.successfulDayCount} >= 0 AND ${table.failedDayCount} >= 0 AND ${table.skippedDayCount} >= 0 AND ${table.completedDayCount} = ${table.successfulDayCount} + ${table.failedDayCount} + ${table.skippedDayCount} AND ${table.completedDayCount} <= ${table.targetDayCount}`,
+    ),
+    check(
+      "history_import_jobs_source_dates_check",
+      sql`jsonb_typeof(${table.sourceDates}) = 'array' AND jsonb_array_length(${table.sourceDates}) = ${table.targetDayCount}`,
     ),
   ],
 );

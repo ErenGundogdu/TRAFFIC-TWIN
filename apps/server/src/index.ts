@@ -34,6 +34,11 @@ import { PostgresFieldReportRepository } from "./modules/field-reports/field-rep
 import { FieldReportService } from "./modules/field-reports/field-report-service.js";
 import { HistoryImportRepository } from "./modules/ingestion/history-import-repository.js";
 import { HistoryImportPlanningService } from "./modules/ingestion/history-import-planning-service.js";
+import { HistoryImportJobRepository } from "./modules/ingestion/history-import-job-repository.js";
+import { HistoryImportJobService } from "./modules/ingestion/history-import-job-service.js";
+import { HistoryImportService } from "./modules/ingestion/history-import-service.js";
+import { HistoryImportWorker } from "./modules/ingestion/history-import-worker.js";
+import { FintrafficHistoryClient } from "./modules/providers/fintraffic/history-client.js";
 
 const rootEnvPath = resolve(import.meta.dirname, "../../../.env");
 
@@ -70,9 +75,27 @@ const historyService = new HistoryService(
   stationRepository,
   new HistoryRepository(db),
 );
+const historyImportRepository = new HistoryImportRepository(db);
 const historyImportPlanningService = new HistoryImportPlanningService(
   stationRepository,
-  new HistoryImportRepository(db),
+  historyImportRepository,
+);
+const historyImportJobRepository = new HistoryImportJobRepository(db);
+const historyImportService = new HistoryImportService(
+  stationRepository,
+  historyImportRepository,
+  new FintrafficHistoryClient(env.FINTRAFFIC_BASE_URL, env.FINTRAFFIC_USER),
+  resolve(process.cwd(), env.RAW_DATA_DIR),
+);
+const historyImportWorker = new HistoryImportWorker(
+  historyImportJobRepository,
+  historyImportPlanningService,
+  historyImportService,
+);
+const historyImportJobService = new HistoryImportJobService(
+  historyImportPlanningService,
+  historyImportJobRepository,
+  () => historyImportWorker.wake(),
 );
 const replayService = new ReplayService(
   stationRepository,
@@ -132,6 +155,7 @@ const httpServer = createServer(
     trafficEventContextService,
     fieldReportService,
     historyImportPlanningService,
+    historyImportJobService,
   }),
 );
 const realtimeServer = createRealtimeServer(
@@ -183,6 +207,7 @@ try {
 
 liveTrafficPoller.start();
 trafficEventPoller.start();
+await historyImportWorker.start();
 
 httpServer.listen(env.PORT, () => {
   console.log(`Traffic Twin server listening on http://localhost:${env.PORT}`);
@@ -198,6 +223,7 @@ async function shutdown(signal: NodeJS.Signals) {
   liveTrafficPoller.stop();
   trafficEventPoller.stop();
   try {
+    await historyImportWorker.stop();
     await realtimeServer.close();
     await pool.end();
   } catch (error) {

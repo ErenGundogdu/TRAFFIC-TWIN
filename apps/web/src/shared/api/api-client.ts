@@ -15,6 +15,18 @@ class ApiClient {
     return this.request({ ...config, method: "GET", url }, responseSchema);
   }
 
+  async post<TOutput>(
+    url: string,
+    data: unknown,
+    responseSchema: ResponseSchema<TOutput>,
+    config?: AxiosRequestConfig,
+  ): Promise<TOutput> {
+    return this.request(
+      { ...config, method: "POST", url, data },
+      responseSchema,
+    );
+  }
+
   private async request<TOutput>(
     config: AxiosRequestConfig,
     responseSchema: ResponseSchema<TOutput>,

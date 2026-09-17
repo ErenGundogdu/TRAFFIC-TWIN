@@ -23,6 +23,7 @@ import type { TrafficEventContextService } from "../modules/traffic-events/traff
 import { createFieldReportRouter } from "../modules/field-reports/field-report-router.js";
 import type { FieldReportService } from "../modules/field-reports/field-report-service.js";
 import { createHistoryImportRouter } from "../modules/ingestion/history-import-router.js";
+import type { HistoryImportJobService } from "../modules/ingestion/history-import-job-service.js";
 import type { HistoryImportPlanningService } from "../modules/ingestion/history-import-planning-service.js";
 import { errorHandler } from "./error-handler.js";
 
@@ -37,6 +38,7 @@ interface AppDependencies {
   trafficEventContextService?: TrafficEventContextService;
   fieldReportService?: FieldReportService;
   historyImportPlanningService?: HistoryImportPlanningService;
+  historyImportJobService?: HistoryImportJobService;
 }
 
 export function createApp(
@@ -79,7 +81,10 @@ export function createApp(
   if (dependencies.historyImportPlanningService) {
     app.use(
       "/api/coverage-areas",
-      createHistoryImportRouter(dependencies.historyImportPlanningService),
+      createHistoryImportRouter(
+        dependencies.historyImportPlanningService,
+        dependencies.historyImportJobService,
+      ),
     );
   }
 

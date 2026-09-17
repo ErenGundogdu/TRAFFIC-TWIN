@@ -62,6 +62,7 @@ Kabul kriterleri:
 - Replay oynatılabilir, durdurulabilir, hızı değiştirilebilir, zaman çizelgesinden gerçek bir ölçüm anına götürülebilir ve canlı moda dönebilir.
 - Mod, seçim ve filtreler `/monitoring` URL'sinde paylaşılabilir biçimde korunur.
 - İstasyonların geçmiş veri bulunurluğu ve gerçek import tarihleri seçimden önce görünür; verisiz seçimde çalışabilecek varlık ve en son ortak gün önerilir.
+- Eksik veya başarısız geçmiş günleri ancak açık kullanıcı onayıyla kalıcı işe alınır; ilerleme görünür, yarım kalan iş sunucu yeniden başladığında uzlaştırılır ve henüz yayımlanmamış günler hata sayılmaz.
 - Seçilen dönem için ağırlıklı ortalama/medyan hız, toplam geçiş, yoğun zaman dilimi, hız aralığı ve iki yönlü hacim dağılımı sunucuda hesaplanıp veri temeliyle gösterilir.
 
 ### 3. Açıklanabilir Anomali

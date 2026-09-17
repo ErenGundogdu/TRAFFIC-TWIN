@@ -17,6 +17,11 @@ import {
   HistoryImportAssetNotFoundError,
   HistoryImportCoverageNotFoundError,
 } from "../modules/ingestion/history-import-planning-service.js";
+import {
+  HistoryImportJobConflictError,
+  HistoryImportJobNotFoundError,
+  HistoryImportNothingToDoError,
+} from "../modules/ingestion/history-import-job-service.js";
 import { OverpassResponseError } from "../modules/providers/openstreetmap/client.js";
 import { RoadContextNotFoundError } from "../modules/road-context/road-context-service.js";
 import { TrafficEventContextNotFoundError } from "../modules/traffic-events/traffic-event-context-service.js";
@@ -47,6 +52,30 @@ export const errorHandler: ErrorRequestHandler = (
     sendApiError(response, {
       status: 404,
       code: "HISTORY_SCOPE_NOT_FOUND",
+      message: error.message,
+    });
+    return;
+  }
+
+  if (error instanceof HistoryImportJobNotFoundError) {
+    sendApiError(response, {
+      status: 404,
+      code: "HISTORY_IMPORT_JOB_NOT_FOUND",
+      message: error.message,
+    });
+    return;
+  }
+
+  if (
+    error instanceof HistoryImportJobConflictError ||
+    error instanceof HistoryImportNothingToDoError
+  ) {
+    sendApiError(response, {
+      status: 409,
+      code:
+        error instanceof HistoryImportJobConflictError
+          ? "HISTORY_IMPORT_JOB_CONFLICT"
+          : "HISTORY_IMPORT_NOTHING_TO_DO",
       message: error.message,
     });
     return;

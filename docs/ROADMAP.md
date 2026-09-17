@@ -90,7 +90,7 @@ Anomali kanıtı: TMS 20002 için önceki 6 cumartesinin resmî Fintraffic artif
 - [x] `kararlar.md`, mimari ve demo senaryosunun güncellenmesi
 - [x] Yaklaşık 10 dakikalık demo hazırlığı
 
-Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş PostgreSQL/PostGIS 3.5 veritabanında 16 commitli migration ve 16 uygulama tablosu doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 152 unit/component testi, 12 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim, 59 yol olayı, istasyon–olay bağlamı ve geçmiş analiz çalışma alanı tarayıcıda kontrol edildi.
+Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş PostgreSQL/PostGIS 3.5 veritabanında 17 commitli migration ve 17 public tablo doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 167 unit/component testi, 13 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim, yol olayları, istasyon–olay bağlamı ve geçmiş analiz çalışma alanı kontrol edildi.
 
 Çıkış kriteri: **Tamamlandı.** Temiz kurulumdan çalışan demo üretilebilir ve brief'in bütün zorunlu maddeleri `docs/DEMO.md` akışında kanıtlanabilir.
 
@@ -194,17 +194,17 @@ Bağımsız harita konumuna bırakılan saha bildirimi, operatör günlüğü ta
 
 Admin doğrulama komutları ve ayrı saha bildirimi yönetim sayfası authentication sonrasına planlanmıştır. Mevcut `field-reports` feature'ı harita kabuğundan ayrıldığı için form, katalog ve detay bileşenleri yeni rotada tekrar kullanılabilir.
 
-### Dinamik geçmiş veri kapsamı — Devam ediyor
+### Dinamik geçmiş veri kapsamı — Tamamlandı
 
 - [x] İstasyon ve dahil tarih aralığı için ortak Zod/TypeScript plan sözleşmesi
 - [x] Kalıcı artifact manifestinden kullanılabilir, eksik, başarısız, indirilmiş ve geçerli verisiz günleri ayıran planlama servisi
 - [x] Kapsama alanı ve varlık sınırını doğrulayan salt-okunur REST endpoint'i
 - [x] Sözleşme, servis, HTTP ve gerçek PostgreSQL manifest sorgusu testleri
-- [ ] Eksik günleri kalıcı iş olarak sıraya alma ve kontrollü worker yürütmesi
-- [ ] İş ilerlemesi, yeniden deneme ve sunucu yeniden başlamasında uzlaşma
-- [ ] Analiz ekranında açık kullanıcı onayıyla import başlatma ve ilerleme gösterimi
+- [x] Eksik günleri kalıcı iş olarak sıraya alma ve kontrollü worker yürütmesi
+- [x] İş ilerlemesi, yeniden deneme ve sunucu yeniden başlamasında uzlaşma
+- [x] Analiz ekranında açık kullanıcı onayıyla import başlatma ve ilerleme gösterimi
 
-İlk dilim yalnız manifest tabanlı plan üretir; analiz sorgusu veya plan endpoint'i sağlayıcı indirmesini kendiliğinden başlatmaz. İndirme komutu, kalıcı iş yaşam döngüsü ve kullanıcı arayüzü doğrulanmadan özellik tamamlandı sayılmaz.
+Plan ve analiz sorguları sağlayıcı indirmesini kendiliğinden başlatmaz. Kullanıcı açıkça onay verdiğinde yalnız `MISSING`, `FAILED` veya `PENDING_PROCESSING` günleri kalıcı işe alınır. Bugün ve gelecek günler kapsama alanının yerel tarihine göre `NOT_YET_AVAILABLE` kalır. Tek worker işi gün gün yürütür; süreç kesilirse `RUNNING` iş başlangıçta güvenli biçimde yeniden kuyruğa alınır. Gerçek Fintraffic uçtan uca denemesinde TMS 20002 için 2 Eylül 2026 işi tamamlanmış, manifest ve analiz kapsamı `AVAILABLE`/`COMPLETE` durumuna geçmiştir.
 
 Yalnızca Aşama 6 tamamlandıktan ve kalan zaman değerlendirildikten sonra:
 

@@ -33,6 +33,7 @@ import {
   type AnalyticsFilterValues,
 } from "../lib/analytics-filters";
 import { HistoryChart } from "./history-chart";
+import { HistoryImportControl } from "./history-import-control";
 import { HistorySummaryPanel } from "./history-summary-panel";
 
 interface AnalyticsPanelProps {
@@ -284,6 +285,14 @@ export function AnalyticsPanel({
               )}
             </div>
           ) : null}
+
+          <HistoryImportControl
+            key={`${selectedStationId}:${values.fromDate}:${values.toDate}`}
+            coverageAreaId={catalog.coverageArea.id}
+            assetId={selectedStationId}
+            from={values.fromDate}
+            to={values.toDate}
+          />
 
           <form
             onSubmit={form.handleSubmit(submit)}

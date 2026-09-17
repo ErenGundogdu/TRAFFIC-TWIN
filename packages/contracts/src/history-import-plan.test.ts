@@ -39,6 +39,7 @@ describe("history import plan contracts", () => {
           failedDayCount: 1,
           pendingProcessingDayCount: 0,
           noValidDataDayCount: 0,
+          notYetAvailableDayCount: 0,
         },
         days: [
           {

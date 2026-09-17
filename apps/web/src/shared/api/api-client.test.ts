@@ -38,4 +38,19 @@ describe("apiClient", () => {
       status: 200,
     } satisfies Partial<ApiError>);
   });
+
+  it("posts a typed command and validates the canonical response", async () => {
+    const schema = z.object({ id: z.string(), status: z.literal("QUEUED") });
+
+    await expect(
+      apiClient.post(
+        "/typed-resource",
+        { from: "2026-09-01", to: "2026-09-02" },
+        schema,
+        {
+          adapter: responseAdapter({ id: "job-1", status: "QUEUED" }),
+        },
+      ),
+    ).resolves.toEqual({ id: "job-1", status: "QUEUED" });
+  });
 });

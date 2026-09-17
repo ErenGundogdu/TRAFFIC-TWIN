@@ -29,6 +29,7 @@ export const historyImportDayStatusSchema = z.enum([
   "FAILED",
   "PENDING_PROCESSING",
   "NO_VALID_DATA",
+  "NOT_YET_AVAILABLE",
 ]);
 
 export const historyImportPlanDaySchema = z.object({
@@ -60,6 +61,7 @@ export const historyImportPlanResponseSchema = z.object({
     failedDayCount: z.number().int().nonnegative(),
     pendingProcessingDayCount: z.number().int().nonnegative(),
     noValidDataDayCount: z.number().int().nonnegative(),
+    notYetAvailableDayCount: z.number().int().nonnegative(),
   }),
   days: z.array(historyImportPlanDaySchema).min(1),
 });

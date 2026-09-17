@@ -87,6 +87,16 @@ export {
   type TrafficBatch,
 } from "./realtime.js";
 export {
+  createHistoryImportJobSchema,
+  historyImportJobResponseSchema,
+  historyImportJobSchema,
+  historyImportJobStatusSchema,
+  type CreateHistoryImportJob,
+  type HistoryImportJob,
+  type HistoryImportJobResponse,
+  type HistoryImportJobStatus,
+} from "./history-import-job.js";
+export {
   historyImportDayStatusSchema,
   historyImportPlanDaySchema,
   historyImportPlanQuerySchema,

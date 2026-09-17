@@ -20,3 +20,10 @@ export function parseRequestQuery<TOutput>(
 ): TOutput {
   return schema.parse(request.query);
 }
+
+export function parseRequestBody<TOutput>(
+  request: Pick<Request, "body">,
+  schema: z.ZodType<TOutput>,
+): TOutput {
+  return schema.parse(request.body);
+}
