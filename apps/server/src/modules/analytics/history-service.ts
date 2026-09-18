@@ -6,14 +6,25 @@ import {
   type ResolvedHistoryResolution,
 } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import type { HistoryRepository } from "./history-repository.js";
 import { summarizeHistory } from "./history-summary.js";
 
 const DAY_MS = 86_400_000;
 
-export class HistoryCoverageAreaNotFoundError extends Error {}
-export class HistoryAssetNotFoundError extends Error {}
+class HistoryScopeNotFoundError extends ApplicationError {
+  constructor(message: string) {
+    super(message, {
+      code: "HISTORY_SCOPE_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: message,
+    });
+  }
+}
+
+export class HistoryCoverageAreaNotFoundError extends HistoryScopeNotFoundError {}
+export class HistoryAssetNotFoundError extends HistoryScopeNotFoundError {}
 
 function resolveResolution(query: HistoryQuery): ResolvedHistoryResolution {
   if (query.resolution !== "auto") return query.resolution;

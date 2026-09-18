@@ -1,5 +1,6 @@
 import type { CoverageArea } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../../common/errors/application-error.js";
 import { normalizeOsmJunctions } from "./normalize-junctions.js";
 import { normalizeRoadContext } from "./normalize-road-context.js";
 import {
@@ -7,18 +8,22 @@ import {
   overpassRoadResponseSchema,
 } from "./schemas.js";
 
-export class OverpassResponseError extends Error {
+export class OverpassResponseError extends ApplicationError {
   constructor(
     readonly status: number | null,
     options?: ErrorOptions,
   ) {
-    super(
+    const message =
       status === null
         ? "Overpass request failed before receiving an HTTP response."
-        : `Overpass responded with HTTP ${status}.`,
-      options,
-    );
-    this.name = "OverpassResponseError";
+        : `Overpass responded with HTTP ${status}.`;
+    super(message, {
+      code: "OPENSTREETMAP_UNAVAILABLE",
+      kind: "UPSTREAM_UNAVAILABLE",
+      publicMessage: "OpenStreetMap yol bağlamı şu anda alınamıyor.",
+      logContext: { upstreamStatus: status },
+      cause: options?.cause,
+    });
   }
 }
 

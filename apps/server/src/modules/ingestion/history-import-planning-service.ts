@@ -5,6 +5,7 @@ import {
   type HistoryImportPlanResponse,
 } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import type { HistoryImportRepository } from "./history-import-repository.js";
 
@@ -14,8 +15,18 @@ type ManifestRow = Awaited<
   ReturnType<HistoryImportRepository["listArtifactsForAssetDateRange"]>
 >[number];
 
-export class HistoryImportCoverageNotFoundError extends Error {}
-export class HistoryImportAssetNotFoundError extends Error {}
+class HistoryImportScopeNotFoundError extends ApplicationError {
+  constructor(message: string) {
+    super(message, {
+      code: "HISTORY_SCOPE_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: message,
+    });
+  }
+}
+
+export class HistoryImportCoverageNotFoundError extends HistoryImportScopeNotFoundError {}
+export class HistoryImportAssetNotFoundError extends HistoryImportScopeNotFoundError {}
 
 function enumerateInclusiveDates(from: string, to: string): string[] {
   const dates: string[] = [];

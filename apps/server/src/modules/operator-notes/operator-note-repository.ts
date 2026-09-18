@@ -7,16 +7,21 @@ import {
 } from "@traffic-twin/contracts";
 import { desc, eq } from "drizzle-orm";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { Database } from "../../infrastructure/database/client.js";
 import {
   operatorNotes,
   trafficAssets,
 } from "../../infrastructure/database/schema.js";
 
-export class AssetNotFoundError extends Error {
+export class AssetNotFoundError extends ApplicationError {
   constructor(id: string) {
-    super(`Traffic asset '${id}' was not found.`);
-    this.name = "AssetNotFoundError";
+    const message = `Traffic asset '${id}' was not found.`;
+    super(message, {
+      code: "TRAFFIC_ASSET_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: message,
+    });
   }
 }
 

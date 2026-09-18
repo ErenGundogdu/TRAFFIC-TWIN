@@ -3,11 +3,29 @@ import {
   type CreateFieldReport,
 } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import type { FieldReportRepository } from "./field-report-repository.js";
 
-export class FieldReportCoverageNotFoundError extends Error {}
-export class FieldReportOutsideCoverageError extends Error {}
+export class FieldReportCoverageNotFoundError extends ApplicationError {
+  constructor(coverageAreaId: string) {
+    super(`Coverage area '${coverageAreaId}' was not found.`, {
+      code: "FIELD_REPORT_COVERAGE_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: "Saha bildirimi kapsama alanı bulunamadı.",
+    });
+  }
+}
+
+export class FieldReportOutsideCoverageError extends ApplicationError {
+  constructor(coverageAreaId: string) {
+    super(`The field report is outside coverage area '${coverageAreaId}'.`, {
+      code: "FIELD_REPORT_OUTSIDE_COVERAGE",
+      kind: "BAD_REQUEST",
+      publicMessage: "Seçilen konum kapsama alanının dışında.",
+    });
+  }
+}
 
 export class FieldReportService {
   constructor(

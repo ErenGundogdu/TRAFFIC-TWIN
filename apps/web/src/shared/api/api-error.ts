@@ -1,8 +1,8 @@
-import type { ApiValidationIssue } from "@traffic-twin/contracts";
+import type { ErrorCode, ApiValidationIssue } from "@traffic-twin/contracts";
 
 export class ApiError extends Error {
   constructor(
-    readonly code: string,
+    readonly code: ErrorCode,
     message: string,
     readonly status: number | null,
     readonly requestId: string | null = null,

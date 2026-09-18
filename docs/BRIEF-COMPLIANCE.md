@@ -23,7 +23,7 @@ Bu belge brief'in zorunlu maddelerinin nerede uygulanacağını ve nasıl doğru
 | WebSocket mimarisi kararı          | Ayrı Express + Socket.IO server + gerekçe                        |     0 | `kararlar.md`                                             |
 | README                             | Gerçek kurulum, çalıştırma ve mimari özeti                       |     6 | Tamamlandı: kurulum, demo verisi ve doğrulama             |
 | Anlamlı commit geçmişi             | İngilizce Conventional Commits                                   |  Tümü | Aşama bazlı Conventional Commit geçmişi mevcut            |
-| Test çalıştırma komutu             | Kök `pnpm test` ve ilgili ayrıntılar                             |   1/6 | Güncel: 167 unit/component + 13 integration               |
+| Test çalıştırma komutu             | Kök `pnpm test` ve ilgili ayrıntılar                             |   1/6 | Güncel: 173 unit/component + 13 integration               |
 | Yaklaşık 10 dakikalık demo         | Canlı izleme, analiz/replay, anomali ve not akışı                |     6 | Tamamlandı: `docs/DEMO.md`                                |
 
 ## Kapsam Koruması

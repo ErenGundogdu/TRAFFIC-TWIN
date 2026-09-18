@@ -1,5 +1,6 @@
 import type { StationTrafficEventContextResponse } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import { inferFintrafficRoadRef } from "../junctions/junction-matching.js";
 import {
@@ -8,7 +9,15 @@ import {
 } from "./traffic-event-context-matching.js";
 import type { TrafficEventContextRepository } from "./traffic-event-context-repository.js";
 
-export class TrafficEventContextNotFoundError extends Error {}
+export class TrafficEventContextNotFoundError extends ApplicationError {
+  constructor() {
+    super("The traffic-event station or coverage area was not found.", {
+      code: "TRAFFIC_EVENT_CONTEXT_SCOPE_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: "İstasyon veya kapsama alanı bulunamadı.",
+    });
+  }
+}
 
 export class TrafficEventContextService {
   constructor(

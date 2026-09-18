@@ -3,6 +3,7 @@ import type {
   StationSummary,
 } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { FintrafficClient } from "../providers/fintraffic/client.js";
 import { normalizeDirectionHeading } from "../providers/fintraffic/normalize-direction-heading.js";
 import { normalizeStations } from "../providers/fintraffic/normalize-stations.js";
@@ -25,10 +26,14 @@ const SOURCE_BASE = {
 } as const;
 const SOURCE_FRESHNESS_LIMIT_MS = 3 * 60 * 1_000;
 
-export class CoverageAreaNotFoundError extends Error {
+export class CoverageAreaNotFoundError extends ApplicationError {
   constructor(id: string) {
-    super(`Coverage area '${id}' was not found.`);
-    this.name = "CoverageAreaNotFoundError";
+    const message = `Coverage area '${id}' was not found.`;
+    super(message, {
+      code: "COVERAGE_AREA_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: message,
+    });
   }
 }
 

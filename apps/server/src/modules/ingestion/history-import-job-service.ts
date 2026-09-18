@@ -7,6 +7,7 @@ import {
   type HistoryImportJobResponse,
 } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { HistoryImportJobRepository } from "./history-import-job-repository.js";
 import type { HistoryImportPlanningService } from "./history-import-planning-service.js";
 
@@ -20,9 +21,35 @@ type PersistedJob = NonNullable<
   Awaited<ReturnType<HistoryImportJobRepository["findById"]>>
 >;
 
-export class HistoryImportJobNotFoundError extends Error {}
-export class HistoryImportJobConflictError extends Error {}
-export class HistoryImportNothingToDoError extends Error {}
+export class HistoryImportJobNotFoundError extends ApplicationError {
+  constructor(message: string) {
+    super(message, {
+      code: "HISTORY_IMPORT_JOB_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: message,
+    });
+  }
+}
+
+export class HistoryImportJobConflictError extends ApplicationError {
+  constructor(message: string) {
+    super(message, {
+      code: "HISTORY_IMPORT_JOB_CONFLICT",
+      kind: "CONFLICT",
+      publicMessage: message,
+    });
+  }
+}
+
+export class HistoryImportNothingToDoError extends ApplicationError {
+  constructor(message: string) {
+    super(message, {
+      code: "HISTORY_IMPORT_NOTHING_TO_DO",
+      kind: "CONFLICT",
+      publicMessage: message,
+    });
+  }
+}
 
 function toHistoryImportJob(row: PersistedJob): HistoryImportJob {
   return {

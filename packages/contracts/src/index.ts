@@ -1,10 +1,16 @@
 export {
+  apiErrorCodeSchema,
   apiErrorDescriptorSchema,
   apiErrorResponseSchema,
   apiValidationIssueSchema,
+  clientErrorCodeSchema,
+  errorCodeSchema,
+  type ApiErrorCode,
   type ApiErrorDescriptor,
   type ApiErrorResponse,
   type ApiValidationIssue,
+  type ClientErrorCode,
+  type ErrorCode,
 } from "./api-error.js";
 export {
   anomalyCatalogResponseSchema,

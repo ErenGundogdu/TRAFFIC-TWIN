@@ -90,7 +90,7 @@ Anomali kanıtı: TMS 20002 için önceki 6 cumartesinin resmî Fintraffic artif
 - [x] `kararlar.md`, mimari ve demo senaryosunun güncellenmesi
 - [x] Yaklaşık 10 dakikalık demo hazırlığı
 
-Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş PostgreSQL/PostGIS 3.5 veritabanında 17 commitli migration ve 17 public tablo doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 167 unit/component testi, 13 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim, yol olayları, istasyon–olay bağlamı ve geçmiş analiz çalışma alanı kontrol edildi.
+Doğrulama kanıtı: Kilitli pnpm kurulumu tekrarlandı; boş PostgreSQL/PostGIS 3.5 veritabanında 17 commitli migration ve 17 public tablo doğrulandı. Güncel doğrulamada format, lint, strict typecheck, 173 unit/component testi, 13 gerçek PostgreSQL/PostGIS/Socket.IO entegrasyon testi ve Next.js/Express production build'i başarıyla tamamlandı. Gerçek canlı katalog ile 76 istasyon, 5 türetilmiş kavşak, gerçek OSM yol akışı, 3B hacim, yol olayları, istasyon–olay bağlamı ve geçmiş analiz çalışma alanı kontrol edildi.
 
 Çıkış kriteri: **Tamamlandı.** Temiz kurulumdan çalışan demo üretilebilir ve brief'in bütün zorunlu maddeleri `docs/DEMO.md` akışında kanıtlanabilir.
 

@@ -1,19 +1,25 @@
 import type { z } from "zod";
 
+import { ApplicationError } from "../../../common/errors/application-error.js";
 import {
   stationDataCollectionSchema,
   stationFeatureCollectionSchema,
   stationSensorConstantsCollectionSchema,
 } from "./schemas.js";
 
-export class FintrafficResponseError extends Error {
+export class FintrafficResponseError extends ApplicationError {
   constructor(
     message: string,
     readonly status?: number,
     options?: ErrorOptions,
   ) {
-    super(message, options);
-    this.name = "FintrafficResponseError";
+    super(message, {
+      code: "FINTRAFFIC_UNAVAILABLE",
+      kind: "UPSTREAM_UNAVAILABLE",
+      publicMessage: "Fintraffic verisi şu anda alınamıyor.",
+      logContext: { upstreamStatus: status ?? null },
+      cause: options?.cause,
+    });
   }
 }
 

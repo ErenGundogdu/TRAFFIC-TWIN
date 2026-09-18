@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { apiErrorResponseSchema } from "./api-error.js";
+import {
+  apiErrorCodeSchema,
+  apiErrorResponseSchema,
+  errorCodeSchema,
+} from "./api-error.js";
 
 describe("API error contract", () => {
   it("validates a traceable validation error", () => {
@@ -29,5 +33,12 @@ describe("API error contract", () => {
         error: { code: "INVALID_REQUEST", message: "Invalid" },
       }).success,
     ).toBe(false);
+  });
+
+  it("rejects error codes outside the shared public contract", () => {
+    expect(errorCodeSchema.safeParse("UNREGISTERED_ERROR").success).toBe(false);
+    expect(apiErrorCodeSchema.safeParse("REALTIME_DISCONNECTED").success).toBe(
+      false,
+    );
   });
 });

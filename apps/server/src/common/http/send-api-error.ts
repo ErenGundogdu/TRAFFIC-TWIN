@@ -1,4 +1,5 @@
 import type {
+  ApiErrorCode,
   ApiErrorResponse,
   ApiValidationIssue,
 } from "@traffic-twin/contracts";
@@ -7,7 +8,7 @@ import type { Response } from "express";
 import { getRequestId } from "./request-id.js";
 
 interface ApiErrorInput {
-  code: string;
+  code: ApiErrorCode;
   details?: ApiValidationIssue[];
   message: string;
   status: number;

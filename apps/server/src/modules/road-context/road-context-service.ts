@@ -1,5 +1,6 @@
 import type { StationRoadContext } from "@traffic-twin/contracts";
 
+import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import { inferFintrafficRoadRef } from "../junctions/junction-matching.js";
 import type { OpenStreetMapClient } from "../providers/openstreetmap/client.js";
@@ -11,7 +12,15 @@ import type {
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 const FAILED_REFRESH_RETRY_MS = 5 * 60 * 1_000;
 
-export class RoadContextNotFoundError extends Error {}
+export class RoadContextNotFoundError extends ApplicationError {
+  constructor() {
+    super("The road-context station or coverage area was not found.", {
+      code: "ROAD_CONTEXT_SCOPE_NOT_FOUND",
+      kind: "NOT_FOUND",
+      publicMessage: "İstasyon veya kapsama alanı bulunamadı.",
+    });
+  }
+}
 
 export class RoadContextService {
   private readonly cache = new Map<
