@@ -10,7 +10,11 @@ import type {
   StationSummary,
   TrafficEvent,
 } from "@traffic-twin/contracts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  Map as MapLibreMap,
+  MapStyleImageMissingEvent,
+} from "maplibre-gl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
   Map,
@@ -42,6 +46,7 @@ import {
   createTrafficDensityGeoJson,
   createTrafficVolumeGeoJson,
 } from "../lib/traffic-flow-data";
+import { provideTransparentStyleImageFallback } from "../lib/map-style-image-fallback";
 import type { MapVisualizationMode } from "../model/map-visualization-mode";
 import { MapVisualizationSwitcher } from "./map-visualization-switcher";
 import {
@@ -101,6 +106,10 @@ function formatMetric(value: number | null, suffix: string) {
   return value === null ? "Veri yok" : `${Math.round(value)} ${suffix}`;
 }
 
+function handleMissingStyleImage(event: MapStyleImageMissingEvent) {
+  provideTransparentStyleImageFallback(event.target, event.id);
+}
+
 export function TrafficMap({
   bbox,
   timeZone,
@@ -127,6 +136,7 @@ export function TrafficMap({
 }: TrafficMapProps) {
   const { theme } = useTheme();
   const mapRef = useRef<MapRef>(null);
+  const subscribedMapRef = useRef<MapLibreMap | null>(null);
   const [styleFailed, setStyleFailed] = useState(false);
   const [hoveredAsset, setHoveredAsset] = useState<HoveredAsset | null>(null);
   const [minLongitude, minLatitude, maxLongitude, maxLatitude] = bbox;
@@ -152,6 +162,13 @@ export function TrafficMap({
     ? (fieldReports.find((report) => report.id === selectedFieldReportId) ??
       null)
     : null;
+
+  const setMapRef = useCallback((instance: MapRef | null) => {
+    subscribedMapRef.current?.off("styleimagemissing", handleMissingStyleImage);
+    mapRef.current = instance;
+    subscribedMapRef.current = instance?.getMap() ?? null;
+    subscribedMapRef.current?.on("styleimagemissing", handleMissingStyleImage);
+  }, []);
 
   useEffect(() => {
     const selectedAsset = selectedStationId
@@ -324,7 +341,7 @@ export function TrafficMap({
   return (
     <div className="relative h-full min-h-0">
       <Map
-        ref={mapRef}
+        ref={setMapRef}
         initialViewState={{
           longitude:
             selectedStation?.longitude ?? (minLongitude + maxLongitude) / 2,

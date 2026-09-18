@@ -118,4 +118,41 @@ describe("traffic flow map data", () => {
       },
     });
   });
+
+  it("keeps numeric map expressions free of null when measurements are absent", () => {
+    const stationWithoutMeasurements: StationSummary = {
+      ...station,
+      directions: station.directions.map((direction) => ({
+        ...direction,
+        averageSpeedKmh: null,
+        flowVehiclesPerHour: null,
+        trafficFlow: {
+          ...direction.trafficFlow,
+          status: "INSUFFICIENT_DATA",
+          speedPercentOfFreeFlow: null,
+          flowPercentOfCapacity: null,
+        },
+      })),
+    };
+
+    const density = createTrafficDensityGeoJson([stationWithoutMeasurements]);
+    const volume = createTrafficVolumeGeoJson([stationWithoutMeasurements]);
+    const roads = createRoadFlowGeoJson(
+      roadContext,
+      stationWithoutMeasurements,
+    );
+
+    expect(density.features[0]?.properties).toMatchObject({
+      totalFlowVehiclesPerHour: 0,
+      hasFlow: false,
+    });
+    expect(volume.features).toEqual([]);
+    expect(roads.features[0]?.properties).toMatchObject({
+      speedKmh: -1,
+      flowVehiclesPerHour: 0,
+      hasMeasurement: false,
+      speedPercentOfFreeFlow: -1,
+      flowPercentOfCapacity: -1,
+    });
+  });
 });

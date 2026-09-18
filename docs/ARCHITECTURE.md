@@ -255,6 +255,7 @@ Harita çalışma zamanı WebGL 2'yi tercih eder, bulunmadığında WebGL 1'e ge
 - Trafik mesajı senkronu başarısızsa son gerçek olay snapshot'ı korunur; hata istasyon kataloğunu veya haritayı çökertmez.
 - Son başarılı trafik olayı senkronu güncellik eşiğini aşarsa katman `Son geçerli veri` ve kaynak zamanını görünür sunar; hiç başarılı senkron yoksa boş sonuç güncelmiş gibi gösterilmez.
 - OpenFreeMap erişilemezse trafik API'si çalışmaya devam eder; harita altlık hatası görünür olur.
+- OpenFreeMap stilinin sprite paketinde bulunmayan altlık ikonları `styleimagemissing` sınırında şeffaf fallback ile karşılanır; uygulama katmanları kendi ikonlarını önceden kaydetmek zorundadır. MapLibre GL JS 5.24 ile OpenFreeMap stillerinde görülen sayısal `null` çalışma zamanı uyarısı upstream [MapLibre #7856](https://github.com/maplibre/maplibre-gl-js/issues/7856) kapsamında izlenir; genel `console` bastırmasıyla gerçek istemci hataları gizlenmez.
 - Overpass yenilemesi başarısızsa son doğrulanmış yol bağlamı kaynak zamanı ve `STALE` işaretiyle sunulur; kalıcı sonuç yoksa ikincil istek `502` döner.
 - OSM senkronizasyonu başarısızsa mevcut doğrulanmış geometri korunur.
 - Socket.IO koparsa bağlantı durumu gösterilir; yeniden bağlanınca REST snapshot ve kaçırılan notlar uzlaştırılır.
