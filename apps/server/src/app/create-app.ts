@@ -25,6 +25,10 @@ import type { FieldReportService } from "../modules/field-reports/field-report-s
 import { createHistoryImportRouter } from "../modules/ingestion/history-import-router.js";
 import type { HistoryImportJobService } from "../modules/ingestion/history-import-job-service.js";
 import type { HistoryImportPlanningService } from "../modules/ingestion/history-import-planning-service.js";
+import { createCorridorInsightRouter } from "../modules/corridor-insights/corridor-insight-router.js";
+import type { CorridorInsightService } from "../modules/corridor-insights/corridor-insight-service.js";
+import { createLaneHistoryRouter } from "../modules/lane-history-insights/lane-history-router.js";
+import type { LaneHistoryService } from "../modules/lane-history-insights/lane-history-service.js";
 import { errorHandler } from "./error-handler.js";
 
 interface AppDependencies {
@@ -39,6 +43,8 @@ interface AppDependencies {
   fieldReportService?: FieldReportService;
   historyImportPlanningService?: HistoryImportPlanningService;
   historyImportJobService?: HistoryImportJobService;
+  corridorInsightService?: CorridorInsightService;
+  laneHistoryService?: LaneHistoryService;
 }
 
 export function createApp(
@@ -106,6 +112,20 @@ export function createApp(
     app.use(
       "/api/coverage-areas",
       createRoadContextRouter(dependencies.roadContextService),
+    );
+  }
+
+  if (dependencies.corridorInsightService) {
+    app.use(
+      "/api/coverage-areas",
+      createCorridorInsightRouter(dependencies.corridorInsightService),
+    );
+  }
+
+  if (dependencies.laneHistoryService) {
+    app.use(
+      "/api/coverage-areas",
+      createLaneHistoryRouter(dependencies.laneHistoryService),
     );
   }
 

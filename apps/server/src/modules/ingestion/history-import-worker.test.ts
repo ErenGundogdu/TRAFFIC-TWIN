@@ -17,6 +17,8 @@ const job = {
   skippedDayCount: 0,
   currentSourceDate: null,
   status: "RUNNING" as const,
+  purpose: "INTERACTIVE" as const,
+  priority: 100,
   createdAt: new Date("2026-09-04T08:00:00Z"),
   startedAt: new Date("2026-09-04T08:00:01Z"),
   completedAt: null,

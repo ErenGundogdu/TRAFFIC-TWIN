@@ -8,9 +8,12 @@ import { createDatabase } from "../../infrastructure/database/client.js";
 import {
   anomalyEvaluations,
   coverageAreas,
+  historyAggregateCoverage,
   ingestionArtifacts,
   trafficAggregates,
   trafficAssets,
+  trafficSpeedStatistics,
+  trafficVolumeStatistics,
 } from "../../infrastructure/database/schema.js";
 import { HistoryImportRepository } from "../ingestion/history-import-repository.js";
 import { PostgresAnomalyRepository } from "./anomaly-repository.js";
@@ -64,6 +67,7 @@ describe("PostgresAnomalyRepository", () => {
     await imports.replaceWithProcessed(
       artifactId,
       assetId,
+      "2026-08-29",
       [
         {
           direction: 1,
@@ -72,6 +76,9 @@ describe("PostgresAnomalyRepository", () => {
           averageSpeedKmh: 80,
           vehicleCount: 900,
           sampleCount: 100,
+          vehicleClassBreakdown: {},
+          laneBreakdown: {},
+          laneVehicleClassBreakdown: {},
         },
         {
           direction: 1,
@@ -80,16 +87,53 @@ describe("PostgresAnomalyRepository", () => {
           averageSpeedKmh: 70,
           vehicleCount: 800,
           sampleCount: 100,
+          vehicleClassBreakdown: {},
+          laneBreakdown: {},
+          laneVehicleClassBreakdown: {},
         },
       ],
       200,
       200,
     );
+    await connection.db.insert(trafficVolumeStatistics).values([
+      {
+        assetId,
+        direction: 1,
+        resolution: "hour",
+        bucketStart: new Date("2026-08-29T09:00:00.000Z"),
+        vehicleCount: 950,
+      },
+      {
+        assetId,
+        direction: 1,
+        resolution: "hour",
+        bucketStart: new Date("2026-08-22T09:00:00.000Z"),
+        vehicleCount: 700,
+      },
+    ]);
+    await connection.db.insert(trafficSpeedStatistics).values([
+      {
+        assetId,
+        direction: 1,
+        resolution: "hour",
+        bucketStart: new Date("2026-08-29T09:00:00.000Z"),
+        averageSpeedKmh: 82,
+        detectedVehicleCount: 950,
+      },
+      {
+        assetId,
+        direction: 1,
+        resolution: "hour",
+        bucketStart: new Date("2026-08-22T09:00:00.000Z"),
+        averageSpeedKmh: 76,
+        detectedVehicleCount: 700,
+      },
+    ]);
 
     const repository = new PostgresAnomalyRepository(connection.db);
     const baseline = await repository.listHourlyBaseline({
       assetIds: [assetId],
-      from: new Date("2026-08-28T00:00:00.000Z"),
+      from: new Date("2026-08-21T00:00:00.000Z"),
       to: new Date("2026-08-30T00:00:00.000Z"),
       timeZone: "Europe/Helsinki",
       localWeekday: 6,
@@ -98,8 +142,15 @@ describe("PostgresAnomalyRepository", () => {
     expect(baseline).toEqual([
       expect.objectContaining({
         assetId,
+        timestamp: "2026-08-22T09:00:00.000Z",
+        averageSpeedKmh: 76,
+        flowVehiclesPerHour: 700,
+      }),
+      expect.objectContaining({
+        assetId,
         timestamp: "2026-08-29T09:00:00.000Z",
-        averageSpeedKmh: 80,
+        averageSpeedKmh: 82,
+        flowVehiclesPerHour: 950,
       }),
     ]);
 
@@ -123,13 +174,19 @@ describe("PostgresAnomalyRepository", () => {
       minimumSamples: 6,
       requiredConsecutiveDeviations: 2,
       policyVersion: DEFAULT_ANOMALY_POLICY.version,
-      baselineWindowWeeks: 12,
+      baselineWindowWeeks: DEFAULT_ANOMALY_POLICY.windowWeeks,
       baselineStart: "2026-06-13T09:05:00.000Z",
       baselineEnd: "2026-09-05T09:05:00.000Z",
-      baselineSamples: baseline.map((sample) => ({
-        timestamp: sample.timestamp,
-        value: sample.averageSpeedKmh,
-      })),
+      baselineSamples: baseline.flatMap((sample) =>
+        sample.averageSpeedKmh === null
+          ? []
+          : [
+              {
+                timestamp: sample.timestamp,
+                value: sample.averageSpeedKmh,
+              },
+            ],
+      ),
       localTimeZone: "Europe/Helsinki",
       localWeekday: 6,
       localHour: 12,
@@ -162,8 +219,17 @@ describe("PostgresAnomalyRepository", () => {
       .delete(anomalyEvaluations)
       .where(eq(anomalyEvaluations.assetId, assetId));
     await connection.db
+      .delete(trafficSpeedStatistics)
+      .where(eq(trafficSpeedStatistics.assetId, assetId));
+    await connection.db
+      .delete(trafficVolumeStatistics)
+      .where(eq(trafficVolumeStatistics.assetId, assetId));
+    await connection.db
       .delete(trafficAggregates)
       .where(eq(trafficAggregates.assetId, assetId));
+    await connection.db
+      .delete(historyAggregateCoverage)
+      .where(eq(historyAggregateCoverage.assetId, assetId));
     await connection.db
       .delete(ingestionArtifacts)
       .where(eq(ingestionArtifacts.id, artifactId));

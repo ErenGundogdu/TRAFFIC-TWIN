@@ -81,6 +81,7 @@ describe("PostgresJunctionCatalogRepository", () => {
               trafficFlow: unknownTrafficFlow,
             },
           ],
+          lanes: [],
         },
       ],
       new Date("2026-09-05T17:16:06Z"),

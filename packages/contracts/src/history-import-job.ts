@@ -12,6 +12,11 @@ export const historyImportJobStatusSchema = z.enum([
   "FAILED",
 ]);
 
+export const historyImportJobPurposeSchema = z.enum([
+  "INTERACTIVE",
+  "ROLLING_COVERAGE",
+]);
+
 export const historyImportJobSchema = z.object({
   id: z.uuid(),
   coverageAreaId: z.string().min(1),
@@ -34,6 +39,8 @@ export const historyImportJobSchema = z.object({
     currentSourceDate: z.iso.date().nullable(),
   }),
   status: historyImportJobStatusSchema,
+  purpose: historyImportJobPurposeSchema,
+  priority: z.number().int().min(0).max(100),
   createdAt: z.iso.datetime(),
   startedAt: z.iso.datetime().nullable(),
   completedAt: z.iso.datetime().nullable(),
@@ -49,6 +56,9 @@ export type CreateHistoryImportJob = z.infer<
 >;
 export type HistoryImportJobStatus = z.infer<
   typeof historyImportJobStatusSchema
+>;
+export type HistoryImportJobPurpose = z.infer<
+  typeof historyImportJobPurposeSchema
 >;
 export type HistoryImportJob = z.infer<typeof historyImportJobSchema>;
 export type HistoryImportJobResponse = z.infer<

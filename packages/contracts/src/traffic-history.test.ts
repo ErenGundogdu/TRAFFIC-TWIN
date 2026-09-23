@@ -30,7 +30,25 @@ describe("traffic history contracts", () => {
     expect(
       historyQuerySchema.safeParse({
         ...validQuery,
-        to: "2027-09-10T21:00:00.000Z",
+        to: "2032-09-10T21:00:00.000Z",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a five-year daily window but bounds minute queries", () => {
+    expect(
+      historyQuerySchema.safeParse({
+        ...validQuery,
+        resolution: "day",
+        from: "2021-09-01T00:00:00.000Z",
+        to: "2026-09-01T00:00:00.000Z",
+      }).success,
+    ).toBe(true);
+    expect(
+      historyQuerySchema.safeParse({
+        ...validQuery,
+        resolution: "minute",
+        from: "2026-08-01T00:00:00.000Z",
       }).success,
     ).toBe(false);
   });
@@ -82,6 +100,25 @@ describe("traffic history contracts", () => {
         directionTwoVehicleCount: 220,
         directionOnePercent: 45,
         directionTwoPercent: 55,
+      },
+      composition: {
+        classifiedVehicleCount: 180,
+        classificationCoveragePercent: 100,
+        vehicleClasses: [
+          {
+            key: 1,
+            vehicleCount: 150,
+            sharePercent: 83.3,
+            averageSpeedKmh: 80,
+          },
+        ],
+        lanes: [],
+        laneVehicleClasses: [],
+        freightProxy: {
+          vehicleCount: 30,
+          sharePercent: 16.7,
+          policyVersion: "fintraffic-freight-proxy-v1",
+        },
       },
     });
 

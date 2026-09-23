@@ -9,6 +9,7 @@ import {
 import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogRepository } from "../asset-catalog/station-catalog-repository.js";
 import type { HistoryRepository } from "./history-repository.js";
+import { describeHistoryCoverage } from "./history-coverage.js";
 import { summarizeHistory } from "./history-summary.js";
 
 const DAY_MS = 86_400_000;
@@ -34,6 +35,15 @@ function resolveResolution(query: HistoryQuery): ResolvedHistoryResolution {
   if (duration <= 90 * DAY_MS) return "hour";
   return "day";
 }
+
+const coarserResolutions: Record<
+  ResolvedHistoryResolution,
+  ResolvedHistoryResolution[]
+> = {
+  minute: ["minute", "hour", "day"],
+  hour: ["hour", "day"],
+  day: ["day"],
+};
 
 function localDate(value: Date, timeZone: string) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -64,7 +74,12 @@ export class HistoryService {
     private readonly stationRepository: StationCatalogRepository,
     private readonly historyRepository: Pick<
       HistoryRepository,
-      "getSeries" | "getSummaryRows" | "listAvailableDates" | "listAvailability"
+      | "getSeries"
+      | "getSummaryRows"
+      | "listAvailableDates"
+      | "listCompletedStatisticsChunks"
+      | "listStatisticsImportFailures"
+      | "listAvailability"
     >,
   ) {}
 
@@ -79,7 +94,10 @@ export class HistoryService {
       );
     }
 
-    const rows = await this.historyRepository.listAvailability(coverageAreaId);
+    const rows = await this.historyRepository.listAvailability(
+      coverageAreaId,
+      coverageArea.timeZone,
+    );
     const datesByAsset = new Map<string, string[]>();
     for (const row of rows) {
       const dates = datesByAsset.get(row.assetId) ?? [];
@@ -126,54 +144,96 @@ export class HistoryService {
     const from = new Date(query.from);
     const to = new Date(query.to);
     const requestedDates = enumerateDates(from, to, coverageArea.timeZone);
-    const available = await this.historyRepository.listAvailableDates(
+    const preferredResolution = resolveResolution(query);
+    let resolution = preferredResolution;
+    let available = await this.historyRepository.listAvailableDates(
       query.assetIds,
       requestedDates[0]!,
       requestedDates.at(-1)!,
+      resolution,
+      query.metric,
+      coverageArea.timeZone,
+      query.direction,
     );
-    const datesAvailableForEveryAsset = requestedDates.filter((date) =>
-      query.assetIds.every((assetId) =>
-        available.some(
-          (item) => item.assetId === assetId && item.sourceDate === date,
+    const hasCommonDate = (
+      rows: Awaited<ReturnType<HistoryRepository["listAvailableDates"]>>,
+    ) =>
+      requestedDates.some((date) =>
+        query.assetIds.every((assetId) =>
+          rows.some(
+            (item) => item.assetId === assetId && item.sourceDate === date,
+          ),
         ),
-      ),
-    );
-    const missingDates = requestedDates.filter(
-      (date) => !datesAvailableForEveryAsset.includes(date),
-    );
-    const resolution = resolveResolution(query);
-    const [series, summaryRows] = await Promise.all([
-      this.historyRepository.getSeries({
-        assetIds: query.assetIds,
-        direction: query.direction,
-        metric: query.metric,
-        resolution,
-        from,
-        to,
-      }),
-      this.historyRepository.getSummaryRows({
-        assetIds: query.assetIds,
-        resolution,
-        from,
-        to,
-      }),
-    ]);
+      );
+    if (query.resolution === "auto" && !hasCommonDate(available)) {
+      for (const candidate of coarserResolutions[preferredResolution].slice(
+        1,
+      )) {
+        const candidateAvailability =
+          await this.historyRepository.listAvailableDates(
+            query.assetIds,
+            requestedDates[0]!,
+            requestedDates.at(-1)!,
+            candidate,
+            query.metric,
+            coverageArea.timeZone,
+            query.direction,
+          );
+        if (!hasCommonDate(candidateAvailability)) continue;
+        resolution = candidate;
+        available = candidateAvailability;
+        break;
+      }
+    }
+    const [completedChunks, failedRanges, series, summaryRows] =
+      await Promise.all([
+        resolution === "minute"
+          ? Promise.resolve([])
+          : this.historyRepository.listCompletedStatisticsChunks(
+              query.assetIds,
+              requestedDates[0]!,
+              requestedDates.at(-1)!,
+              resolution,
+              query.direction,
+            ),
+        resolution === "minute"
+          ? Promise.resolve([])
+          : this.historyRepository.listStatisticsImportFailures(
+              query.assetIds,
+              requestedDates[0]!,
+              requestedDates.at(-1)!,
+              resolution,
+              query.direction,
+              query.metric,
+            ),
+        this.historyRepository.getSeries({
+          assetIds: query.assetIds,
+          direction: query.direction,
+          metric: query.metric,
+          resolution,
+          from,
+          to,
+        }),
+        this.historyRepository.getSummaryRows({
+          assetIds: query.assetIds,
+          resolution,
+          from,
+          to,
+        }),
+      ]);
 
     return {
       query,
       resolution,
       timeZone: coverageArea.timeZone,
-      coverage: {
-        status:
-          datesAvailableForEveryAsset.length === 0
-            ? "NO_DATA"
-            : missingDates.length === 0
-              ? "COMPLETE"
-              : "PARTIAL",
-        requestedDays: requestedDates.length,
-        availableDays: datesAvailableForEveryAsset.length,
-        missingDates: missingDates.slice(0, 31),
-      },
+      coverage: describeHistoryCoverage({
+        assetIds: query.assetIds,
+        requestedDates,
+        availableDates: available,
+        completedChunks,
+        failedRanges,
+        resolution,
+      }),
       series,
       summaries: summarizeHistory({
         assetIds: query.assetIds,

@@ -1,10 +1,12 @@
 import type { HistorySummary } from "@traffic-twin/contracts";
+import type { TrafficCompositionSourceRow } from "./traffic-composition-summary.js";
+import { summarizeTrafficComposition } from "./traffic-composition-summary.js";
 
-export interface HistorySummaryRow {
+export interface HistorySummaryRow extends TrafficCompositionSourceRow {
   assetId: string;
   direction: number;
   bucketStart: Date;
-  averageSpeedKmh: number;
+  averageSpeedKmh: number | null;
   vehicleCount: number;
   sampleCount: number;
 }
@@ -33,6 +35,10 @@ export function summarizeHistory(input: {
     const selectedRows = assetRows.filter(
       (row) => row.direction === input.direction,
     );
+    const speedRows = selectedRows.filter(
+      (row): row is HistorySummaryRow & { averageSpeedKmh: number } =>
+        row.averageSpeedKmh !== null,
+    );
     const sampleCount = selectedRows.reduce(
       (total, row) => total + row.sampleCount,
       0,
@@ -41,16 +47,16 @@ export function summarizeHistory(input: {
       (total, row) => total + row.vehicleCount,
       0,
     );
-    const weightedSpeedTotal = selectedRows.reduce(
+    const weightedSpeedTotal = speedRows.reduce(
       (total, row) => total + row.averageSpeedKmh * row.sampleCount,
       0,
     );
-    const minimumSpeedRow = selectedRows.reduce<HistorySummaryRow | null>(
+    const minimumSpeedRow = speedRows.reduce<(typeof speedRows)[number] | null>(
       (lowest, row) =>
         !lowest || row.averageSpeedKmh < lowest.averageSpeedKmh ? row : lowest,
       null,
     );
-    const maximumSpeedRow = selectedRows.reduce<HistorySummaryRow | null>(
+    const maximumSpeedRow = speedRows.reduce<(typeof speedRows)[number] | null>(
       (highest, row) =>
         !highest || row.averageSpeedKmh > highest.averageSpeedKmh
           ? row
@@ -79,7 +85,7 @@ export function summarizeHistory(input: {
       sampleCount,
       averageSpeedKmh:
         sampleCount > 0 ? round(weightedSpeedTotal / sampleCount) : null,
-      medianSpeedKmh: median(selectedRows.map((row) => row.averageSpeedKmh)),
+      medianSpeedKmh: median(speedRows.map((row) => row.averageSpeedKmh)),
       minimumSpeedKmh: minimumSpeedRow
         ? round(minimumSpeedRow.averageSpeedKmh)
         : null,
@@ -95,9 +101,10 @@ export function summarizeHistory(input: {
           : null,
       peakVehicleCount: peakVehicleRow?.vehicleCount ?? null,
       peakVehicleAt: peakVehicleRow?.bucketStart.toISOString() ?? null,
-      speedAtPeakVehicleCountKmh: peakVehicleRow
-        ? round(peakVehicleRow.averageSpeedKmh)
-        : null,
+      speedAtPeakVehicleCountKmh:
+        peakVehicleRow?.averageSpeedKmh != null
+          ? round(peakVehicleRow.averageSpeedKmh)
+          : null,
       directionDistribution: {
         directionOneVehicleCount,
         directionTwoVehicleCount,
@@ -110,6 +117,7 @@ export function summarizeHistory(input: {
             ? round((directionTwoVehicleCount / bothDirectionsTotal) * 100)
             : null,
       },
+      composition: summarizeTrafficComposition(selectedRows, totalVehicleCount),
     };
   });
 }

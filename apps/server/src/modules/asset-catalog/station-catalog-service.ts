@@ -9,14 +9,27 @@ import { normalizeDirectionHeading } from "../providers/fintraffic/normalize-dir
 import { normalizeStations } from "../providers/fintraffic/normalize-stations.js";
 import type {
   PersistedDirection,
+  PersistedLane,
   TrafficObservationRepository,
 } from "../telemetry/traffic-observation-repository.js";
 import { classifyMeasurementFreshness } from "../telemetry/classify-measurement-freshness.js";
 import { classifyTrafficFlow } from "../telemetry/classify-traffic-flow.js";
+import type { LaneDirectionEvidenceRepository } from "../telemetry/lane-direction-evidence-repository.js";
+import {
+  resolveLaneDirectionsFromLayout,
+  type ResolvedLaneDirection,
+  type StationLanesInput,
+} from "../telemetry/lane-direction-evidence.js";
+import type { FintrafficStationLaneLayoutClient } from "../providers/fintraffic/station-lane-layout-client.js";
 import type {
   PersistedStation,
   StationCatalogRepository,
 } from "./station-catalog-repository.js";
+
+// The official layout rarely changes (it tracks physical road works, not
+// traffic), so it is refreshed on the same cadence as station metadata
+// rather than on every request.
+const LANE_LAYOUT_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 
 const SOURCE_BASE = {
   id: "fintraffic-tms",
@@ -72,12 +85,16 @@ function toUnavailableStation(station: PersistedStation): StationSummary {
         }),
       };
     }),
+    lanes: [],
   };
 }
 
 function toPersistedStation(
   station: PersistedStation,
   directions: PersistedDirection[],
+  lanes: PersistedLane[],
+  laneDirections: ResolvedLaneDirection[],
+  laneLayoutDirections: ResolvedLaneDirection[],
   now: Date,
 ): StationSummary {
   const stationDirections = [1, 2].map((direction) => {
@@ -109,15 +126,60 @@ function toPersistedStation(
     .filter((value): value is string => value !== null)
     .sort()
     .at(-1);
+  const stationLanes = lanes
+    .filter((lane) => lane.assetId === station.id)
+    .map((lane) => {
+      // Real observed-passage evidence always wins; the official lane
+      // layout only fills in stations that evidence has not reached yet.
+      // The UI must be able to tell the two apart rather than call both
+      // "geçmiş veriden" (from historical evidence).
+      const observed = laneDirections.find(
+        (evidence) =>
+          evidence.assetId === station.id && evidence.lane === lane.lane,
+      );
+      const fromLayout = laneLayoutDirections.find(
+        (evidence) =>
+          evidence.assetId === station.id && evidence.lane === lane.lane,
+      );
+      const resolvedDirection = observed ?? fromLayout;
+      const directionEvidence = observed
+        ? ("OBSERVED_PASSAGES" as const)
+        : fromLayout
+          ? ("OFFICIAL_LANE_LAYOUT" as const)
+          : null;
+      return {
+        lane: lane.lane,
+        direction: resolvedDirection?.direction ?? null,
+        directionEvidence,
+        averageSpeedKmh: lane.averageSpeedKmh,
+        flowVehiclesPerHour: lane.flowVehiclesPerHour,
+        flowWindow: lane.flowWindow,
+        measuredAt: lane.measuredAt,
+      };
+    });
+  const newestLaneMeasurement = stationLanes
+    .map((lane) => lane.measuredAt)
+    .sort()
+    .at(-1);
+  const newestStationMeasurement = [newestMeasurement, newestLaneMeasurement]
+    .filter((value): value is string => value !== undefined)
+    .sort()
+    .at(-1);
 
   return {
     ...toStationIdentity(station),
-    freshness: classifyMeasurementFreshness(newestMeasurement, now),
+    freshness: classifyMeasurementFreshness(newestStationMeasurement, now),
     directions: stationDirections,
+    lanes: stationLanes,
   };
 }
 
 export class StationCatalogService {
+  private laneLayoutCache: Awaited<
+    ReturnType<FintrafficStationLaneLayoutClient["listLayouts"]>
+  > | null = null;
+  private laneLayoutCacheFetchedAt = 0;
+
   constructor(
     private readonly repository: StationCatalogRepository,
     private readonly fintrafficClient: Pick<
@@ -126,7 +188,31 @@ export class StationCatalogService {
     >,
     private readonly clock: () => Date = () => new Date(),
     private readonly observationRepository?: TrafficObservationRepository,
+    private readonly laneDirectionRepository?: LaneDirectionEvidenceRepository,
+    private readonly laneLayoutClient?: Pick<
+      FintrafficStationLaneLayoutClient,
+      "listLayouts"
+    >,
   ) {}
+
+  private async getLaneLayouts(now: Date) {
+    if (!this.laneLayoutClient) return [];
+    if (
+      this.laneLayoutCache &&
+      now.getTime() - this.laneLayoutCacheFetchedAt < LANE_LAYOUT_CACHE_TTL_MS
+    ) {
+      return this.laneLayoutCache;
+    }
+    try {
+      this.laneLayoutCache = await this.laneLayoutClient.listLayouts();
+      this.laneLayoutCacheFetchedAt = now.getTime();
+    } catch {
+      // A stale (or empty, on the very first attempt) cache is preferred
+      // over failing the whole station response for this secondary source.
+      this.laneLayoutCache ??= [];
+    }
+    return this.laneLayoutCache;
+  }
 
   async getCoverageStations(
     coverageAreaId: string,
@@ -145,12 +231,29 @@ export class StationCatalogService {
       );
 
       if (persistedStations.length > 0) {
-        const directions =
-          await this.observationRepository.listLatestDirections(
-            persistedStations.map((station) => station.id),
-          );
-        const sourceUpdatedAt = directions
-          .map((direction) => direction.sourceUpdatedAt)
+        const assetIds = persistedStations.map((station) => station.id);
+        const [directions, lanes, laneDirections, laneLayouts] =
+          await Promise.all([
+            this.observationRepository.listLatestDirections(assetIds),
+            this.observationRepository.listLatestLanes(assetIds),
+            this.laneDirectionRepository?.listResolvedDirections(assetIds) ??
+              [],
+            this.getLaneLayouts(fetchedAt),
+          ]);
+        const stationLanesForLayout: StationLanesInput[] =
+          persistedStations.map((station) => ({
+            assetId: station.id,
+            tmsNumber: station.tmsNumber,
+            lanes: lanes
+              .filter((lane) => lane.assetId === station.id)
+              .map((lane) => lane.lane),
+          }));
+        const laneLayoutDirections = resolveLaneDirectionsFromLayout(
+          laneLayouts,
+          stationLanesForLayout,
+        );
+        const sourceUpdatedAt = [...directions, ...lanes]
+          .map((observation) => observation.sourceUpdatedAt)
           .sort()
           .at(-1);
         const sourceAgeMs = sourceUpdatedAt
@@ -169,7 +272,14 @@ export class StationCatalogService {
             fetchedAt: fetchedAt.toISOString(),
           },
           stations: persistedStations.map((station) =>
-            toPersistedStation(station, directions, fetchedAt),
+            toPersistedStation(
+              station,
+              directions,
+              lanes,
+              laneDirections,
+              laneLayoutDirections,
+              fetchedAt,
+            ),
           ),
         };
       }

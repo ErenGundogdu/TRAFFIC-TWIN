@@ -74,6 +74,8 @@ function toHistoryImportJob(row: PersistedJob): HistoryImportJob {
       currentSourceDate: row.currentSourceDate,
     },
     status: row.status,
+    purpose: row.purpose,
+    priority: row.priority,
     createdAt: row.createdAt.toISOString(),
     startedAt: row.startedAt?.toISOString() ?? null,
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -118,6 +120,8 @@ export class HistoryImportJobService {
       toDate: command.to,
       requestedDayCount: plan.range.requestedDayCount,
       sourceDates,
+      purpose: "INTERACTIVE",
+      priority: 100,
     });
     if (!created) {
       throw new HistoryImportJobConflictError(

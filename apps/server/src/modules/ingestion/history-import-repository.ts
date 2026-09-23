@@ -2,6 +2,7 @@ import { and, asc, eq, gte, lte } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import {
+  historyAggregateCoverage,
   ingestionArtifacts,
   trafficAggregates,
 } from "../../infrastructure/database/schema.js";
@@ -29,6 +30,16 @@ export class HistoryImportRepository {
       .where(eq(ingestionArtifacts.id, id))
       .limit(1);
     return artifact ?? null;
+  }
+
+  async listCoverageForArtifact(artifactId: string) {
+    return this.database
+      .select({
+        resolution: historyAggregateCoverage.resolution,
+        status: historyAggregateCoverage.status,
+      })
+      .from(historyAggregateCoverage)
+      .where(eq(historyAggregateCoverage.artifactId, artifactId));
   }
 
   async listArtifactsForAssetDateRange(
@@ -67,6 +78,8 @@ export class HistoryImportRepository {
         set: {
           sourceUrl: artifact.sourceUrl,
           storagePath: artifact.storagePath,
+          rawFileStatus: "RETAINED",
+          rawFilePurgedAt: null,
           checksumSha256: artifact.checksumSha256,
           byteSize: artifact.byteSize,
           status: "DOWNLOADED",
@@ -77,9 +90,25 @@ export class HistoryImportRepository {
       });
   }
 
+  async restoreRetainedRawFile(artifact: HistoryArtifactRecord) {
+    await this.database
+      .update(ingestionArtifacts)
+      .set({
+        sourceUrl: artifact.sourceUrl,
+        storagePath: artifact.storagePath,
+        checksumSha256: artifact.checksumSha256,
+        byteSize: artifact.byteSize,
+        rawFileStatus: "RETAINED",
+        rawFilePurgedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(ingestionArtifacts.id, artifact.id));
+  }
+
   async replaceWithProcessed(
     artifactId: string,
     assetId: string,
+    sourceDate: string,
     aggregates: HistoryAggregate[],
     recordCount: number,
     validRecordCount: number,
@@ -88,6 +117,9 @@ export class HistoryImportRepository {
       await transaction
         .delete(trafficAggregates)
         .where(eq(trafficAggregates.artifactId, artifactId));
+      await transaction
+        .delete(historyAggregateCoverage)
+        .where(eq(historyAggregateCoverage.artifactId, artifactId));
 
       if (aggregates.length > 0) {
         await transaction.insert(trafficAggregates).values(
@@ -95,6 +127,17 @@ export class HistoryImportRepository {
             assetId,
             artifactId,
             ...aggregate,
+          })),
+        );
+
+        const coverageRows = summarizeCoverage(aggregates);
+        await transaction.insert(historyAggregateCoverage).values(
+          coverageRows.map((coverage) => ({
+            assetId,
+            sourceDate,
+            artifactId,
+            status: "AVAILABLE" as const,
+            ...coverage,
           })),
         );
       }
@@ -122,4 +165,23 @@ export class HistoryImportRepository {
       })
       .where(eq(ingestionArtifacts.id, artifactId));
   }
+}
+
+function summarizeCoverage(aggregates: HistoryAggregate[]) {
+  const resolutions = ["minute", "hour", "day"] as const;
+  return resolutions.flatMap((resolution) => {
+    const buckets = aggregates.filter(
+      (aggregate) => aggregate.resolution === resolution,
+    );
+    if (buckets.length === 0) return [];
+    const timestamps = buckets.map((bucket) => bucket.bucketStart.getTime());
+    return [
+      {
+        resolution,
+        bucketCount: buckets.length,
+        firstBucketAt: new Date(Math.min(...timestamps)),
+        lastBucketAt: new Date(Math.max(...timestamps)),
+      },
+    ];
+  });
 }

@@ -43,6 +43,11 @@ try {
     new HistoryImportRepository(connection.db),
     new FintrafficHistoryClient(env.FINTRAFFIC_BASE_URL, env.FINTRAFFIC_USER),
     resolve(process.cwd(), env.RAW_DATA_DIR),
+    {
+      minuteRetentionDays: env.HISTORY_MINUTE_RETENTION_DAYS,
+      hourRetentionDays: env.HISTORY_HOUR_RETENTION_DAYS,
+      dayRetentionDays: env.HISTORY_DAY_RETENTION_DAYS,
+    },
   );
   const result = await service.importDay({
     coverageAreaId: input.coverage,

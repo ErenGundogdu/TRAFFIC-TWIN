@@ -159,6 +159,26 @@ describe("StationCatalogService", () => {
             sourceUpdatedAt: "2026-09-04T09:03:35Z",
           },
         ]),
+        listLatestLanes: vi.fn(async () => [
+          {
+            assetId: "fintraffic-tms:20002",
+            lane: 1,
+            measuredAt: "2026-09-04T09:03:35Z",
+            averageSpeedKmh: 91,
+            flowVehiclesPerHour: 516,
+            flowWindow: "ROLLING_5_MINUTES" as const,
+            sourceUpdatedAt: "2026-09-04T09:03:35Z",
+          },
+        ]),
+      },
+      {
+        listResolvedDirections: vi.fn(async () => [
+          {
+            assetId: "fintraffic-tms:20002",
+            lane: 1,
+            direction: 1 as const,
+          },
+        ]),
       },
     );
 
@@ -167,6 +187,12 @@ describe("StationCatalogService", () => {
     expect(result.source.status).toBe("AVAILABLE");
     expect(result.stations[0]?.directions[0]?.averageSpeedKmh).toBe(93);
     expect(result.stations[0]?.directions[1]?.averageSpeedKmh).toBeNull();
+    expect(result.stations[0]?.lanes[0]).toMatchObject({
+      lane: 1,
+      direction: 1,
+      averageSpeedKmh: 91,
+      flowVehiclesPerHour: 516,
+    });
     expect(result.stations[0]?.directions[1]?.heading).toEqual({
       degrees: 118,
       compassPoint: "SE",
@@ -174,5 +200,116 @@ describe("StationCatalogService", () => {
     });
     expect(client.getStations).not.toHaveBeenCalled();
     expect(client.getCurrentStationData).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the official lane layout when no historical evidence resolves a lane", async () => {
+    const repository = createRepository([
+      {
+        id: "fintraffic-tms:20002",
+        providerStationId: 20002,
+        tmsNumber: 20002,
+        name: "vt1_Espoo_Hirvisuo",
+        longitude: 24.637997,
+        latitude: 60.220898,
+        bearing: 298,
+      },
+    ]);
+    const client = {
+      getStations: vi.fn(),
+      getCurrentStationData: vi.fn(),
+      getSensorConstants: vi.fn(),
+    };
+    const service = new StationCatalogService(
+      repository,
+      client,
+      () => new Date("2026-09-04T09:04:00Z"),
+      {
+        insertBatch: vi.fn(async () => 0),
+        listLatestDirections: vi.fn(async () => []),
+        listLatestLanes: vi.fn(async () => [
+          {
+            assetId: "fintraffic-tms:20002",
+            lane: 2,
+            measuredAt: "2026-09-04T09:03:35Z",
+            averageSpeedKmh: 90,
+            flowVehiclesPerHour: 600,
+            flowWindow: "FIXED_5_MINUTES" as const,
+            sourceUpdatedAt: "2026-09-04T09:03:35Z",
+          },
+        ]),
+      },
+      { listResolvedDirections: vi.fn(async () => []) },
+      {
+        listLayouts: vi.fn(async () => [
+          { tmsNumber: 20002, forwardLaneCount: 3, reverseLaneCount: 2 },
+        ]),
+      },
+    );
+
+    const result = await service.getCoverageStations("helsinki");
+
+    expect(result.stations[0]?.lanes[0]).toMatchObject({
+      lane: 2,
+      direction: 1,
+    });
+  });
+
+  it("prefers historical evidence over the official lane layout when both resolve the same lane", async () => {
+    const repository = createRepository([
+      {
+        id: "fintraffic-tms:20002",
+        providerStationId: 20002,
+        tmsNumber: 20002,
+        name: "vt1_Espoo_Hirvisuo",
+        longitude: 24.637997,
+        latitude: 60.220898,
+        bearing: 298,
+      },
+    ]);
+    const client = {
+      getStations: vi.fn(),
+      getCurrentStationData: vi.fn(),
+      getSensorConstants: vi.fn(),
+    };
+    const service = new StationCatalogService(
+      repository,
+      client,
+      () => new Date("2026-09-04T09:04:00Z"),
+      {
+        insertBatch: vi.fn(async () => 0),
+        listLatestDirections: vi.fn(async () => []),
+        listLatestLanes: vi.fn(async () => [
+          {
+            assetId: "fintraffic-tms:20002",
+            lane: 4,
+            measuredAt: "2026-09-04T09:03:35Z",
+            averageSpeedKmh: 90,
+            flowVehiclesPerHour: 600,
+            flowWindow: "ROLLING_5_MINUTES" as const,
+            sourceUpdatedAt: "2026-09-04T09:03:35Z",
+          },
+        ]),
+      },
+      {
+        // Real observed passages say lane 4 is direction 2.
+        listResolvedDirections: vi.fn(async () => [
+          { assetId: "fintraffic-tms:20002", lane: 4, direction: 2 as const },
+        ]),
+      },
+      {
+        // The naive sequential layout rule would place lane 4 in direction
+        // 1 (forwardLaneCount: 5); evidence must still win.
+        listLayouts: vi.fn(async () => [
+          { tmsNumber: 20002, forwardLaneCount: 5, reverseLaneCount: 2 },
+        ]),
+      },
+    );
+
+    const result = await service.getCoverageStations("helsinki");
+
+    expect(result.stations[0]?.lanes[0]).toMatchObject({
+      lane: 4,
+      direction: 2,
+    });
   });
 });

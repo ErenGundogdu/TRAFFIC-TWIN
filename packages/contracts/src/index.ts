@@ -1,4 +1,24 @@
 export {
+  laneBaselineStateSchema,
+  laneHistoryEvaluationSchema,
+  laneHistoryInsightResponseSchema,
+  laneMetricBaselineSchema,
+  type LaneBaselineState,
+  type LaneHistoryEvaluation,
+  type LaneHistoryInsightResponse,
+  type LaneMetricBaseline,
+} from "./lane-history-insight.js";
+export {
+  corridorDirectionInsightSchema,
+  corridorInsightResponseSchema,
+  corridorInsightStatusSchema,
+  corridorStationReadingSchema,
+  type CorridorDirectionInsight,
+  type CorridorInsightResponse,
+  type CorridorInsightStatus,
+  type CorridorStationReading,
+} from "./corridor-insight.js";
+export {
   apiErrorCodeSchema,
   apiErrorDescriptorSchema,
   apiErrorResponseSchema,
@@ -45,20 +65,25 @@ export {
   compassPointSchema,
   coverageAreaSchema,
   dataSourceSchema,
+  laneDirectionEvidenceSchema,
   stationCatalogResponseSchema,
   stationFreshnessSchema,
   stationSummarySchema,
   trafficDirectionSchema,
   trafficDirectionHeadingSchema,
+  trafficLaneSchema,
   trafficFlowInsightSchema,
   trafficFlowStatusSchema,
   type CompassPoint,
   type CoverageArea,
   type DataSource,
+  type LaneDirectionEvidence,
+  type LaneFlowWindow,
   type StationCatalogResponse,
   type StationSummary,
   type TrafficDirection,
   type TrafficDirectionHeading,
+  type TrafficLane,
   type TrafficFlowInsight,
   type TrafficFlowStatus,
 } from "./station-catalog.js";
@@ -93,12 +118,24 @@ export {
   type TrafficBatch,
 } from "./realtime.js";
 export {
+  trafficCompositionBreakdownSchema,
+  trafficCompositionCellSchema,
+  trafficCompositionDimensionSchema,
+  trafficCompositionSummarySchema,
+  type TrafficCompositionBreakdown,
+  type TrafficCompositionCell,
+  type TrafficCompositionDimension,
+  type TrafficCompositionSummary,
+} from "./traffic-composition.js";
+export {
   createHistoryImportJobSchema,
   historyImportJobResponseSchema,
   historyImportJobSchema,
+  historyImportJobPurposeSchema,
   historyImportJobStatusSchema,
   type CreateHistoryImportJob,
   type HistoryImportJob,
+  type HistoryImportJobPurpose,
   type HistoryImportJobResponse,
   type HistoryImportJobStatus,
 } from "./history-import-job.js";
@@ -113,6 +150,7 @@ export {
   type HistoryImportPlanResponse,
 } from "./history-import-plan.js";
 export {
+  HISTORY_MAXIMUM_RANGE_DAYS,
   historyMetricSchema,
   historyAssetAvailabilitySchema,
   historyAvailabilityResponseSchema,

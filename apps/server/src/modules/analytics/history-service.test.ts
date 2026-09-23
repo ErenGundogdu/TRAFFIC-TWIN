@@ -42,6 +42,8 @@ describe("HistoryService", () => {
         getSeries,
         getSummaryRows: vi.fn(async () => []),
         listAvailableDates: vi.fn(async () => []),
+        listCompletedStatisticsChunks: vi.fn(async () => []),
+        listStatisticsImportFailures: vi.fn(async () => []),
         listAvailability: vi.fn(async () => []),
       });
 
@@ -60,12 +62,15 @@ describe("HistoryService", () => {
   );
 
   it("reports missing imported dates instead of filling them", async () => {
+    const listAvailableDates = vi.fn(async () => [
+      { assetId: station.id, sourceDate: "2026-09-03" },
+    ]);
     const service = new HistoryService(stationRepository(), {
       getSeries: vi.fn(async () => []),
       getSummaryRows: vi.fn(async () => []),
-      listAvailableDates: vi.fn(async () => [
-        { assetId: station.id, sourceDate: "2026-09-03" },
-      ]),
+      listAvailableDates,
+      listCompletedStatisticsChunks: vi.fn(async () => []),
+      listStatisticsImportFailures: vi.fn(async () => []),
       listAvailability: vi.fn(async () => []),
     });
 
@@ -84,6 +89,15 @@ describe("HistoryService", () => {
       availableDays: 1,
       missingDates: ["2026-09-02"],
     });
+    expect(listAvailableDates).toHaveBeenCalledWith(
+      [station.id],
+      "2026-09-02",
+      "2026-09-03",
+      "day",
+      "vehicle-count",
+      "Europe/Helsinki",
+      1,
+    );
   });
 
   it("groups processed source dates into per-asset availability", async () => {
@@ -91,6 +105,8 @@ describe("HistoryService", () => {
       getSeries: vi.fn(async () => []),
       getSummaryRows: vi.fn(async () => []),
       listAvailableDates: vi.fn(async () => []),
+      listCompletedStatisticsChunks: vi.fn(async () => []),
+      listStatisticsImportFailures: vi.fn(async () => []),
       listAvailability: vi.fn(async () => [
         { assetId: station.id, sourceDate: "2026-08-29" },
         { assetId: station.id, sourceDate: "2026-09-03" },
@@ -111,5 +127,110 @@ describe("HistoryService", () => {
         },
       ],
     });
+  });
+
+  it("falls back to retained hourly data only for automatic resolution", async () => {
+    const listAvailableDates = vi.fn(
+      async (
+        _assetIds: string[],
+        _from: string,
+        _to: string,
+        resolution: "minute" | "hour" | "day",
+      ) =>
+        resolution === "hour"
+          ? [{ assetId: station.id, sourceDate: "2026-09-03" }]
+          : [],
+    );
+    const getSeries = vi.fn(async () => []);
+    const service = new HistoryService(stationRepository(), {
+      getSeries,
+      getSummaryRows: vi.fn(async () => []),
+      listAvailableDates,
+      listCompletedStatisticsChunks: vi.fn(async () => []),
+      listStatisticsImportFailures: vi.fn(async () => []),
+      listAvailability: vi.fn(async () => []),
+    });
+
+    const result = await service.query("helsinki", {
+      assetIds: [station.id],
+      metric: "average-speed-kmh",
+      direction: 1,
+      resolution: "auto",
+      from: "2026-09-02T21:00:00Z",
+      to: "2026-09-03T21:00:00Z",
+    });
+
+    expect(result.resolution).toBe("hour");
+    expect(result.coverage.status).toBe("COMPLETE");
+    expect(listAvailableDates).toHaveBeenNthCalledWith(
+      1,
+      [station.id],
+      "2026-09-03",
+      "2026-09-03",
+      "minute",
+      "average-speed-kmh",
+      "Europe/Helsinki",
+      1,
+    );
+    expect(listAvailableDates).toHaveBeenNthCalledWith(
+      2,
+      [station.id],
+      "2026-09-03",
+      "2026-09-03",
+      "hour",
+      "average-speed-kmh",
+      "Europe/Helsinki",
+      1,
+    );
+  });
+
+  it("keeps the preferred resolution when real dates exist at multiple resolutions", async () => {
+    const listAvailableDates = vi.fn(async () => [
+      { assetId: station.id, sourceDate: "2026-09-03" },
+    ]);
+    const service = new HistoryService(stationRepository(), {
+      getSeries: vi.fn(async () => []),
+      getSummaryRows: vi.fn(async () => []),
+      listAvailableDates,
+      listCompletedStatisticsChunks: vi.fn(async () => []),
+      listStatisticsImportFailures: vi.fn(async () => []),
+      listAvailability: vi.fn(async () => []),
+    });
+
+    const result = await service.query("helsinki", {
+      assetIds: [station.id],
+      metric: "average-speed-kmh",
+      direction: 1,
+      resolution: "auto",
+      from: "2026-09-02T21:00:00Z",
+      to: "2026-09-03T21:00:00Z",
+    });
+
+    expect(result.resolution).toBe("minute");
+    expect(listAvailableDates).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not silently change an explicitly requested resolution", async () => {
+    const listAvailableDates = vi.fn(async () => []);
+    const service = new HistoryService(stationRepository(), {
+      getSeries: vi.fn(async () => []),
+      getSummaryRows: vi.fn(async () => []),
+      listAvailableDates,
+      listCompletedStatisticsChunks: vi.fn(async () => []),
+      listStatisticsImportFailures: vi.fn(async () => []),
+      listAvailability: vi.fn(async () => []),
+    });
+
+    const result = await service.query("helsinki", {
+      assetIds: [station.id],
+      metric: "average-speed-kmh",
+      direction: 1,
+      resolution: "minute",
+      from: "2026-09-02T21:00:00Z",
+      to: "2026-09-03T21:00:00Z",
+    });
+
+    expect(result.resolution).toBe("minute");
+    expect(listAvailableDates).toHaveBeenCalledTimes(1);
   });
 });

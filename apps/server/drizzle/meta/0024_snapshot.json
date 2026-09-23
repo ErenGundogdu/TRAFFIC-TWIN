@@ -1,0 +1,2942 @@
+{
+  "id": "bd18eb98-25db-402f-b978-2a73445c568d",
+  "prevId": "4f3fa087-919f-4ed1-9ddf-5f2116ee3147",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.anomaly_evaluations": {
+      "name": "anomaly_evaluations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric": {
+          "name": "metric",
+          "type": "anomaly_metric",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "anomaly_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "anomaly_confidence",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_value": {
+          "name": "current_value",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_median": {
+          "name": "expected_median",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "median_absolute_deviation": {
+          "name": "median_absolute_deviation",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expected_lower_bound": {
+          "name": "expected_lower_bound",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expected_upper_bound": {
+          "name": "expected_upper_bound",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "absolute_deviation": {
+          "name": "absolute_deviation",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sample_count": {
+          "name": "sample_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consecutive_deviations": {
+          "name": "consecutive_deviations",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseline_window_weeks": {
+          "name": "baseline_window_weeks",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseline_start": {
+          "name": "baseline_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseline_end": {
+          "name": "baseline_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "baseline_samples": {
+          "name": "baseline_samples",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_snapshot": {
+          "name": "policy_snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_time_zone": {
+          "name": "local_time_zone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_weekday": {
+          "name": "local_weekday",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_hour": {
+          "name": "local_hour",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "anomaly_evaluations_observation_uidx": {
+          "name": "anomaly_evaluations_observation_uidx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "direction",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metric",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "policy_version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "anomaly_evaluations_coverage_status_idx": {
+          "name": "anomaly_evaluations_coverage_status_idx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "observed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "anomaly_evaluations_asset_time_idx": {
+          "name": "anomaly_evaluations_asset_time_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "observed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "anomaly_evaluations_coverage_area_id_coverage_areas_id_fk": {
+          "name": "anomaly_evaluations_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "anomaly_evaluations",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "anomaly_evaluations_asset_id_traffic_assets_id_fk": {
+          "name": "anomaly_evaluations_asset_id_traffic_assets_id_fk",
+          "tableFrom": "anomaly_evaluations",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "anomaly_evaluations_direction_check": {
+          "name": "anomaly_evaluations_direction_check",
+          "value": "\"anomaly_evaluations\".\"direction\" IN (1, 2)"
+        },
+        "anomaly_evaluations_values_check": {
+          "name": "anomaly_evaluations_values_check",
+          "value": "\"anomaly_evaluations\".\"current_value\" >= 0 AND \"anomaly_evaluations\".\"sample_count\" >= 0 AND \"anomaly_evaluations\".\"consecutive_deviations\" >= 0"
+        },
+        "anomaly_evaluations_local_slot_check": {
+          "name": "anomaly_evaluations_local_slot_check",
+          "value": "\"anomaly_evaluations\".\"local_weekday\" BETWEEN 1 AND 7 AND \"anomaly_evaluations\".\"local_hour\" BETWEEN 0 AND 23"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.coverage_areas": {
+      "name": "coverage_areas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_zone": {
+          "name": "time_zone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_longitude": {
+          "name": "min_longitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_latitude": {
+          "name": "min_latitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_longitude": {
+          "name": "max_longitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_latitude": {
+          "name": "max_latitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.derived_junctions": {
+      "name": "derived_junctions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "osm_relation_id": {
+          "name": "osm_relation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "geometry(point)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "road_refs": {
+          "name": "road_refs",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coverage": {
+          "name": "coverage",
+          "type": "junction_coverage",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_fetched_at": {
+          "name": "source_fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "derived_junctions_coverage_osm_uidx": {
+          "name": "derived_junctions_coverage_osm_uidx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "osm_relation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "derived_junctions_location_gix": {
+          "name": "derived_junctions_location_gix",
+          "columns": [
+            {
+              "expression": "location",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "derived_junctions_coverage_area_id_coverage_areas_id_fk": {
+          "name": "derived_junctions_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "derived_junctions",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.field_reports": {
+      "name": "field_reports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OPERATOR'"
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "field_report_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "field_report_severity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "field_report_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING_REVIEW'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "geometry(point)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "field_reports_coverage_status_created_idx": {
+          "name": "field_reports_coverage_status_created_idx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "field_reports_location_gix": {
+          "name": "field_reports_location_gix",
+          "columns": [
+            {
+              "expression": "location",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "field_reports_coverage_area_id_coverage_areas_id_fk": {
+          "name": "field_reports_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "field_reports",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "field_reports_source_check": {
+          "name": "field_reports_source_check",
+          "value": "\"field_reports\".\"source\" = 'OPERATOR'"
+        },
+        "field_reports_author_length_check": {
+          "name": "field_reports_author_length_check",
+          "value": "char_length(\"field_reports\".\"author\") BETWEEN 2 AND 80"
+        },
+        "field_reports_description_length_check": {
+          "name": "field_reports_description_length_check",
+          "value": "char_length(\"field_reports\".\"description\") BETWEEN 3 AND 1000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.history_aggregate_coverage": {
+      "name": "history_aggregate_coverage",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_date": {
+          "name": "source_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "aggregate_resolution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "aggregate_coverage_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_count": {
+          "name": "bucket_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_bucket_at": {
+          "name": "first_bucket_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_bucket_at": {
+          "name": "last_bucket_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artifact_id": {
+          "name": "artifact_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "history_aggregate_coverage_query_idx": {
+          "name": "history_aggregate_coverage_query_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resolution",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "history_aggregate_coverage_asset_id_traffic_assets_id_fk": {
+          "name": "history_aggregate_coverage_asset_id_traffic_assets_id_fk",
+          "tableFrom": "history_aggregate_coverage",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "history_aggregate_coverage_artifact_id_ingestion_artifacts_id_fk": {
+          "name": "history_aggregate_coverage_artifact_id_ingestion_artifacts_id_fk",
+          "tableFrom": "history_aggregate_coverage",
+          "tableTo": "ingestion_artifacts",
+          "columnsFrom": ["artifact_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "history_aggregate_coverage_pk": {
+          "name": "history_aggregate_coverage_pk",
+          "columns": ["asset_id", "source_date", "resolution"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "history_aggregate_coverage_values_check": {
+          "name": "history_aggregate_coverage_values_check",
+          "value": "(\"history_aggregate_coverage\".\"status\" = 'AVAILABLE' AND \"history_aggregate_coverage\".\"bucket_count\" > 0 AND \"history_aggregate_coverage\".\"first_bucket_at\" IS NOT NULL AND \"history_aggregate_coverage\".\"last_bucket_at\" IS NOT NULL) OR (\"history_aggregate_coverage\".\"status\" = 'EXPIRED' AND \"history_aggregate_coverage\".\"bucket_count\" = 0 AND \"history_aggregate_coverage\".\"first_bucket_at\" IS NULL AND \"history_aggregate_coverage\".\"last_bucket_at\" IS NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.history_import_jobs": {
+      "name": "history_import_jobs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_date": {
+          "name": "from_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_date": {
+          "name": "to_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requested_day_count": {
+          "name": "requested_day_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_day_count": {
+          "name": "target_day_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_dates": {
+          "name": "source_dates",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_day_count": {
+          "name": "completed_day_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "successful_day_count": {
+          "name": "successful_day_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "failed_day_count": {
+          "name": "failed_day_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "skipped_day_count": {
+          "name": "skipped_day_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "current_source_date": {
+          "name": "current_source_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "history_import_job_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'QUEUED'"
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "history_import_job_purpose",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'INTERACTIVE'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "history_import_jobs_status_priority_created_idx": {
+          "name": "history_import_jobs_status_priority_created_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "priority",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "history_import_jobs_active_range_uidx": {
+          "name": "history_import_jobs_active_range_uidx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "from_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "to_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"history_import_jobs\".\"status\" IN ('QUEUED', 'RUNNING')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "history_import_jobs_coverage_area_id_coverage_areas_id_fk": {
+          "name": "history_import_jobs_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "history_import_jobs",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "history_import_jobs_asset_id_traffic_assets_id_fk": {
+          "name": "history_import_jobs_asset_id_traffic_assets_id_fk",
+          "tableFrom": "history_import_jobs",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "history_import_jobs_range_check": {
+          "name": "history_import_jobs_range_check",
+          "value": "\"history_import_jobs\".\"from_date\" <= \"history_import_jobs\".\"to_date\""
+        },
+        "history_import_jobs_counts_check": {
+          "name": "history_import_jobs_counts_check",
+          "value": "\"history_import_jobs\".\"requested_day_count\" >= \"history_import_jobs\".\"target_day_count\" AND \"history_import_jobs\".\"target_day_count\" > 0 AND \"history_import_jobs\".\"completed_day_count\" >= 0 AND \"history_import_jobs\".\"successful_day_count\" >= 0 AND \"history_import_jobs\".\"failed_day_count\" >= 0 AND \"history_import_jobs\".\"skipped_day_count\" >= 0 AND \"history_import_jobs\".\"completed_day_count\" = \"history_import_jobs\".\"successful_day_count\" + \"history_import_jobs\".\"failed_day_count\" + \"history_import_jobs\".\"skipped_day_count\" AND \"history_import_jobs\".\"completed_day_count\" <= \"history_import_jobs\".\"target_day_count\""
+        },
+        "history_import_jobs_source_dates_check": {
+          "name": "history_import_jobs_source_dates_check",
+          "value": "jsonb_typeof(\"history_import_jobs\".\"source_dates\") = 'array' AND jsonb_array_length(\"history_import_jobs\".\"source_dates\") = \"history_import_jobs\".\"target_day_count\""
+        },
+        "history_import_jobs_priority_check": {
+          "name": "history_import_jobs_priority_check",
+          "value": "\"history_import_jobs\".\"priority\" BETWEEN 0 AND 100"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ingestion_artifacts": {
+      "name": "ingestion_artifacts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_date": {
+          "name": "source_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_path": {
+          "name": "storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw_file_status": {
+          "name": "raw_file_status",
+          "type": "raw_file_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'RETAINED'"
+        },
+        "raw_file_purged_at": {
+          "name": "raw_file_purged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "checksum_sha256": {
+          "name": "checksum_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "byte_size": {
+          "name": "byte_size",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "artifact_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "processor_version": {
+          "name": "processor_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "record_count": {
+          "name": "record_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "valid_record_count": {
+          "name": "valid_record_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ingestion_artifacts_asset_date_uidx": {
+          "name": "ingestion_artifacts_asset_date_uidx",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ingestion_artifacts_asset_date_idx": {
+          "name": "ingestion_artifacts_asset_date_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ingestion_artifacts_asset_id_traffic_assets_id_fk": {
+          "name": "ingestion_artifacts_asset_id_traffic_assets_id_fk",
+          "tableFrom": "ingestion_artifacts",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ingestion_artifacts_checksum_check": {
+          "name": "ingestion_artifacts_checksum_check",
+          "value": "char_length(\"ingestion_artifacts\".\"checksum_sha256\") = 64"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.junction_sensor_matches": {
+      "name": "junction_sensor_matches",
+      "schema": "",
+      "columns": {
+        "junction_id": {
+          "name": "junction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "station_asset_id": {
+          "name": "station_asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "road_ref": {
+          "name": "road_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "distance_meters": {
+          "name": "distance_meters",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bearing_difference_degrees": {
+          "name": "bearing_difference_degrees",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "junction_match_confidence",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "junction_sensor_matches_station_idx": {
+          "name": "junction_sensor_matches_station_idx",
+          "columns": [
+            {
+              "expression": "station_asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "junction_sensor_matches_junction_id_derived_junctions_id_fk": {
+          "name": "junction_sensor_matches_junction_id_derived_junctions_id_fk",
+          "tableFrom": "junction_sensor_matches",
+          "tableTo": "derived_junctions",
+          "columnsFrom": ["junction_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "junction_sensor_matches_station_asset_id_traffic_assets_id_fk": {
+          "name": "junction_sensor_matches_station_asset_id_traffic_assets_id_fk",
+          "tableFrom": "junction_sensor_matches",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["station_asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "junction_sensor_matches_pk": {
+          "name": "junction_sensor_matches_pk",
+          "columns": ["junction_id", "station_asset_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "junction_sensor_matches_distance_check": {
+          "name": "junction_sensor_matches_distance_check",
+          "value": "\"junction_sensor_matches\".\"distance_meters\" >= 0"
+        },
+        "junction_sensor_matches_bearing_check": {
+          "name": "junction_sensor_matches_bearing_check",
+          "value": "\"junction_sensor_matches\".\"bearing_difference_degrees\" IS NULL OR \"junction_sensor_matches\".\"bearing_difference_degrees\" BETWEEN 0 AND 90"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.operator_notes": {
+      "name": "operator_notes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'GENERAL'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'INFORMATIONAL'"
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "operator_notes_asset_created_idx": {
+          "name": "operator_notes_asset_created_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "operator_notes_asset_id_traffic_assets_id_fk": {
+          "name": "operator_notes_asset_id_traffic_assets_id_fk",
+          "tableFrom": "operator_notes",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "operator_notes_coverage_area_id_coverage_areas_id_fk": {
+          "name": "operator_notes_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "operator_notes",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "operator_notes_author_length_check": {
+          "name": "operator_notes_author_length_check",
+          "value": "char_length(\"operator_notes\".\"author\") BETWEEN 2 AND 80"
+        },
+        "operator_notes_content_length_check": {
+          "name": "operator_notes_content_length_check",
+          "value": "char_length(\"operator_notes\".\"content\") BETWEEN 3 AND 1000"
+        },
+        "operator_notes_category_check": {
+          "name": "operator_notes_category_check",
+          "value": "\"operator_notes\".\"category\" IN ('GENERAL', 'MAINTENANCE', 'FAULT', 'INSPECTION')"
+        },
+        "operator_notes_status_check": {
+          "name": "operator_notes_status_check",
+          "value": "\"operator_notes\".\"status\" IN ('INFORMATIONAL', 'ACTION_REQUIRED', 'RESOLVED')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.station_road_contexts": {
+      "name": "station_road_contexts",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "road_context_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "road_ref": {
+          "name": "road_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "matching_policy": {
+          "name": "matching_policy",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fetched_at": {
+          "name": "fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "segments": {
+          "name": "segments",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "station_road_contexts_asset_id_traffic_assets_id_fk": {
+          "name": "station_road_contexts_asset_id_traffic_assets_id_fk",
+          "tableFrom": "station_road_contexts",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.traffic_aggregates": {
+      "name": "traffic_aggregates",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "aggregate_resolution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_start": {
+          "name": "bucket_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "average_speed_kmh": {
+          "name": "average_speed_kmh",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_count": {
+          "name": "vehicle_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sample_count": {
+          "name": "sample_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_class_breakdown": {
+          "name": "vehicle_class_breakdown",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "lane_breakdown": {
+          "name": "lane_breakdown",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "lane_vehicle_class_breakdown": {
+          "name": "lane_vehicle_class_breakdown",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "artifact_id": {
+          "name": "artifact_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_aggregates_query_idx": {
+          "name": "traffic_aggregates_query_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resolution",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "direction",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_aggregates_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_aggregates_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_aggregates",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "traffic_aggregates_artifact_id_ingestion_artifacts_id_fk": {
+          "name": "traffic_aggregates_artifact_id_ingestion_artifacts_id_fk",
+          "tableFrom": "traffic_aggregates",
+          "tableTo": "ingestion_artifacts",
+          "columnsFrom": ["artifact_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_aggregates_pk": {
+          "name": "traffic_aggregates_pk",
+          "columns": ["asset_id", "direction", "resolution", "bucket_start"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_aggregates_direction_check": {
+          "name": "traffic_aggregates_direction_check",
+          "value": "\"traffic_aggregates\".\"direction\" IN (1, 2)"
+        },
+        "traffic_aggregates_values_check": {
+          "name": "traffic_aggregates_values_check",
+          "value": "\"traffic_aggregates\".\"average_speed_kmh\" >= 0 AND \"traffic_aggregates\".\"vehicle_count\" >= 0 AND \"traffic_aggregates\".\"sample_count\" >= 0"
+        },
+        "traffic_aggregates_composition_objects_check": {
+          "name": "traffic_aggregates_composition_objects_check",
+          "value": "jsonb_typeof(\"traffic_aggregates\".\"vehicle_class_breakdown\") = 'object' AND jsonb_typeof(\"traffic_aggregates\".\"lane_breakdown\") = 'object' AND jsonb_typeof(\"traffic_aggregates\".\"lane_vehicle_class_breakdown\") = 'object'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_assets": {
+      "name": "traffic_assets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_station_id": {
+          "name": "provider_station_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tms_number": {
+          "name": "tms_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "traffic_asset_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "geometry(point)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bearing": {
+          "name": "bearing",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "collecting": {
+          "name": "collecting",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capabilities": {
+          "name": "capabilities",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_assets_provider_station_uidx": {
+          "name": "traffic_assets_provider_station_uidx",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider_station_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "traffic_assets_coverage_area_idx": {
+          "name": "traffic_assets_coverage_area_idx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "traffic_assets_location_gix": {
+          "name": "traffic_assets_location_gix",
+          "columns": [
+            {
+              "expression": "location",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_assets_coverage_area_id_coverage_areas_id_fk": {
+          "name": "traffic_assets_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "traffic_assets",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.traffic_direction_profiles": {
+      "name": "traffic_direction_profiles",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "free_flow_speed_kmh": {
+          "name": "free_flow_speed_kmh",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "maximum_flow_vehicles_per_hour": {
+          "name": "maximum_flow_vehicles_per_hour",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "traffic_direction_profiles_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_direction_profiles_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_direction_profiles",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_direction_profiles_pk": {
+          "name": "traffic_direction_profiles_pk",
+          "columns": ["asset_id", "direction"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_direction_profiles_direction_check": {
+          "name": "traffic_direction_profiles_direction_check",
+          "value": "\"traffic_direction_profiles\".\"direction\" IN (1, 2)"
+        },
+        "traffic_direction_profiles_values_check": {
+          "name": "traffic_direction_profiles_values_check",
+          "value": "(\"traffic_direction_profiles\".\"free_flow_speed_kmh\" IS NULL OR \"traffic_direction_profiles\".\"free_flow_speed_kmh\" > 0) AND (\"traffic_direction_profiles\".\"maximum_flow_vehicles_per_hour\" IS NULL OR \"traffic_direction_profiles\".\"maximum_flow_vehicles_per_hour\" > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_event_syncs": {
+      "name": "traffic_event_syncs",
+      "schema": "",
+      "columns": {
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fetched_at": {
+          "name": "fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "traffic_event_syncs_coverage_area_id_coverage_areas_id_fk": {
+          "name": "traffic_event_syncs_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "traffic_event_syncs",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.traffic_events": {
+      "name": "traffic_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "coverage_area_id": {
+          "name": "coverage_area_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_event_id": {
+          "name": "provider_event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "traffic_event_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "traffic_event_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "traffic_event_severity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comment": {
+          "name": "comment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effects": {
+          "name": "effects",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "direction": {
+          "name": "direction",
+          "type": "traffic_event_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UNKNOWN'"
+        },
+        "direction_description": {
+          "name": "direction_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sender": {
+          "name": "sender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geometry": {
+          "name": "geometry",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "road_numbers": {
+          "name": "road_numbers",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "release_time": {
+          "name": "release_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version_time": {
+          "name": "version_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ends_at": {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_events_provider_event_uidx": {
+          "name": "traffic_events_provider_event_uidx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider_event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "traffic_events_coverage_status_idx": {
+          "name": "traffic_events_coverage_status_idx",
+          "columns": [
+            {
+              "expression": "coverage_area_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "traffic_events_geometry_geography_gix": {
+          "name": "traffic_events_geometry_geography_gix",
+          "columns": [
+            {
+              "expression": "(ST_SetSRID(ST_GeomFromGeoJSON(\"geometry\"::text), 4326)::geography)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_events_coverage_area_id_coverage_areas_id_fk": {
+          "name": "traffic_events_coverage_area_id_coverage_areas_id_fk",
+          "tableFrom": "traffic_events",
+          "tableTo": "coverage_areas",
+          "columnsFrom": ["coverage_area_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.traffic_lane_observations": {
+      "name": "traffic_lane_observations",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lane": {
+          "name": "lane",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measured_at": {
+          "name": "measured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "average_speed_kmh": {
+          "name": "average_speed_kmh",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flow_vehicles_per_hour": {
+          "name": "flow_vehicles_per_hour",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_lane_observations_asset_time_idx": {
+          "name": "traffic_lane_observations_asset_time_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "measured_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_lane_observations_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_lane_observations_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_lane_observations",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_lane_observations_pk": {
+          "name": "traffic_lane_observations_pk",
+          "columns": ["asset_id", "lane", "measured_at"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_lane_observations_lane_check": {
+          "name": "traffic_lane_observations_lane_check",
+          "value": "\"traffic_lane_observations\".\"lane\" > 0"
+        },
+        "traffic_lane_observations_value_check": {
+          "name": "traffic_lane_observations_value_check",
+          "value": "(\"traffic_lane_observations\".\"average_speed_kmh\" IS NOT NULL AND \"traffic_lane_observations\".\"average_speed_kmh\" >= 0) OR (\"traffic_lane_observations\".\"flow_vehicles_per_hour\" IS NOT NULL AND \"traffic_lane_observations\".\"flow_vehicles_per_hour\" >= 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_observations": {
+      "name": "traffic_observations",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measured_at": {
+          "name": "measured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "average_speed_kmh": {
+          "name": "average_speed_kmh",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flow_vehicles_per_hour": {
+          "name": "flow_vehicles_per_hour",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "speed_percent_of_free_flow": {
+          "name": "speed_percent_of_free_flow",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flow_percent_of_capacity": {
+          "name": "flow_percent_of_capacity",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_updated_at": {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_observations_asset_time_idx": {
+          "name": "traffic_observations_asset_time_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "measured_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_observations_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_observations_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_observations",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_observations_pk": {
+          "name": "traffic_observations_pk",
+          "columns": ["asset_id", "direction", "measured_at"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_observations_direction_check": {
+          "name": "traffic_observations_direction_check",
+          "value": "\"traffic_observations\".\"direction\" IN (1, 2)"
+        },
+        "traffic_observations_value_check": {
+          "name": "traffic_observations_value_check",
+          "value": "(\"traffic_observations\".\"average_speed_kmh\" IS NOT NULL AND \"traffic_observations\".\"average_speed_kmh\" >= 0) OR (\"traffic_observations\".\"flow_vehicles_per_hour\" IS NOT NULL AND \"traffic_observations\".\"flow_vehicles_per_hour\" >= 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_speed_statistics": {
+      "name": "traffic_speed_statistics",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "aggregate_resolution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_start": {
+          "name": "bucket_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "average_speed_kmh": {
+          "name": "average_speed_kmh",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detected_vehicle_count": {
+          "name": "detected_vehicle_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_report": {
+          "name": "source_report",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'keskinopeus'"
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_speed_statistics_query_idx": {
+          "name": "traffic_speed_statistics_query_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resolution",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "direction",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_speed_statistics_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_speed_statistics_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_speed_statistics",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_speed_statistics_pk": {
+          "name": "traffic_speed_statistics_pk",
+          "columns": ["asset_id", "direction", "resolution", "bucket_start"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_speed_statistics_values_check": {
+          "name": "traffic_speed_statistics_values_check",
+          "value": "\"traffic_speed_statistics\".\"direction\" IN (1, 2) AND \"traffic_speed_statistics\".\"resolution\" IN ('hour', 'day') AND \"traffic_speed_statistics\".\"average_speed_kmh\" >= 0 AND \"traffic_speed_statistics\".\"detected_vehicle_count\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_statistics_import_chunks": {
+      "name": "traffic_statistics_import_chunks",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "aggregate_resolution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_date": {
+          "name": "from_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_date": {
+          "name": "to_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volume_row_count": {
+          "name": "volume_row_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speed_row_count": {
+          "name": "speed_row_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "traffic_statistics_import_chunks_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_statistics_import_chunks_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_statistics_import_chunks",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_statistics_import_chunks_pk": {
+          "name": "traffic_statistics_import_chunks_pk",
+          "columns": [
+            "asset_id",
+            "resolution",
+            "from_date",
+            "to_date",
+            "direction"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_statistics_import_chunks_values_check": {
+          "name": "traffic_statistics_import_chunks_values_check",
+          "value": "\"traffic_statistics_import_chunks\".\"resolution\" IN ('hour', 'day') AND \"traffic_statistics_import_chunks\".\"from_date\" <= \"traffic_statistics_import_chunks\".\"to_date\" AND \"traffic_statistics_import_chunks\".\"direction\" IN (1, 2) AND \"traffic_statistics_import_chunks\".\"volume_row_count\" >= 0 AND \"traffic_statistics_import_chunks\".\"speed_row_count\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_statistics_import_failures": {
+      "name": "traffic_statistics_import_failures",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "aggregate_resolution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metric": {
+          "name": "metric",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_date": {
+          "name": "from_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_date": {
+          "name": "to_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempted_at": {
+          "name": "attempted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "traffic_statistics_import_failures_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_statistics_import_failures_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_statistics_import_failures",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_statistics_import_failures_pk": {
+          "name": "traffic_statistics_import_failures_pk",
+          "columns": [
+            "asset_id",
+            "resolution",
+            "direction",
+            "metric",
+            "from_date",
+            "to_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_statistics_import_failures_values_check": {
+          "name": "traffic_statistics_import_failures_values_check",
+          "value": "\"traffic_statistics_import_failures\".\"resolution\" IN ('hour', 'day') AND \"traffic_statistics_import_failures\".\"direction\" IN (1, 2) AND \"traffic_statistics_import_failures\".\"metric\" IN ('volume', 'speed') AND \"traffic_statistics_import_failures\".\"from_date\" <= \"traffic_statistics_import_failures\".\"to_date\" AND \"traffic_statistics_import_failures\".\"error_code\" IN ('SOURCE_CALCULATION', 'UPSTREAM_UNAVAILABLE')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.traffic_volume_statistics": {
+      "name": "traffic_volume_statistics",
+      "schema": "",
+      "columns": {
+        "asset_id": {
+          "name": "asset_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "aggregate_resolution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket_start": {
+          "name": "bucket_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_count": {
+          "name": "vehicle_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_report": {
+          "name": "source_report",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'liikennemaara'"
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "traffic_volume_statistics_query_idx": {
+          "name": "traffic_volume_statistics_query_idx",
+          "columns": [
+            {
+              "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "resolution",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "direction",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "bucket_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "traffic_volume_statistics_asset_id_traffic_assets_id_fk": {
+          "name": "traffic_volume_statistics_asset_id_traffic_assets_id_fk",
+          "tableFrom": "traffic_volume_statistics",
+          "tableTo": "traffic_assets",
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "traffic_volume_statistics_pk": {
+          "name": "traffic_volume_statistics_pk",
+          "columns": ["asset_id", "direction", "resolution", "bucket_start"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "traffic_volume_statistics_values_check": {
+          "name": "traffic_volume_statistics_values_check",
+          "value": "\"traffic_volume_statistics\".\"direction\" IN (1, 2) AND \"traffic_volume_statistics\".\"resolution\" IN ('hour', 'day') AND \"traffic_volume_statistics\".\"vehicle_count\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.aggregate_coverage_status": {
+      "name": "aggregate_coverage_status",
+      "schema": "public",
+      "values": ["AVAILABLE", "EXPIRED"]
+    },
+    "public.aggregate_resolution": {
+      "name": "aggregate_resolution",
+      "schema": "public",
+      "values": ["minute", "hour", "day"]
+    },
+    "public.anomaly_confidence": {
+      "name": "anomaly_confidence",
+      "schema": "public",
+      "values": ["INSUFFICIENT", "LOW", "MEDIUM", "HIGH"]
+    },
+    "public.anomaly_metric": {
+      "name": "anomaly_metric",
+      "schema": "public",
+      "values": ["average-speed-kmh", "flow-vehicles-per-hour"]
+    },
+    "public.anomaly_status": {
+      "name": "anomaly_status",
+      "schema": "public",
+      "values": ["INSUFFICIENT_DATA", "NORMAL", "CANDIDATE", "ACTIVE"]
+    },
+    "public.artifact_status": {
+      "name": "artifact_status",
+      "schema": "public",
+      "values": ["DOWNLOADED", "PROCESSED", "FAILED"]
+    },
+    "public.field_report_category": {
+      "name": "field_report_category",
+      "schema": "public",
+      "values": [
+        "ACCIDENT",
+        "CONGESTION",
+        "ROAD_HAZARD",
+        "ROAD_DAMAGE",
+        "SIGNAL_FAILURE",
+        "SENSOR_ISSUE",
+        "OTHER"
+      ]
+    },
+    "public.field_report_severity": {
+      "name": "field_report_severity",
+      "schema": "public",
+      "values": ["LOW", "MEDIUM", "HIGH"]
+    },
+    "public.field_report_status": {
+      "name": "field_report_status",
+      "schema": "public",
+      "values": ["PENDING_REVIEW", "VERIFIED", "REJECTED", "RESOLVED"]
+    },
+    "public.history_import_job_purpose": {
+      "name": "history_import_job_purpose",
+      "schema": "public",
+      "values": ["INTERACTIVE", "ROLLING_COVERAGE"]
+    },
+    "public.history_import_job_status": {
+      "name": "history_import_job_status",
+      "schema": "public",
+      "values": ["QUEUED", "RUNNING", "COMPLETED", "PARTIAL_FAILURE", "FAILED"]
+    },
+    "public.junction_coverage": {
+      "name": "junction_coverage",
+      "schema": "public",
+      "values": ["FULL", "PARTIAL", "INSUFFICIENT"]
+    },
+    "public.junction_match_confidence": {
+      "name": "junction_match_confidence",
+      "schema": "public",
+      "values": ["HIGH", "MEDIUM"]
+    },
+    "public.raw_file_status": {
+      "name": "raw_file_status",
+      "schema": "public",
+      "values": ["RETAINED", "PURGED", "MISSING"]
+    },
+    "public.road_context_status": {
+      "name": "road_context_status",
+      "schema": "public",
+      "values": ["MATCHED", "NO_MATCH"]
+    },
+    "public.traffic_asset_kind": {
+      "name": "traffic_asset_kind",
+      "schema": "public",
+      "values": [
+        "sensor-station",
+        "junction",
+        "road-segment",
+        "corridor",
+        "traffic-zone"
+      ]
+    },
+    "public.traffic_event_category": {
+      "name": "traffic_event_category",
+      "schema": "public",
+      "values": ["TRAFFIC_ANNOUNCEMENT", "ROAD_WORK"]
+    },
+    "public.traffic_event_direction": {
+      "name": "traffic_event_direction",
+      "schema": "public",
+      "values": ["BOTH", "POSITIVE", "NEGATIVE", "UNKNOWN"]
+    },
+    "public.traffic_event_severity": {
+      "name": "traffic_event_severity",
+      "schema": "public",
+      "values": ["UNKNOWN", "LOW", "MEDIUM", "HIGH"]
+    },
+    "public.traffic_event_status": {
+      "name": "traffic_event_status",
+      "schema": "public",
+      "values": ["UPCOMING", "ACTIVE", "ENDED"]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

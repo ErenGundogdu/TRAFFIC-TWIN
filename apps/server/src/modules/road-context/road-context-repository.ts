@@ -2,7 +2,7 @@ import {
   stationRoadContextSchema,
   type StationRoadContext,
 } from "@traffic-twin/contracts";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import { stationRoadContexts } from "../../infrastructure/database/schema.js";
@@ -11,6 +11,7 @@ export type StoredRoadContext = Omit<StationRoadContext, "freshness">;
 
 export interface RoadContextRepository {
   findByAssetId(assetId: string): Promise<StoredRoadContext | null>;
+  findMatchedByRoadRef(roadRef: string): Promise<StoredRoadContext[]>;
   upsert(value: StoredRoadContext): Promise<void>;
 }
 
@@ -26,24 +27,21 @@ export class PostgresRoadContextRepository implements RoadContextRepository {
 
     if (!row) return null;
 
-    const parsed = stationRoadContextSchema.parse({
-      assetId: row.assetId,
-      status: row.status,
-      freshness: "FRESH",
-      roadRef: row.roadRef,
-      matchingPolicy: row.matchingPolicy,
-      source: {
-        id: "openstreetmap",
-        attribution: "© OpenStreetMap contributors",
-        licenseUrl: "https://www.openstreetmap.org/copyright",
-        updatedAt: row.sourceUpdatedAt.toISOString(),
-        fetchedAt: row.fetchedAt.toISOString(),
-      },
-      segments: row.segments,
-    });
-    const { freshness: _, ...stored } = parsed;
-    void _;
-    return stored;
+    return parseStoredRoadContext(row);
+  }
+
+  async findMatchedByRoadRef(roadRef: string) {
+    const rows = await this.database
+      .select()
+      .from(stationRoadContexts)
+      .where(
+        and(
+          eq(stationRoadContexts.status, "MATCHED"),
+          eq(stationRoadContexts.roadRef, roadRef),
+        ),
+      );
+
+    return rows.map(parseStoredRoadContext);
   }
 
   async upsert(value: StoredRoadContext) {
@@ -72,4 +70,27 @@ export class PostgresRoadContextRepository implements RoadContextRepository {
         },
       });
   }
+}
+
+function parseStoredRoadContext(
+  row: typeof stationRoadContexts.$inferSelect,
+): StoredRoadContext {
+  const parsed = stationRoadContextSchema.parse({
+    assetId: row.assetId,
+    status: row.status,
+    freshness: "FRESH",
+    roadRef: row.roadRef,
+    matchingPolicy: row.matchingPolicy,
+    source: {
+      id: "openstreetmap",
+      attribution: "© OpenStreetMap contributors",
+      licenseUrl: "https://www.openstreetmap.org/copyright",
+      updatedAt: row.sourceUpdatedAt.toISOString(),
+      fetchedAt: row.fetchedAt.toISOString(),
+    },
+    segments: row.segments,
+  });
+  const { freshness: _, ...stored } = parsed;
+  void _;
+  return stored;
 }

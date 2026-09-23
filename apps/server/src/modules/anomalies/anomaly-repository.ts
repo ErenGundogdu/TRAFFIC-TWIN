@@ -3,13 +3,15 @@ import type {
   AnomalyMetric,
   AnomalyStatus,
 } from "@traffic-twin/contracts";
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import {
   anomalyEvaluations,
   trafficAggregates,
   trafficAssets,
+  trafficSpeedStatistics,
+  trafficVolumeStatistics,
 } from "../../infrastructure/database/schema.js";
 import type { AnomalyPolicy, BaselineSample } from "./anomaly-engine.js";
 
@@ -17,8 +19,8 @@ export interface HourlyBaselineRow {
   assetId: string;
   direction: 1 | 2;
   timestamp: string;
-  averageSpeedKmh: number;
-  flowVehiclesPerHour: number;
+  averageSpeedKmh: number | null;
+  flowVehiclesPerHour: number | null;
 }
 
 export interface PersistedAnomalyEvaluation extends AnomalyEvaluation {
@@ -65,35 +67,80 @@ export class PostgresAnomalyRepository implements AnomalyRepository {
   }): Promise<HourlyBaselineRow[]> {
     if (input.assetIds.length === 0) return [];
 
-    const rows = await this.database
-      .select({
-        assetId: trafficAggregates.assetId,
-        direction: trafficAggregates.direction,
-        timestamp: trafficAggregates.bucketStart,
-        averageSpeedKmh: trafficAggregates.averageSpeedKmh,
-        vehicleCount: trafficAggregates.vehicleCount,
-      })
-      .from(trafficAggregates)
-      .where(
-        and(
-          inArray(trafficAggregates.assetId, input.assetIds),
-          eq(trafficAggregates.resolution, "hour"),
-          gte(trafficAggregates.bucketStart, input.from),
-          lt(trafficAggregates.bucketStart, input.to),
-          sql`extract(isodow from timezone(${input.timeZone}, ${trafficAggregates.bucketStart})) = ${input.localWeekday}`,
-          sql`extract(hour from timezone(${input.timeZone}, ${trafficAggregates.bucketStart})) = ${input.localHour}`,
-        ),
-      );
+    const rows = await this.database.execute<{
+      assetId: string;
+      direction: number;
+      timestamp: Date | string;
+      averageSpeedKmh: number | null;
+      flowVehiclesPerHour: number | null;
+    }>(sql`
+      WITH raw AS (
+        SELECT
+          ${trafficAggregates.assetId} AS asset_id,
+          ${trafficAggregates.direction} AS direction,
+          ${trafficAggregates.bucketStart} AS bucket_start,
+          ${trafficAggregates.averageSpeedKmh} AS average_speed_kmh,
+          ${trafficAggregates.vehicleCount} AS vehicle_count
+        FROM ${trafficAggregates}
+        WHERE ${inArray(trafficAggregates.assetId, input.assetIds)}
+          AND ${trafficAggregates.resolution} = 'hour'
+          AND ${trafficAggregates.bucketStart} >= ${input.from}
+          AND ${trafficAggregates.bucketStart} < ${input.to}
+      ), volume AS (
+        SELECT
+          ${trafficVolumeStatistics.assetId} AS asset_id,
+          ${trafficVolumeStatistics.direction} AS direction,
+          ${trafficVolumeStatistics.bucketStart} AS bucket_start,
+          ${trafficVolumeStatistics.vehicleCount} AS vehicle_count
+        FROM ${trafficVolumeStatistics}
+        WHERE ${inArray(trafficVolumeStatistics.assetId, input.assetIds)}
+          AND ${trafficVolumeStatistics.resolution} = 'hour'
+          AND ${trafficVolumeStatistics.bucketStart} >= ${input.from}
+          AND ${trafficVolumeStatistics.bucketStart} < ${input.to}
+      ), speed AS (
+        SELECT
+          ${trafficSpeedStatistics.assetId} AS asset_id,
+          ${trafficSpeedStatistics.direction} AS direction,
+          ${trafficSpeedStatistics.bucketStart} AS bucket_start,
+          ${trafficSpeedStatistics.averageSpeedKmh} AS average_speed_kmh
+        FROM ${trafficSpeedStatistics}
+        WHERE ${inArray(trafficSpeedStatistics.assetId, input.assetIds)}
+          AND ${trafficSpeedStatistics.resolution} = 'hour'
+          AND ${trafficSpeedStatistics.bucketStart} >= ${input.from}
+          AND ${trafficSpeedStatistics.bucketStart} < ${input.to}
+      ), bucket_keys AS (
+        SELECT asset_id, direction, bucket_start FROM raw
+        UNION
+        SELECT asset_id, direction, bucket_start FROM volume
+        UNION
+        SELECT asset_id, direction, bucket_start FROM speed
+      )
+      SELECT
+        bucket_keys.asset_id AS "assetId",
+        bucket_keys.direction AS "direction",
+        bucket_keys.bucket_start AS "timestamp",
+        COALESCE(speed.average_speed_kmh, raw.average_speed_kmh) AS "averageSpeedKmh",
+        COALESCE(volume.vehicle_count, raw.vehicle_count) AS "flowVehiclesPerHour"
+      FROM bucket_keys
+      LEFT JOIN raw USING (asset_id, direction, bucket_start)
+      LEFT JOIN volume USING (asset_id, direction, bucket_start)
+      LEFT JOIN speed USING (asset_id, direction, bucket_start)
+      WHERE bucket_keys.bucket_start >= ${input.from}
+        AND bucket_keys.bucket_start < ${input.to}
+        AND extract(isodow from timezone(${input.timeZone}, bucket_keys.bucket_start)) = ${input.localWeekday}
+        AND extract(hour from timezone(${input.timeZone}, bucket_keys.bucket_start)) = ${input.localHour}
+      ORDER BY bucket_keys.asset_id, bucket_keys.direction, bucket_keys.bucket_start
+    `);
 
-    return rows.flatMap((row) => {
+    return rows.rows.flatMap((row) => {
       if (row.direction !== 1 && row.direction !== 2) return [];
       return [
         {
           assetId: row.assetId,
           direction: row.direction as 1 | 2,
-          timestamp: row.timestamp.toISOString(),
+          timestamp: new Date(row.timestamp).toISOString(),
           averageSpeedKmh: row.averageSpeedKmh,
-          flowVehiclesPerHour: row.vehicleCount,
+          flowVehiclesPerHour: row.flowVehiclesPerHour,
         },
       ];
     });

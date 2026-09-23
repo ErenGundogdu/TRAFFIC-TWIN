@@ -2,6 +2,7 @@ import type {
   CoverageArea,
   StationSummary,
   TrafficDirection,
+  TrafficLane,
 } from "@traffic-twin/contracts";
 
 import type {
@@ -31,6 +32,10 @@ const SENSOR_NAMES = {
     flowPercent: "OHITUKSET_5MIN_LIUKUVA_SUUNTA2_MS2",
   },
 } as const;
+
+const LANE_SPEED_SENSOR_PATTERN = /^LIUKUVA_NOPEUS_KAISTA_(\d+)$/;
+const LANE_ROLLING_FLOW_SENSOR_PATTERN = /^OHITUKSET_5MIN_LIUKUVA_KAISTA(\d+)$/;
+const LANE_FIXED_FLOW_SENSOR_PATTERN = /^OHITUKSET_5MIN_KIINTEA_KAISTA(\d+)$/;
 
 function isInsideCoverage(
   longitude: number,
@@ -91,6 +96,77 @@ function normalizeDirection(
   };
 }
 
+function normalizeLanes(
+  stationData: FintrafficStationData | undefined,
+): TrafficLane[] {
+  const lanes = new Map<
+    number,
+    {
+      averageSpeedKmh: number | null;
+      speedMeasuredAt: string | null;
+      rollingFlow: { value: number; measuredAt: string } | null;
+      fixedFlow: { value: number; measuredAt: string } | null;
+    }
+  >();
+
+  for (const sensor of stationData?.sensorValues ?? []) {
+    const speedMatch = LANE_SPEED_SENSOR_PATTERN.exec(sensor.name);
+    const rollingFlowMatch = LANE_ROLLING_FLOW_SENSOR_PATTERN.exec(sensor.name);
+    const fixedFlowMatch = LANE_FIXED_FLOW_SENSOR_PATTERN.exec(sensor.name);
+    const lane = Number(
+      speedMatch?.[1] ?? rollingFlowMatch?.[1] ?? fixedFlowMatch?.[1],
+    );
+    if (!Number.isInteger(lane) || lane < 1) continue;
+
+    const current = lanes.get(lane) ?? {
+      averageSpeedKmh: null,
+      speedMeasuredAt: null,
+      rollingFlow: null,
+      fixedFlow: null,
+    };
+    if (speedMatch && sensor.unit === "km/h") {
+      current.averageSpeedKmh = sensor.value;
+      current.speedMeasuredAt = sensor.measuredTime;
+    }
+    if (rollingFlowMatch && sensor.unit === "kpl/h") {
+      current.rollingFlow = {
+        value: sensor.value,
+        measuredAt: sensor.measuredTime,
+      };
+    }
+    if (fixedFlowMatch && sensor.unit === "kpl/h") {
+      current.fixedFlow = {
+        value: sensor.value,
+        measuredAt: sensor.measuredTime,
+      };
+    }
+    lanes.set(lane, current);
+  }
+
+  return [...lanes.entries()]
+    .map(([lane, values]) => {
+      const flow = values.rollingFlow ?? values.fixedFlow;
+      return {
+        lane,
+        direction: null,
+        directionEvidence: null,
+        averageSpeedKmh: values.averageSpeedKmh,
+        flowVehiclesPerHour: flow?.value ?? null,
+        flowWindow: values.rollingFlow
+          ? ("ROLLING_5_MINUTES" as const)
+          : values.fixedFlow
+            ? ("FIXED_5_MINUTES" as const)
+            : null,
+        measuredAt:
+          [values.speedMeasuredAt, flow?.measuredAt]
+            .filter((value): value is string => value !== null)
+            .sort()
+            .at(-1) ?? null,
+      };
+    })
+    .sort((left, right) => left.lane - right.lane);
+}
+
 export function normalizeStations(
   stationCollection: FintrafficStationCollection,
   dataCollection: FintrafficStationDataCollection,
@@ -147,6 +223,7 @@ export function normalizeStations(
         bearing: feature.properties.bearing,
         freshness: classifyMeasurementFreshness(newestMeasurement, now),
         directions,
+        lanes: normalizeLanes(stationData),
       };
     });
 }

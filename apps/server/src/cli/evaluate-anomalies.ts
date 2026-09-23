@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { parseEnv } from "../config/env.js";
 import { createDatabase } from "../infrastructure/database/client.js";
-import { DEFAULT_ANOMALY_POLICY } from "../modules/anomalies/anomaly-engine.js";
+import { createAnomalyPolicy } from "../modules/anomalies/anomaly-engine.js";
 import { PostgresAnomalyRepository } from "../modules/anomalies/anomaly-repository.js";
 import { AnomalyService } from "../modules/anomalies/anomaly-service.js";
 import { PostgresStationCatalogRepository } from "../modules/asset-catalog/station-catalog-repository.js";
@@ -16,6 +16,10 @@ if (existsSync(rootEnvPath)) process.loadEnvFile(rootEnvPath);
 
 const argumentSchema = z.object({
   coverage: z.string().min(1).default("helsinki"),
+  force: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 });
 
 function parseArguments(arguments_: string[]) {
@@ -38,15 +42,18 @@ try {
     new PostgresStationCatalogRepository(connection.db),
     new PostgresTrafficObservationRepository(connection.db),
     new PostgresAnomalyRepository(connection.db),
-    {
-      ...DEFAULT_ANOMALY_POLICY,
+    createAnomalyPolicy({
       windowWeeks: env.ANOMALY_BASELINE_WEEKS,
       minimumSamples: env.ANOMALY_MINIMUM_SAMPLES,
       persistenceCount: env.ANOMALY_PERSISTENCE_COUNT,
-    },
+    }),
   );
   console.log(
-    JSON.stringify(await service.evaluateCoverage(input.coverage), null, 2),
+    JSON.stringify(
+      await service.evaluateCoverage(input.coverage, { force: input.force }),
+      null,
+      2,
+    ),
   );
 } finally {
   await connection.pool.end();

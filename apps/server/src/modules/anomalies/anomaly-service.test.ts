@@ -43,6 +43,7 @@ function createDependencies() {
         sourceUpdatedAt: "2026-09-05T09:05:30.000Z",
       },
     ]),
+    listLatestLanes: vi.fn(async () => []),
   };
   const anomalyRepository: AnomalyRepository = {
     listHourlyBaseline: vi.fn(async () =>
@@ -88,10 +89,36 @@ describe("AnomalyService", () => {
       expect.objectContaining({
         status: "CANDIDATE",
         sampleCount: 6,
-        baselineWindowWeeks: 12,
+        baselineWindowWeeks: 26,
         minimumSamples: 6,
         baselineSamples: expect.any(Array),
       }),
+    ]);
+  });
+
+  it("keeps speed samples when the same hourly bucket has no volume", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(
+      dependencies.anomalyRepository.listHourlyBaseline,
+    ).mockResolvedValue(
+      [78, 80, 79, 81, 80, 82].map((averageSpeedKmh, index) => ({
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        timestamp: new Date(Date.UTC(2026, 7, 29 - index * 7, 9)).toISOString(),
+        averageSpeedKmh,
+        flowVehiclesPerHour: null,
+      })),
+    );
+    const service = new AnomalyService(
+      dependencies.stationRepository,
+      dependencies.observationRepository,
+      dependencies.anomalyRepository,
+    );
+
+    await service.evaluateCoverage("helsinki");
+
+    expect(dependencies.anomalyRepository.save).toHaveBeenCalledWith([
+      expect.objectContaining({ sampleCount: 6, status: "CANDIDATE" }),
     ]);
   });
 
@@ -105,7 +132,7 @@ describe("AnomalyService", () => {
         status: "CANDIDATE",
         observedAt: "2026-09-05T09:05:00.000Z",
         consecutiveDeviations: 1,
-        policyVersion: "rolling-weekly-median-mad-v1",
+        policyVersion: "rolling-weekly-median-mad-statistics-v2-w26-n6-p2",
       },
     ]);
     const service = new AnomalyService(
@@ -119,5 +146,35 @@ describe("AnomalyService", () => {
       skippedCount: 1,
     });
     expect(dependencies.anomalyRepository.save).toHaveBeenCalledWith([]);
+  });
+
+  it("can recompute the same observation after its baseline data changes", async () => {
+    const dependencies = createDependencies();
+    vi.mocked(dependencies.anomalyRepository.listPrevious).mockResolvedValue([
+      {
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        metric: "average-speed-kmh",
+        status: "CANDIDATE",
+        observedAt: "2026-09-05T09:05:00.000Z",
+        consecutiveDeviations: 1,
+        policyVersion: "rolling-weekly-median-mad-statistics-v2-w26-n6-p2",
+      },
+    ]);
+    const service = new AnomalyService(
+      dependencies.stationRepository,
+      dependencies.observationRepository,
+      dependencies.anomalyRepository,
+    );
+
+    await expect(
+      service.evaluateCoverage("helsinki", { force: true }),
+    ).resolves.toEqual({ evaluatedCount: 1, skippedCount: 0 });
+    expect(dependencies.anomalyRepository.save).toHaveBeenCalledWith([
+      expect.objectContaining({
+        observedAt: "2026-09-05T09:05:00.000Z",
+        consecutiveDeviations: 1,
+      }),
+    ]);
   });
 });

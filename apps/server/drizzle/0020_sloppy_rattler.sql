@@ -1,0 +1,4 @@
+ALTER TABLE "traffic_aggregates" ADD COLUMN "vehicle_class_breakdown" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "traffic_aggregates" ADD COLUMN "lane_breakdown" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "traffic_aggregates" ADD COLUMN "lane_vehicle_class_breakdown" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "traffic_aggregates" ADD CONSTRAINT "traffic_aggregates_composition_objects_check" CHECK (jsonb_typeof("traffic_aggregates"."vehicle_class_breakdown") = 'object' AND jsonb_typeof("traffic_aggregates"."lane_breakdown") = 'object' AND jsonb_typeof("traffic_aggregates"."lane_vehicle_class_breakdown") = 'object');

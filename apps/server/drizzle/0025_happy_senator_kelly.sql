@@ -1,0 +1,2 @@
+ALTER TABLE "traffic_lane_observations" ADD COLUMN "flow_window" text;--> statement-breakpoint
+ALTER TABLE "traffic_lane_observations" ADD CONSTRAINT "traffic_lane_observations_flow_window_check" CHECK ("traffic_lane_observations"."flow_window" IS NULL OR "traffic_lane_observations"."flow_window" IN ('ROLLING_5_MINUTES', 'FIXED_5_MINUTES'));

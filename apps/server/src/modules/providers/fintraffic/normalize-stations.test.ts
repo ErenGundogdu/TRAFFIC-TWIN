@@ -17,6 +17,83 @@ const coverageArea: CoverageArea = {
 };
 
 describe("normalizeStations", () => {
+  it("keeps live lane speed and rolling flow separate from direction totals", () => {
+    const stationData = stationDataCollectionSchema.parse(
+      readFixture("station-data.sample.json"),
+    );
+    stationData.stations[0]?.sensorValues.push(
+      {
+        id: 51_301,
+        stationId: 20002,
+        name: "LIUKUVA_NOPEUS_KAISTA_1",
+        shortName: "km/h lane 1",
+        measuredTime: "2026-09-04T09:03:36Z",
+        unit: "km/h",
+        value: 91,
+      },
+      {
+        id: 51_302,
+        stationId: 20002,
+        name: "OHITUKSET_5MIN_LIUKUVA_KAISTA1",
+        shortName: "kpl/h lane 1",
+        measuredTime: "2026-09-04T09:03:35Z",
+        unit: "kpl/h",
+        value: 516,
+      },
+    );
+
+    const [station] = normalizeStations(
+      stationFeatureCollectionSchema.parse(readFixture("stations.sample.json")),
+      stationData,
+      coverageArea,
+      new Date("2026-09-04T09:04:00Z"),
+    );
+
+    expect(station?.lanes).toEqual([
+      {
+        lane: 1,
+        direction: null,
+        directionEvidence: null,
+        averageSpeedKmh: 91,
+        flowVehiclesPerHour: 516,
+        flowWindow: "ROLLING_5_MINUTES",
+        measuredAt: "2026-09-04T09:03:36Z",
+      },
+    ]);
+  });
+
+  it("keeps fixed five-minute lane flow when rolling lane flow is unavailable", () => {
+    const stationData = stationDataCollectionSchema.parse(
+      readFixture("station-data.sample.json"),
+    );
+    stationData.stations[0]?.sensorValues.push({
+      id: 51_303,
+      stationId: 20002,
+      name: "OHITUKSET_5MIN_KIINTEA_KAISTA3",
+      shortName: "kpl/h fixed lane 3",
+      measuredTime: "2026-09-04T09:03:34Z",
+      unit: "kpl/h",
+      value: 420,
+    });
+
+    const [station] = normalizeStations(
+      stationFeatureCollectionSchema.parse(readFixture("stations.sample.json")),
+      stationData,
+      coverageArea,
+      new Date("2026-09-04T09:04:00Z"),
+    );
+
+    expect(station?.lanes).toContainEqual({
+      lane: 3,
+      direction: null,
+      directionEvidence: null,
+      averageSpeedKmh: null,
+      flowVehiclesPerHour: 420,
+      flowWindow: "FIXED_5_MINUTES",
+      measuredAt: "2026-09-04T09:03:34Z",
+    });
+  });
+
   it("maps real sliding-window sensors into two explicit directions", () => {
     const stations = normalizeStations(
       stationFeatureCollectionSchema.parse(readFixture("stations.sample.json")),

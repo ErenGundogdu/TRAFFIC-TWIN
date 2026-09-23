@@ -1,7 +1,10 @@
 import type { Readable } from "node:stream";
 import { createInterface } from "node:readline";
 
-import type { ResolvedHistoryResolution } from "@traffic-twin/contracts";
+import type {
+  ResolvedHistoryResolution,
+  TrafficCompositionBreakdown,
+} from "@traffic-twin/contracts";
 
 export interface HistoryAggregate {
   direction: 1 | 2;
@@ -10,6 +13,9 @@ export interface HistoryAggregate {
   averageSpeedKmh: number;
   vehicleCount: number;
   sampleCount: number;
+  vehicleClassBreakdown: TrafficCompositionBreakdown;
+  laneBreakdown: TrafficCompositionBreakdown;
+  laneVehicleClassBreakdown: TrafficCompositionBreakdown;
 }
 
 export interface ParsedHistory {
@@ -24,6 +30,9 @@ interface MutableAggregate {
   bucketStart: Date;
   speedTotal: number;
   count: number;
+  vehicleClassBreakdown: TrafficCompositionBreakdown;
+  laneBreakdown: TrafficCompositionBreakdown;
+  laneVehicleClassBreakdown: TrafficCompositionBreakdown;
 }
 
 const HELSINKI_TIME_ZONE = "Europe/Helsinki";
@@ -89,6 +98,26 @@ export function finlandLocalToUtc(
   return new Date(candidate);
 }
 
+export function finlandLocalToUtcIfValid(
+  year: number,
+  ordinal: number,
+  hour: number,
+  minute: number,
+  second: number,
+) {
+  const utc = finlandLocalToUtc(year, ordinal, hour, minute, second);
+  const expectedDate = new Date(Date.UTC(year, 0, ordinal));
+  const local = localTimeParts(utc);
+  return local.year === expectedDate.getUTCFullYear() &&
+    local.month === expectedDate.getUTCMonth() + 1 &&
+    local.day === expectedDate.getUTCDate() &&
+    local.hour === hour &&
+    local.minute === minute &&
+    local.second === second
+    ? utc
+    : null;
+}
+
 function bucketStart(
   resolution: ResolvedHistoryResolution,
   year: number,
@@ -107,6 +136,7 @@ function bucketStart(
 
 export async function parseFintrafficHistory(
   input: Readable,
+  resolutions: readonly ResolvedHistoryResolution[] = ["minute", "hour", "day"],
 ): Promise<ParsedHistory> {
   const aggregates = new Map<string, MutableAggregate>();
   let recordCount = 0;
@@ -117,7 +147,7 @@ export async function parseFintrafficHistory(
     if (!line.trim()) continue;
     recordCount += 1;
     const fields = line.split(";").map(Number);
-    if (fields.length < 13 || fields.some((value) => !Number.isFinite(value))) {
+    if (fields.length < 16 || fields.some((value) => !Number.isFinite(value))) {
       continue;
     }
 
@@ -126,14 +156,24 @@ export async function parseFintrafficHistory(
     const hour = fields[3];
     const minute = fields[4];
     const direction = fields[9];
+    const lane = fields[8];
+    const vehicleClass = fields[10];
     const speed = fields[11];
     const faulty = fields[12];
 
     if (
       faulty !== 0 ||
       (direction !== 1 && direction !== 2) ||
+      lane === undefined ||
+      !Number.isInteger(lane) ||
+      lane < 1 ||
+      vehicleClass === undefined ||
+      !Number.isInteger(vehicleClass) ||
+      vehicleClass < 1 ||
+      vehicleClass > 9 ||
       speed === undefined ||
-      speed < 0
+      speed < 2 ||
+      speed >= 199
     ) {
       continue;
     }
@@ -141,7 +181,7 @@ export async function parseFintrafficHistory(
     const year = shortYear! >= 70 ? 1900 + shortYear! : 2000 + shortYear!;
     validRecordCount += 1;
 
-    for (const resolution of ["minute", "hour", "day"] as const) {
+    for (const resolution of resolutions) {
       const start = bucketStart(resolution, year, ordinal!, hour!, minute!);
       const key = `${resolution}:${direction}:${start.toISOString()}`;
       const aggregate = aggregates.get(key) ?? {
@@ -150,9 +190,23 @@ export async function parseFintrafficHistory(
         bucketStart: start,
         speedTotal: 0,
         count: 0,
+        vehicleClassBreakdown: {},
+        laneBreakdown: {},
+        laneVehicleClassBreakdown: {},
       };
       aggregate.speedTotal += speed;
       aggregate.count += 1;
+      incrementBreakdown(
+        aggregate.vehicleClassBreakdown,
+        String(vehicleClass),
+        speed,
+      );
+      incrementBreakdown(aggregate.laneBreakdown, String(lane), speed);
+      incrementBreakdown(
+        aggregate.laneVehicleClassBreakdown,
+        `${lane}:${vehicleClass}`,
+        speed,
+      );
       aggregates.set(key, aggregate);
     }
   }
@@ -167,6 +221,20 @@ export async function parseFintrafficHistory(
       averageSpeedKmh: aggregate.speedTotal / aggregate.count,
       vehicleCount: aggregate.count,
       sampleCount: aggregate.count,
+      vehicleClassBreakdown: aggregate.vehicleClassBreakdown,
+      laneBreakdown: aggregate.laneBreakdown,
+      laneVehicleClassBreakdown: aggregate.laneVehicleClassBreakdown,
     })),
   };
+}
+
+function incrementBreakdown(
+  breakdown: TrafficCompositionBreakdown,
+  key: string,
+  speedKmh: number,
+) {
+  const current = breakdown[key] ?? { vehicleCount: 0, speedTotalKmh: 0 };
+  current.vehicleCount += 1;
+  current.speedTotalKmh += speedKmh;
+  breakdown[key] = current;
 }

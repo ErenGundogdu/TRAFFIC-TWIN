@@ -44,6 +44,8 @@ describe("history import job contracts", () => {
           currentSourceDate: "2026-09-02",
         },
         status: "RUNNING",
+        purpose: "INTERACTIVE",
+        priority: 100,
         createdAt: "2026-09-04T08:00:00.000Z",
         startedAt: "2026-09-04T08:00:01.000Z",
         completedAt: null,

@@ -119,6 +119,7 @@ describe("RoadContextService", () => {
 function createRepository(value: StoredRoadContext | null) {
   return {
     findByAssetId: vi.fn(async () => value),
+    findMatchedByRoadRef: vi.fn(async () => (value ? [value] : [])),
     upsert: vi.fn(async () => undefined),
   } satisfies RoadContextRepository;
 }

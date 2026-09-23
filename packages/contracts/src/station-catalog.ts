@@ -44,6 +44,30 @@ export const trafficDirectionSchema = z.object({
   trafficFlow: trafficFlowInsightSchema,
 });
 
+// How a lane's direction was determined, so the UI never claims stronger
+// evidence than it has. OBSERVED_PASSAGES comes from real per-vehicle
+// history for that station; OFFICIAL_LANE_LAYOUT is a lower-confidence
+// fallback derived from the road authority's published lane count.
+export const laneDirectionEvidenceSchema = z.enum([
+  "OBSERVED_PASSAGES",
+  "OFFICIAL_LANE_LAYOUT",
+]);
+
+export const laneFlowWindowSchema = z.enum([
+  "ROLLING_5_MINUTES",
+  "FIXED_5_MINUTES",
+]);
+
+export const trafficLaneSchema = z.object({
+  lane: z.number().int().positive(),
+  direction: z.union([z.literal(1), z.literal(2)]).nullable(),
+  directionEvidence: laneDirectionEvidenceSchema.nullable(),
+  averageSpeedKmh: z.number().nonnegative().nullable(),
+  flowVehiclesPerHour: z.number().nonnegative().nullable(),
+  flowWindow: laneFlowWindowSchema.nullable(),
+  measuredAt: z.iso.datetime().nullable(),
+});
+
 export const stationFreshnessSchema = z.enum([
   "FRESH",
   "STALE",
@@ -61,6 +85,7 @@ export const stationSummarySchema = z.object({
   bearing: z.number().min(0).max(360).nullable(),
   freshness: stationFreshnessSchema,
   directions: z.array(trafficDirectionSchema).length(2),
+  lanes: z.array(trafficLaneSchema),
 });
 
 export const coverageAreaSchema = z.object({
@@ -87,6 +112,9 @@ export const stationCatalogResponseSchema = z.object({
 });
 
 export type TrafficDirection = z.infer<typeof trafficDirectionSchema>;
+export type TrafficLane = z.infer<typeof trafficLaneSchema>;
+export type LaneDirectionEvidence = z.infer<typeof laneDirectionEvidenceSchema>;
+export type LaneFlowWindow = z.infer<typeof laneFlowWindowSchema>;
 export type TrafficDirectionHeading = z.infer<
   typeof trafficDirectionHeadingSchema
 >;

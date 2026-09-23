@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import type {
   RoadSegment,
+  TrafficCompositionBreakdown,
   TrafficEventGeometry,
 } from "@traffic-twin/contracts";
 import {
@@ -35,6 +36,12 @@ export const artifactStatus = pgEnum("artifact_status", [
   "FAILED",
 ]);
 
+export const rawFileStatus = pgEnum("raw_file_status", [
+  "RETAINED",
+  "PURGED",
+  "MISSING",
+]);
+
 export const historyImportJobStatus = pgEnum("history_import_job_status", [
   "QUEUED",
   "RUNNING",
@@ -43,10 +50,20 @@ export const historyImportJobStatus = pgEnum("history_import_job_status", [
   "FAILED",
 ]);
 
+export const historyImportJobPurpose = pgEnum("history_import_job_purpose", [
+  "INTERACTIVE",
+  "ROLLING_COVERAGE",
+]);
+
 export const aggregateResolution = pgEnum("aggregate_resolution", [
   "minute",
   "hour",
   "day",
+]);
+
+export const aggregateCoverageStatus = pgEnum("aggregate_coverage_status", [
+  "AVAILABLE",
+  "EXPIRED",
 ]);
 
 export const junctionCoverage = pgEnum("junction_coverage", [
@@ -228,6 +245,45 @@ export const trafficObservations = pgTable(
   ],
 );
 
+export const trafficLaneObservations = pgTable(
+  "traffic_lane_observations",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    lane: integer("lane").notNull(),
+    measuredAt: timestamp("measured_at", { withTimezone: true }).notNull(),
+    averageSpeedKmh: doublePrecision("average_speed_kmh"),
+    flowVehiclesPerHour: doublePrecision("flow_vehicles_per_hour"),
+    flowWindow: text("flow_window"),
+    sourceUpdatedAt: timestamp("source_updated_at", {
+      withTimezone: true,
+    }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_lane_observations_pk",
+      columns: [table.assetId, table.lane, table.measuredAt],
+    }),
+    index("traffic_lane_observations_asset_time_idx").on(
+      table.assetId,
+      table.measuredAt,
+    ),
+    check("traffic_lane_observations_lane_check", sql`${table.lane} > 0`),
+    check(
+      "traffic_lane_observations_flow_window_check",
+      sql`${table.flowWindow} IS NULL OR ${table.flowWindow} IN ('ROLLING_5_MINUTES', 'FIXED_5_MINUTES')`,
+    ),
+    check(
+      "traffic_lane_observations_value_check",
+      sql`(${table.averageSpeedKmh} IS NOT NULL AND ${table.averageSpeedKmh} >= 0) OR (${table.flowVehiclesPerHour} IS NOT NULL AND ${table.flowVehiclesPerHour} >= 0)`,
+    ),
+  ],
+);
+
 export const trafficDirectionProfiles = pgTable(
   "traffic_direction_profiles",
   {
@@ -355,6 +411,10 @@ export const ingestionArtifacts = pgTable(
     sourceDate: date("source_date", { mode: "string" }).notNull(),
     sourceUrl: text("source_url").notNull(),
     storagePath: text("storage_path").notNull(),
+    rawFileStatus: rawFileStatus("raw_file_status")
+      .default("RETAINED")
+      .notNull(),
+    rawFilePurgedAt: timestamp("raw_file_purged_at", { withTimezone: true }),
     checksumSha256: text("checksum_sha256").notNull(),
     byteSize: bigint("byte_size", { mode: "number" }).notNull(),
     status: artifactStatus("status").notNull(),
@@ -407,6 +467,10 @@ export const historyImportJobs = pgTable(
     skippedDayCount: integer("skipped_day_count").default(0).notNull(),
     currentSourceDate: date("current_source_date", { mode: "string" }),
     status: historyImportJobStatus("status").default("QUEUED").notNull(),
+    purpose: historyImportJobPurpose("purpose")
+      .default("INTERACTIVE")
+      .notNull(),
+    priority: integer("priority").default(100).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -417,8 +481,9 @@ export const historyImportJobs = pgTable(
       .notNull(),
   },
   (table) => [
-    index("history_import_jobs_status_created_idx").on(
+    index("history_import_jobs_status_priority_created_idx").on(
       table.status,
+      table.priority,
       table.createdAt,
     ),
     uniqueIndex("history_import_jobs_active_range_uidx")
@@ -436,6 +501,10 @@ export const historyImportJobs = pgTable(
       "history_import_jobs_source_dates_check",
       sql`jsonb_typeof(${table.sourceDates}) = 'array' AND jsonb_array_length(${table.sourceDates}) = ${table.targetDayCount}`,
     ),
+    check(
+      "history_import_jobs_priority_check",
+      sql`${table.priority} BETWEEN 0 AND 100`,
+    ),
   ],
 );
 
@@ -451,6 +520,18 @@ export const trafficAggregates = pgTable(
     averageSpeedKmh: doublePrecision("average_speed_kmh").notNull(),
     vehicleCount: integer("vehicle_count").notNull(),
     sampleCount: integer("sample_count").notNull(),
+    vehicleClassBreakdown: jsonb("vehicle_class_breakdown")
+      .$type<TrafficCompositionBreakdown>()
+      .default({})
+      .notNull(),
+    laneBreakdown: jsonb("lane_breakdown")
+      .$type<TrafficCompositionBreakdown>()
+      .default({})
+      .notNull(),
+    laneVehicleClassBreakdown: jsonb("lane_vehicle_class_breakdown")
+      .$type<TrafficCompositionBreakdown>()
+      .default({})
+      .notNull(),
     artifactId: text("artifact_id")
       .notNull()
       .references(() => ingestionArtifacts.id, { onDelete: "restrict" }),
@@ -481,6 +562,193 @@ export const trafficAggregates = pgTable(
     check(
       "traffic_aggregates_values_check",
       sql`${table.averageSpeedKmh} >= 0 AND ${table.vehicleCount} >= 0 AND ${table.sampleCount} >= 0`,
+    ),
+    check(
+      "traffic_aggregates_composition_objects_check",
+      sql`jsonb_typeof(${table.vehicleClassBreakdown}) = 'object' AND jsonb_typeof(${table.laneBreakdown}) = 'object' AND jsonb_typeof(${table.laneVehicleClassBreakdown}) = 'object'`,
+    ),
+  ],
+);
+
+export const trafficVolumeStatistics = pgTable(
+  "traffic_volume_statistics",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    direction: integer("direction").notNull(),
+    resolution: aggregateResolution("resolution").notNull(),
+    bucketStart: timestamp("bucket_start", { withTimezone: true }).notNull(),
+    vehicleCount: integer("vehicle_count").notNull(),
+    sourceReport: text("source_report").default("liikennemaara").notNull(),
+    importedAt: timestamp("imported_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_volume_statistics_pk",
+      columns: [
+        table.assetId,
+        table.direction,
+        table.resolution,
+        table.bucketStart,
+      ],
+    }),
+    index("traffic_volume_statistics_query_idx").on(
+      table.assetId,
+      table.resolution,
+      table.direction,
+      table.bucketStart,
+    ),
+    check(
+      "traffic_volume_statistics_values_check",
+      sql`${table.direction} IN (1, 2) AND ${table.resolution} IN ('hour', 'day') AND ${table.vehicleCount} >= 0`,
+    ),
+  ],
+);
+
+export const trafficSpeedStatistics = pgTable(
+  "traffic_speed_statistics",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    direction: integer("direction").notNull(),
+    resolution: aggregateResolution("resolution").notNull(),
+    bucketStart: timestamp("bucket_start", { withTimezone: true }).notNull(),
+    averageSpeedKmh: doublePrecision("average_speed_kmh").notNull(),
+    detectedVehicleCount: integer("detected_vehicle_count").notNull(),
+    sourceReport: text("source_report").default("keskinopeus").notNull(),
+    importedAt: timestamp("imported_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_speed_statistics_pk",
+      columns: [
+        table.assetId,
+        table.direction,
+        table.resolution,
+        table.bucketStart,
+      ],
+    }),
+    index("traffic_speed_statistics_query_idx").on(
+      table.assetId,
+      table.resolution,
+      table.direction,
+      table.bucketStart,
+    ),
+    check(
+      "traffic_speed_statistics_values_check",
+      sql`${table.direction} IN (1, 2) AND ${table.resolution} IN ('hour', 'day') AND ${table.averageSpeedKmh} >= 0 AND ${table.detectedVehicleCount} >= 0`,
+    ),
+  ],
+);
+
+export const trafficStatisticsImportChunks = pgTable(
+  "traffic_statistics_import_chunks",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    resolution: aggregateResolution("resolution").notNull(),
+    fromDate: date("from_date", { mode: "string" }).notNull(),
+    toDate: date("to_date", { mode: "string" }).notNull(),
+    direction: integer("direction").notNull(),
+    volumeRowCount: integer("volume_row_count").notNull(),
+    speedRowCount: integer("speed_row_count").notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_statistics_import_chunks_pk",
+      columns: [
+        table.assetId,
+        table.resolution,
+        table.fromDate,
+        table.toDate,
+        table.direction,
+      ],
+    }),
+    check(
+      "traffic_statistics_import_chunks_values_check",
+      sql`${table.resolution} IN ('hour', 'day') AND ${table.fromDate} <= ${table.toDate} AND ${table.direction} IN (1, 2) AND ${table.volumeRowCount} >= 0 AND ${table.speedRowCount} >= 0`,
+    ),
+  ],
+);
+
+export const trafficStatisticsImportFailures = pgTable(
+  "traffic_statistics_import_failures",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    resolution: aggregateResolution("resolution").notNull(),
+    direction: integer("direction").notNull(),
+    metric: text("metric").notNull(),
+    fromDate: date("from_date", { mode: "string" }).notNull(),
+    toDate: date("to_date", { mode: "string" }).notNull(),
+    errorCode: text("error_code").notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "traffic_statistics_import_failures_pk",
+      columns: [
+        table.assetId,
+        table.resolution,
+        table.direction,
+        table.metric,
+        table.fromDate,
+        table.toDate,
+      ],
+    }),
+    check(
+      "traffic_statistics_import_failures_values_check",
+      sql`${table.resolution} IN ('hour', 'day') AND ${table.direction} IN (1, 2) AND ${table.metric} IN ('volume', 'speed') AND ${table.fromDate} <= ${table.toDate} AND ${table.errorCode} IN ('SOURCE_CALCULATION', 'UPSTREAM_UNAVAILABLE')`,
+    ),
+  ],
+);
+
+export const historyAggregateCoverage = pgTable(
+  "history_aggregate_coverage",
+  {
+    assetId: text("asset_id")
+      .notNull()
+      .references(() => trafficAssets.id, { onDelete: "cascade" }),
+    sourceDate: date("source_date", { mode: "string" }).notNull(),
+    resolution: aggregateResolution("resolution").notNull(),
+    status: aggregateCoverageStatus("status").notNull(),
+    bucketCount: integer("bucket_count").notNull(),
+    firstBucketAt: timestamp("first_bucket_at", { withTimezone: true }),
+    lastBucketAt: timestamp("last_bucket_at", { withTimezone: true }),
+    artifactId: text("artifact_id")
+      .notNull()
+      .references(() => ingestionArtifacts.id, { onDelete: "restrict" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: "history_aggregate_coverage_pk",
+      columns: [table.assetId, table.sourceDate, table.resolution],
+    }),
+    index("history_aggregate_coverage_query_idx").on(
+      table.assetId,
+      table.resolution,
+      table.status,
+      table.sourceDate,
+    ),
+    check(
+      "history_aggregate_coverage_values_check",
+      sql`(${table.status} = 'AVAILABLE' AND ${table.bucketCount} > 0 AND ${table.firstBucketAt} IS NOT NULL AND ${table.lastBucketAt} IS NOT NULL) OR (${table.status} = 'EXPIRED' AND ${table.bucketCount} = 0 AND ${table.firstBucketAt} IS NULL AND ${table.lastBucketAt} IS NULL)`,
     ),
   ],
 );

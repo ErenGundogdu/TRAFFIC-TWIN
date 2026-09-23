@@ -51,13 +51,13 @@ function baselineFor(
         new Date(row.timestamp) >= windowStart &&
         new Date(row.timestamp) < target.observedAt,
     )
-    .map((row) => ({
-      timestamp: row.timestamp,
-      value:
+    .flatMap((row): BaselineSample[] => {
+      const value =
         target.metric === "average-speed-kmh"
           ? row.averageSpeedKmh
-          : row.flowVehiclesPerHour,
-    }))
+          : row.flowVehiclesPerHour;
+      return value === null ? [] : [{ timestamp: row.timestamp, value }];
+    })
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
@@ -95,7 +95,10 @@ export class AnomalyService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
-  async evaluateCoverage(coverageAreaId: string) {
+  async evaluateCoverage(
+    coverageAreaId: string,
+    options: { force?: boolean } = {},
+  ) {
     const coverageArea =
       await this.stationRepository.findCoverageArea(coverageAreaId);
     if (!coverageArea) throw new CoverageAreaNotFoundError(coverageAreaId);
@@ -143,6 +146,7 @@ export class AnomalyService {
       previous.map((item) => [evaluationKey(item), item]),
     );
     const pendingTargets = targets.filter((target) => {
+      if (options.force) return true;
       const item = previousByKey.get(evaluationKey(target));
       return !(
         item?.policyVersion === this.policy.version &&

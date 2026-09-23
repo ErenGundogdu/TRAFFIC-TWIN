@@ -84,6 +84,9 @@ describe("PostgresRoadContextRepository", () => {
       },
       segments: [expect.objectContaining({ osmWayId: "4218023" })],
     });
+    await expect(repository.findMatchedByRoadRef("1")).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ assetId })]),
+    );
 
     await connection.db
       .delete(trafficAssets)

@@ -20,22 +20,39 @@ const envSchema = z.object({
     .min(3)
     .default("TrafficTwin/InternshipProject 0.1"),
   OVERPASS_BASE_URL: z.url().default("https://overpass-api.de/api/interpreter"),
+  FINTRAFFIC_STATION_LANE_LAYOUT_URL: z
+    .url()
+    .default("https://tie.digitraffic.fi/ui/tms/history/pisteet.json"),
   LIVE_POLL_INTERVAL_MS: z.coerce.number().int().min(60_000).default(60_000),
+  DAILY_STATISTICS_SYNC_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .min(60_000)
+    .default(86_400_000),
+  DAILY_STATISTICS_BATCH_SIZE: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .default(10),
   TRAFFIC_EVENT_POLL_INTERVAL_MS: z.coerce
     .number()
     .int()
     .min(60_000)
     .default(300_000),
-  ANOMALY_BASELINE_WEEKS: z.coerce.number().int().min(6).max(52).default(12),
+  ANOMALY_BASELINE_WEEKS: z.coerce.number().int().min(6).max(52).default(26),
   ANOMALY_MINIMUM_SAMPLES: z.coerce.number().int().min(3).max(52).default(6),
   ANOMALY_PERSISTENCE_COUNT: z.coerce.number().int().min(2).max(10).default(2),
   RAW_DATA_DIR: z.string().min(1).default("../../data/raw"),
+  RAW_HISTORY_RETENTION_DAYS: z.coerce.number().int().positive().default(14),
   LIVE_OBSERVATION_RETENTION_DAYS: z.coerce
     .number()
     .int()
     .positive()
     .default(90),
-  HISTORY_MINUTE_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  HISTORY_MINUTE_RETENTION_DAYS: z.coerce.number().int().positive().default(7),
+  HISTORY_HOUR_RETENTION_DAYS: z.coerce.number().int().positive().default(730),
+  HISTORY_DAY_RETENTION_DAYS: z.coerce.number().int().positive().default(1_825),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

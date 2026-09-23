@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { trafficCompositionSummarySchema } from "./traffic-composition.js";
+
 export const historyMetricSchema = z.enum([
   "average-speed-kmh",
   "vehicle-count",
@@ -13,6 +15,13 @@ export const historyResolutionSchema = z.enum([
 export const resolvedHistoryResolutionSchema = historyResolutionSchema.exclude([
   "auto",
 ]);
+
+export const HISTORY_MAXIMUM_RANGE_DAYS = {
+  minute: 8,
+  hour: 732,
+  day: 1830,
+  auto: 1830,
+} as const;
 
 export const historyQuerySchema = z
   .object({
@@ -30,8 +39,11 @@ export const historyQuerySchema = z
   .refine(
     (query) =>
       new Date(query.to).getTime() - new Date(query.from).getTime() <=
-      370 * 86_400_000,
-    { message: "En fazla 370 günlük aralık sorgulanabilir.", path: ["to"] },
+      HISTORY_MAXIMUM_RANGE_DAYS[query.resolution] * 86_400_000,
+    {
+      message: "Seçilen çözünürlük için tarih aralığı sınırı aşıldı.",
+      path: ["to"],
+    },
   )
   .refine((query) => new Set(query.assetIds).size === query.assetIds.length, {
     message: "Aynı varlık iki kez seçilemez.",
@@ -78,6 +90,7 @@ export const historySummarySchema = z.object({
   peakVehicleAt: z.iso.datetime().nullable(),
   speedAtPeakVehicleCountKmh: nullableMetricSchema,
   directionDistribution: historyDirectionDistributionSchema,
+  composition: trafficCompositionSummarySchema,
 });
 
 export const ingestionCoverageSchema = z.object({
@@ -85,6 +98,18 @@ export const ingestionCoverageSchema = z.object({
   requestedDays: z.number().int().positive(),
   availableDays: z.number().int().nonnegative(),
   missingDates: z.array(z.iso.date()),
+  missingDetails: z.array(
+    z.object({
+      assetId: z.string().min(1),
+      date: z.iso.date(),
+      reason: z.enum([
+        "SOURCE_GAP",
+        "SOURCE_ERROR",
+        "NOT_IMPORTED",
+        "UNVERIFIED",
+      ]),
+    }),
+  ),
 });
 
 export const historyResponseSchema = z.object({

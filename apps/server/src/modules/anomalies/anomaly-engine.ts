@@ -31,18 +31,32 @@ export interface AnomalyResult {
   consecutiveDeviations: number;
 }
 
-export const DEFAULT_ANOMALY_POLICY: AnomalyPolicy = {
-  version: "rolling-weekly-median-mad-v1",
-  windowWeeks: 12,
-  minimumSamples: 6,
-  persistenceCount: 2,
-  maximumPersistenceGapMinutes: 15,
-  madMultiplier: 3 * 1.4826,
-  minimumAbsoluteDeviation: {
-    "average-speed-kmh": 5,
-    "flow-vehicles-per-hour": 50,
-  },
-};
+const ANOMALY_POLICY_FAMILY = "rolling-weekly-median-mad-statistics-v2";
+
+export function createAnomalyPolicy(
+  overrides: Partial<
+    Pick<AnomalyPolicy, "windowWeeks" | "minimumSamples" | "persistenceCount">
+  > = {},
+): AnomalyPolicy {
+  const windowWeeks = overrides.windowWeeks ?? 26;
+  const minimumSamples = overrides.minimumSamples ?? 6;
+  const persistenceCount = overrides.persistenceCount ?? 2;
+
+  return {
+    version: `${ANOMALY_POLICY_FAMILY}-w${windowWeeks}-n${minimumSamples}-p${persistenceCount}`,
+    windowWeeks,
+    minimumSamples,
+    persistenceCount,
+    maximumPersistenceGapMinutes: 15,
+    madMultiplier: 3 * 1.4826,
+    minimumAbsoluteDeviation: {
+      "average-speed-kmh": 5,
+      "flow-vehicles-per-hour": 50,
+    },
+  };
+}
+
+export const DEFAULT_ANOMALY_POLICY: AnomalyPolicy = createAnomalyPolicy();
 
 function median(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);

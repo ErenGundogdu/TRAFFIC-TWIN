@@ -118,6 +118,8 @@ describe("history import job API", () => {
       skippedDayCount: 0,
       currentSourceDate: null,
       status: "QUEUED" as const,
+      purpose: "INTERACTIVE" as const,
+      priority: 100,
       createdAt: new Date("2026-09-03T08:00:00Z"),
       startedAt: null,
       completedAt: null,

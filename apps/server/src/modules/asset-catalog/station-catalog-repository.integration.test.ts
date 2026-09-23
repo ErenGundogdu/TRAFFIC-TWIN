@@ -87,6 +87,7 @@ describe("PostgresStationCatalogRepository", () => {
               trafficFlow: unknownTrafficFlow,
             },
           ],
+          lanes: [],
         },
       ],
       new Date("2026-09-04T06:55:13Z"),
@@ -122,6 +123,11 @@ describe("PostgresStationCatalogRepository", () => {
   it("writes the same fixed-window observation idempotently", async () => {
     await database.execute(sql`
       DELETE FROM traffic_observations
+      WHERE asset_id = 'fintraffic-tms:20002'
+        AND measured_at = '2026-09-04T09:03:35Z'
+    `);
+    await database.execute(sql`
+      DELETE FROM traffic_lane_observations
       WHERE asset_id = 'fintraffic-tms:20002'
         AND measured_at = '2026-09-04T09:03:35Z'
     `);
@@ -162,6 +168,17 @@ describe("PostgresStationCatalogRepository", () => {
             trafficFlow: unknownTrafficFlow,
           },
         ],
+        lanes: [
+          {
+            lane: 1,
+            direction: null,
+            directionEvidence: null,
+            averageSpeedKmh: 91,
+            flowVehiclesPerHour: 516,
+            flowWindow: "ROLLING_5_MINUTES" as const,
+            measuredAt: "2026-09-04T09:03:35Z",
+          },
+        ],
       },
     ];
     const repository = new PostgresTrafficObservationRepository(database);
@@ -183,9 +200,30 @@ describe("PostgresStationCatalogRepository", () => {
     `);
     expect(result.rows[0]?.count).toBe("2");
     expect(result.rows[0]?.speedPercent).toBe(93);
+    const laneResult = await database.execute<{
+      averageSpeedKmh: number | null;
+      flowVehiclesPerHour: number | null;
+    }>(sql`
+      SELECT
+        average_speed_kmh AS "averageSpeedKmh",
+        flow_vehicles_per_hour AS "flowVehiclesPerHour"
+      FROM traffic_lane_observations
+      WHERE asset_id = 'fintraffic-tms:20002'
+        AND lane = 1
+        AND measured_at = '2026-09-04T09:03:35Z'
+    `);
+    expect(laneResult.rows[0]).toEqual({
+      averageSpeedKmh: 91,
+      flowVehiclesPerHour: 516,
+    });
 
     await database.execute(sql`
       DELETE FROM traffic_observations
+      WHERE asset_id = 'fintraffic-tms:20002'
+        AND measured_at = '2026-09-04T09:03:35Z'
+    `);
+    await database.execute(sql`
+      DELETE FROM traffic_lane_observations
       WHERE asset_id = 'fintraffic-tms:20002'
         AND measured_at = '2026-09-04T09:03:35Z'
     `);

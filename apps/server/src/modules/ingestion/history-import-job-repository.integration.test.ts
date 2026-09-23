@@ -67,6 +67,7 @@ describe("HistoryImportJobRepository", () => {
               trafficFlow: unknownTrafficFlow,
             },
           ],
+          lanes: [],
         },
       ],
       new Date("2026-09-01T00:00:00Z"),
@@ -110,5 +111,47 @@ describe("HistoryImportJobRepository", () => {
       currentSourceDate: null,
       completedAt: expect.any(Date),
     });
+  });
+
+  it("claims an interactive job before an older rolling coverage job", async () => {
+    const backgroundId = randomUUID();
+    const interactiveId = randomUUID();
+    createdIds.push(backgroundId, interactiveId);
+
+    await repository.create({
+      id: backgroundId,
+      coverageAreaId: "helsinki",
+      assetId: "fintraffic-tms:20002",
+      fromDate: "2020-03-01",
+      toDate: "2020-03-01",
+      requestedDayCount: 1,
+      sourceDates: ["2020-03-01"],
+      purpose: "ROLLING_COVERAGE",
+      priority: 10,
+    });
+    await repository.create({
+      id: interactiveId,
+      coverageAreaId: "helsinki",
+      assetId: "fintraffic-tms:20002",
+      fromDate: "2020-04-01",
+      toDate: "2020-04-01",
+      requestedDayCount: 1,
+      sourceDates: ["2020-04-01"],
+      purpose: "INTERACTIVE",
+      priority: 100,
+    });
+
+    await expect(repository.claimNext()).resolves.toMatchObject({
+      id: interactiveId,
+      purpose: "INTERACTIVE",
+      priority: 100,
+    });
+    await repository.fail(interactiveId);
+    await expect(repository.claimNext()).resolves.toMatchObject({
+      id: backgroundId,
+      purpose: "ROLLING_COVERAGE",
+      priority: 10,
+    });
+    await repository.fail(backgroundId);
   });
 });

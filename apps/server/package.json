@@ -14,6 +14,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "history:import": "tsx src/cli/import-history.ts",
+    "statistics:import": "tsx src/cli/import-statistics.ts",
     "junctions:sync": "tsx src/cli/sync-junctions.ts",
     "anomalies:evaluate": "tsx src/cli/evaluate-anomalies.ts",
     "maintenance:retention": "tsx src/cli/run-retention.ts"

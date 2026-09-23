@@ -105,6 +105,7 @@ describe("operator note realtime flow", () => {
               trafficFlow: unknownTrafficFlow,
             },
           ],
+          lanes: [],
         },
       ],
       new Date("2026-09-04T09:03:35Z"),

@@ -19,6 +19,8 @@ const persistedJob = {
   skippedDayCount: 0,
   currentSourceDate: null,
   status: "QUEUED" as const,
+  purpose: "INTERACTIVE" as const,
+  priority: 100,
   createdAt: new Date("2026-09-04T08:00:00Z"),
   startedAt: null,
   completedAt: null,
@@ -102,6 +104,8 @@ describe("HistoryImportJobService", () => {
       toDate: persistedJob.toDate,
       requestedDayCount: 3,
       sourceDates: ["2026-09-02", "2026-09-03"],
+      purpose: "INTERACTIVE",
+      priority: 100,
     });
     expect(result.job.status).toBe("QUEUED");
     expect(onJobQueued).toHaveBeenCalledOnce();

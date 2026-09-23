@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { summarizeHistory } from "./history-summary.js";
 
+const emptyComposition = {
+  vehicleClassBreakdown: {},
+  laneBreakdown: {},
+  laneVehicleClassBreakdown: {},
+};
+
 describe("summarizeHistory", () => {
   it("calculates explainable speed, volume, peak and direction KPIs", () => {
     const result = summarizeHistory({
@@ -16,6 +22,7 @@ describe("summarizeHistory", () => {
           averageSpeedKmh: 80,
           vehicleCount: 20,
           sampleCount: 20,
+          ...emptyComposition,
         },
         {
           assetId: "station-a",
@@ -24,6 +31,7 @@ describe("summarizeHistory", () => {
           averageSpeedKmh: 60,
           vehicleCount: 40,
           sampleCount: 40,
+          ...emptyComposition,
         },
         {
           assetId: "station-a",
@@ -32,6 +40,7 @@ describe("summarizeHistory", () => {
           averageSpeedKmh: 70,
           vehicleCount: 60,
           sampleCount: 60,
+          ...emptyComposition,
         },
       ],
     });
@@ -80,6 +89,47 @@ describe("summarizeHistory", () => {
         directionOnePercent: null,
         directionTwoPercent: null,
       },
+    });
+  });
+
+  it("keeps measured volume when a bucket has no speed report", () => {
+    const [summary] = summarizeHistory({
+      assetIds: ["station-a"],
+      assetNames: new Map(),
+      direction: 1,
+      rows: [
+        {
+          assetId: "station-a",
+          direction: 1,
+          bucketStart: new Date("2026-09-03T06:00:00Z"),
+          averageSpeedKmh: 80,
+          vehicleCount: 20,
+          sampleCount: 20,
+          ...emptyComposition,
+        },
+        {
+          assetId: "station-a",
+          direction: 1,
+          bucketStart: new Date("2026-09-03T07:00:00Z"),
+          averageSpeedKmh: null,
+          vehicleCount: 40,
+          sampleCount: 0,
+          ...emptyComposition,
+        },
+      ],
+    });
+
+    expect(summary).toMatchObject({
+      bucketCount: 2,
+      totalVehicleCount: 60,
+      averageVehicleCountPerBucket: 30,
+      peakVehicleCount: 40,
+      speedAtPeakVehicleCountKmh: null,
+      sampleCount: 20,
+      averageSpeedKmh: 80,
+      medianSpeedKmh: 80,
+      minimumSpeedKmh: 80,
+      maximumSpeedKmh: 80,
     });
   });
 });

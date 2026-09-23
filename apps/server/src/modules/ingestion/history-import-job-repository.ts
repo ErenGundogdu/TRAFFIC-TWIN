@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import {
@@ -14,6 +14,8 @@ export interface CreateHistoryImportJobRecord {
   toDate: string;
   requestedDayCount: number;
   sourceDates: string[];
+  purpose?: "INTERACTIVE" | "ROLLING_COVERAGE";
+  priority?: number;
 }
 
 export type HistoryImportDayOutcome = "SUCCESS" | "FAILED" | "SKIPPED";
@@ -54,6 +56,8 @@ export class HistoryImportJobRepository {
         skippedDayCount: historyImportJobs.skippedDayCount,
         currentSourceDate: historyImportJobs.currentSourceDate,
         status: historyImportJobs.status,
+        purpose: historyImportJobs.purpose,
+        priority: historyImportJobs.priority,
         createdAt: historyImportJobs.createdAt,
         startedAt: historyImportJobs.startedAt,
         completedAt: historyImportJobs.completedAt,
@@ -95,7 +99,10 @@ export class HistoryImportJobRepository {
         .select({ id: historyImportJobs.id })
         .from(historyImportJobs)
         .where(eq(historyImportJobs.status, "QUEUED"))
-        .orderBy(asc(historyImportJobs.createdAt))
+        .orderBy(
+          desc(historyImportJobs.priority),
+          asc(historyImportJobs.createdAt),
+        )
         .limit(1)
         .for("update", { skipLocked: true });
       if (!candidate) return null;

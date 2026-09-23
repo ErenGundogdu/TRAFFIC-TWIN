@@ -33,6 +33,7 @@ describe("LiveTrafficPoller", () => {
     const observationRepository: TrafficObservationRepository = {
       insertBatch: vi.fn(async () => 2),
       listLatestDirections: vi.fn(async () => []),
+      listLatestLanes: vi.fn(async () => []),
     };
     const client = {
       getStations: vi.fn(async () => metadata),
