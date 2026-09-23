@@ -20,6 +20,13 @@ const STATUS_LABELS = {
   ACTIVE: "Aktif anomali",
 } as const;
 
+const CONFIDENCE_LABELS = {
+  INSUFFICIENT: "Yetersiz güven",
+  LOW: "Düşük güven",
+  MEDIUM: "Orta güven",
+  HIGH: "Yüksek güven",
+} as const;
+
 function metricLabel(metric: AnomalyEvaluation["metric"]) {
   return metric === "average-speed-kmh"
     ? "Ortalama hız"
@@ -50,17 +57,17 @@ export function AnomalyPanel({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold tracking-[0.14em] text-rose-700 uppercase">
-            Açıklanabilir içgörü
+            Geçmişe göre durum
           </p>
           <h3
             id="anomaly-title"
             className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100"
           >
-            Kayan baseline karşılaştırması
+            Beklenen değerlerle karşılaştırma
           </h3>
         </div>
         <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-          Median / MAD
+          Aynı gün ve saat
         </span>
       </div>
 
@@ -104,13 +111,13 @@ export function AnomalyPanel({
               </div>
               <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
                 <div>
-                  <dt className="text-slate-500">Mevcut</dt>
+                  <dt className="text-slate-500">Şu an</dt>
                   <dd className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
                     {format(evaluation.currentValue, evaluation.metric)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Beklenen aralık</dt>
+                  <dt className="text-slate-500">Beklenen normal aralık</dt>
                   <dd className="mt-0.5 font-semibold text-slate-900 dark:text-slate-100">
                     {evaluation.expectedLowerBound === null
                       ? "Yetersiz veri"
@@ -119,21 +126,44 @@ export function AnomalyPanel({
                 </div>
               </dl>
               <p className="mt-2 text-[10px] leading-4 text-slate-500">
-                Son {evaluation.baselineWindowWeeks} haftada aynı yerel
-                gün/saatten {evaluation.sampleCount}/{evaluation.minimumSamples}{" "}
-                örnek · Güven: {evaluation.confidence} · Ardışık sapma:{" "}
-                {evaluation.consecutiveDeviations}/
-                {evaluation.requiredConsecutiveDeviations}
+                Bu değer, son {evaluation.baselineWindowWeeks} haftadaki aynı
+                gün ve saate ait {evaluation.sampleCount} gerçek ölçümle
+                karşılaştırıldı. Değerlendirme için en az{" "}
+                {evaluation.minimumSamples} ölçüm gerekir.
               </p>
-              <p className="mt-1 text-[10px] text-slate-400">
-                {evaluation.localTimeZone} · {evaluation.policyVersion}
-              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+                <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {CONFIDENCE_LABELS[evaluation.confidence]}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {deviationPersistenceLabel(evaluation)}
+                </span>
+              </div>
+              <details className="mt-2 text-[10px] text-slate-400">
+                <summary className="cursor-pointer font-medium text-slate-500">
+                  Hesaplama ayrıntısı
+                </summary>
+                <p className="mt-1 leading-4">
+                  Ortanca ve MAD yöntemi · {evaluation.localTimeZone} · Politika{" "}
+                  {evaluation.policyVersion}
+                </p>
+              </details>
             </article>
           ))}
         </div>
       )}
     </section>
   );
+}
+
+function deviationPersistenceLabel(evaluation: AnomalyEvaluation) {
+  if (evaluation.status === "ACTIVE") {
+    return `${evaluation.consecutiveDeviations} ardışık ölçümde sınır dışında`;
+  }
+  if (evaluation.status === "CANDIDATE") {
+    return `İzleme: ${evaluation.consecutiveDeviations}/${evaluation.requiredConsecutiveDeviations} ölçüm`;
+  }
+  return "Ardışık sapma yok";
 }
 
 function formatEvaluationDirection(

@@ -128,6 +128,17 @@ export function createRealtimeServer(
         try {
           const command = replayStartSchema.parse(payload);
           const frames = await replayService.load(command);
+          if (frames.length < 2) {
+            respond({
+              ok: false,
+              error: {
+                code: "INVALID_REPLAY",
+                message:
+                  "Replay için aynı saat veya dakikada hız ve geçiş bilgisi bulunan en az iki gerçek ölçüm gerekir.",
+              },
+            });
+            return;
+          }
           replaySession?.stop();
           replaySession = new ReplaySession(
             frames,

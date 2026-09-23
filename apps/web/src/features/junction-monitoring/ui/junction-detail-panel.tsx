@@ -68,20 +68,23 @@ export function JunctionDetailPanel({
         </ul>
       </section>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-5 text-xs dark:border-slate-800">
-        <div>
+      <div className="mt-5 border-t border-slate-200 pt-5 text-xs dark:border-slate-800">
+        <dl>
           <dt className="text-slate-500">Yol referansları</dt>
           <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
             {junction.roadRefs.join(", ") || "Bilinmiyor"}
           </dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Politika</dt>
-          <dd className="mt-1 break-all font-medium text-slate-800 dark:text-slate-200">
-            {junction.policyVersion}
-          </dd>
-        </div>
-      </dl>
+        </dl>
+        <details className="mt-3 text-[11px] text-slate-400">
+          <summary className="cursor-pointer font-medium text-slate-500">
+            Eşleştirme ayrıntısı
+          </summary>
+          <p className="mt-1 leading-4">
+            OSM yol referansı, mesafe ve yön açısına göre eşleştirildi ·
+            Politika {junction.policyVersion}
+          </p>
+        </details>
+      </div>
     </aside>
   );
 }

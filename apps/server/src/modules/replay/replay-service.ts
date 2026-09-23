@@ -26,6 +26,7 @@ export class ReplayService {
     return this.historyRepository.getReplayFrames({
       assetIds: command.assetIds,
       direction: command.direction,
+      resolution: command.resolution,
       from: new Date(command.from),
       to: new Date(command.to),
     });

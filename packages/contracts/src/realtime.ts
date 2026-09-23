@@ -80,6 +80,17 @@ export const replaySpeedSchema = z.union([
   z.literal(32),
 ]);
 
+export const replayResolutionSchema = z.enum(["minute", "hour"]);
+
+// Minute frames come only from the narrow raw-CSV pilot, where a long
+// playback would mean tens of thousands of frames for little real benefit.
+// Hour frames draw on the broad bulk statistics import, so a whole month is
+// still a modest frame count and a genuinely useful playback range.
+export const REPLAY_MAXIMUM_RANGE_DAYS: Record<ReplayResolution, number> = {
+  minute: 2,
+  hour: 30,
+};
+
 export const replayStartSchema = z
   .object({
     coverageAreaId: z.string().min(1),
@@ -88,13 +99,20 @@ export const replayStartSchema = z
     from: z.iso.datetime(),
     to: z.iso.datetime(),
     speed: replaySpeedSchema,
+    resolution: replayResolutionSchema.default("minute"),
+  })
+  .refine((value) => new Date(value.from) < new Date(value.to), {
+    message: "Başlangıç zamanı bitişten önce olmalıdır.",
+    path: ["to"],
   })
   .refine(
     (value) =>
-      new Date(value.from) < new Date(value.to) &&
       new Date(value.to).getTime() - new Date(value.from).getTime() <=
-        2 * 86_400_000,
-    { message: "Replay aralığı en fazla iki gün olabilir.", path: ["to"] },
+      REPLAY_MAXIMUM_RANGE_DAYS[value.resolution] * 86_400_000,
+    {
+      message: "Seçilen çözünürlük için replay aralığı sınırı aşıldı.",
+      path: ["to"],
+    },
   );
 
 export const replayControlSchema = z.discriminatedUnion("action", [
@@ -132,6 +150,7 @@ export type OperatorNoteCategory = z.infer<typeof operatorNoteCategorySchema>;
 export type OperatorNoteStatus = z.infer<typeof operatorNoteStatusSchema>;
 export type NoteAcknowledgement = z.infer<typeof noteAcknowledgementSchema>;
 export type ReplaySpeed = z.infer<typeof replaySpeedSchema>;
+export type ReplayResolution = z.infer<typeof replayResolutionSchema>;
 export type ReplayStart = z.infer<typeof replayStartSchema>;
 export type ReplayControl = z.infer<typeof replayControlSchema>;
 export type ReplayFrame = z.infer<typeof replayFrameSchema>;

@@ -29,6 +29,7 @@ describe("ReplayControls", () => {
       from: "2026-09-03T00:00:00.000Z",
       to: "2026-09-04T00:00:00.000Z",
       speed: 8,
+      resolution: "minute",
     });
     expect(screen.getByText(/Henüz başlatılmadı/)).toBeInTheDocument();
   });
@@ -51,7 +52,138 @@ describe("ReplayControls", () => {
     );
 
     expect(screen.getByRole("button", { name: "Baştan oynat" })).toBeDisabled();
-    expect(screen.getByText(/en fazla iki günlük/)).toBeInTheDocument();
+    expect(screen.getByText(/en fazla 2 günlük/)).toBeInTheDocument();
+  });
+
+  it("explains why a daily summary cannot be replayed", () => {
+    const replay = createReplayController();
+    render(
+      <ReplayControls
+        coverageAreaId="helsinki"
+        history={{ ...history, resolution: "day" }}
+        query={{ ...history.query, resolution: "day" }}
+        replay={replay}
+        seriesLabels={{}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Baştan oynat" })).toBeDisabled();
+    expect(
+      screen.getByText(/dakika veya saat ölçümleri gerekir/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("slider", { name: "Replay zamanı" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("plays hour-resolution data from the bulk statistics import", () => {
+    const replay = createReplayController();
+    const hourHistory: HistoryResponse = {
+      ...history,
+      resolution: "hour",
+      series: [
+        {
+          assetId: "station",
+          assetName: "Hirvisuo",
+          points: [
+            {
+              timestamp: "2026-09-03T08:00:00.000Z",
+              value: 84,
+              sampleCount: 890,
+            },
+            {
+              timestamp: "2026-09-03T09:00:00.000Z",
+              value: 82,
+              sampleCount: 910,
+            },
+          ],
+        },
+      ],
+    };
+    render(
+      <ReplayControls
+        coverageAreaId="helsinki"
+        history={hourHistory}
+        query={{ ...history.query, resolution: "hour" }}
+        replay={replay}
+        seriesLabels={{}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Baştan oynat" }),
+    ).not.toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Baştan oynat" }));
+    expect(replay.start).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: "hour" }),
+    );
+    expect(screen.getByLabelText("Bir saat geri git")).toBeInTheDocument();
+  });
+
+  it("allows a much longer range for hour-resolution replay than for minute", () => {
+    const replay = createReplayController();
+    const longHourHistory: HistoryResponse = {
+      ...history,
+      resolution: "hour",
+      series: [
+        {
+          assetId: "station",
+          assetName: "Hirvisuo",
+          points: [
+            {
+              timestamp: "2026-08-01T08:00:00.000Z",
+              value: 84,
+              sampleCount: 890,
+            },
+            {
+              timestamp: "2026-08-20T09:00:00.000Z",
+              value: 82,
+              sampleCount: 910,
+            },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <ReplayControls
+        coverageAreaId="helsinki"
+        history={longHourHistory}
+        query={{
+          ...history.query,
+          resolution: "hour",
+          from: "2026-08-01T00:00:00.000Z",
+          to: "2026-08-20T00:00:00.000Z",
+        }}
+        replay={replay}
+        seriesLabels={{}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Baştan oynat" }),
+    ).not.toBeDisabled();
+  });
+
+  it("shows the server explanation when replay data cannot be paired", () => {
+    render(
+      <ReplayControls
+        coverageAreaId="helsinki"
+        history={history}
+        query={history.query}
+        replay={{
+          ...createReplayController(),
+          status: "error",
+          errorMessage:
+            "Replay için hız ve geçiş bilgisi bulunan en az iki gerçek ölçüm gerekir.",
+        }}
+        seriesLabels={{}}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /hız ve geçiş bilgisi bulunan en az iki gerçek ölçüm gerekir/,
+    );
   });
 });
 
@@ -60,6 +192,8 @@ function createReplayController(): ReplayController {
     status: "idle",
     frame: null,
     frameCount: 0,
+    resolution: "minute",
+    errorMessage: null,
     start: vi.fn(),
     control: vi.fn(),
     setSpeed: vi.fn(),

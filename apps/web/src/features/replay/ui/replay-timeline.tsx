@@ -1,15 +1,19 @@
 "use client";
 
+import type { ReplayResolution } from "@traffic-twin/contracts";
+
 interface ReplayTimelineProps {
   start: string;
   end: string;
   current?: string;
   timeZone: string;
+  resolution: ReplayResolution;
   disabled: boolean;
   onSeek: (timestamp: string) => void;
 }
 
 const MINUTE_MS = 60_000;
+const HOUR_MS = 3_600_000;
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -28,9 +32,14 @@ export function ReplayTimeline({
   end,
   current,
   timeZone,
+  resolution,
   disabled,
   onSeek,
 }: ReplayTimelineProps) {
+  const stepMs = resolution === "hour" ? HOUR_MS : MINUTE_MS;
+  const stepLabel = resolution === "hour" ? "sa" : "dk";
+  const stepUnit = resolution === "hour" ? "saat" : "dakika";
+  const nearestUnitPhrase = resolution === "hour" ? "saatine" : "dakikasına";
   const minimum = new Date(start).getTime();
   const maximum = new Date(end).getTime();
   const selectedTimestamp = clamp(
@@ -50,7 +59,7 @@ export function ReplayTimeline({
         <div>
           <p className="text-xs font-semibold">Replay zaman çizelgesi</p>
           <p className="mt-0.5 text-[10px] text-slate-500">
-            İmleç en yakın gerçek ölçüm dakikasına gider.
+            İmleç en yakın gerçek ölçüm {nearestUnitPhrase} gider.
           </p>
         </div>
         <time className="text-xs font-semibold text-sky-700 dark:text-sky-300">
@@ -61,17 +70,17 @@ export function ReplayTimeline({
         <button
           type="button"
           disabled={disabled || selectedTimestamp <= minimum}
-          onClick={() => seek(selectedTimestamp - MINUTE_MS)}
+          onClick={() => seek(selectedTimestamp - stepMs)}
           className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold disabled:opacity-40 dark:border-slate-700"
-          aria-label="Bir dakika geri git"
+          aria-label={`Bir ${stepUnit} geri git`}
         >
-          −1 dk
+          −1 {stepLabel}
         </button>
         <input
           type="range"
           min={minimum}
           max={maximum}
-          step={MINUTE_MS}
+          step={stepMs}
           value={selectedTimestamp}
           disabled={disabled || minimum === maximum}
           onChange={(event) => seek(Number(event.target.value))}
@@ -81,11 +90,11 @@ export function ReplayTimeline({
         <button
           type="button"
           disabled={disabled || selectedTimestamp >= maximum}
-          onClick={() => seek(selectedTimestamp + MINUTE_MS)}
+          onClick={() => seek(selectedTimestamp + stepMs)}
           className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold disabled:opacity-40 dark:border-slate-700"
-          aria-label="Bir dakika ileri git"
+          aria-label={`Bir ${stepUnit} ileri git`}
         >
-          +1 dk
+          +1 {stepLabel}
         </button>
       </div>
       <div className="mt-1 flex justify-between text-[10px] text-slate-400">

@@ -9,7 +9,10 @@ import type {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import type { ReplayController } from "@/features/replay";
+import {
+  getReplayAvailability,
+  type ReplayController,
+} from "@/features/replay";
 import { dateLabelAt, shiftDateLabel } from "@/shared/time/zoned-date";
 import { InlineQueryError } from "@/shared/ui";
 
@@ -295,7 +298,10 @@ export function AnalyticsPanel({
               <>
                 <TimeHighlightsCard history={history.data} />
                 <TimePatternCard history={history.data} />
-                <ReplayModeCallout onOpenReplay={onOpenReplay} />
+                <ReplayModeCallout
+                  history={history.data}
+                  onOpenReplay={onOpenReplay}
+                />
                 <HistorySummaryPanel
                   summaries={history.data.summaries}
                   resolution={history.data.resolution}
@@ -310,21 +316,38 @@ export function AnalyticsPanel({
   );
 }
 
-function ReplayModeCallout({ onOpenReplay }: { onOpenReplay: () => void }) {
+function ReplayModeCallout({
+  history,
+  onOpenReplay,
+}: {
+  history: HistoryResponse;
+  onOpenReplay: () => void;
+}) {
+  const availability = getReplayAvailability(history);
+
   return (
-    <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950">
+    <section
+      className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 ${availability.available ? "border-sky-200 bg-sky-50 dark:border-sky-900 dark:bg-sky-950" : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950"}`}
+    >
       <div>
-        <h2 className="text-sm font-semibold text-sky-950 dark:text-sky-100">
-          Bu aralığı haritada oynat
+        <h2
+          className={`text-sm font-semibold ${availability.available ? "text-sky-950 dark:text-sky-100" : "text-amber-950 dark:text-amber-100"}`}
+        >
+          {availability.available
+            ? "Bu aralığı haritada oynat"
+            : "Bu aralık Replay için hazır değil"}
         </h2>
-        <p className="mt-0.5 text-[11px] text-sky-700 dark:text-sky-300">
-          Seçili istasyonlar, yön ve tarih aralığı Replay moduna taşınır.
+        <p
+          className={`mt-0.5 max-w-2xl text-[11px] ${availability.available ? "text-sky-700 dark:text-sky-300" : "text-amber-800 dark:text-amber-200"}`}
+        >
+          {availability.message}
         </p>
       </div>
       <button
         type="button"
+        disabled={!availability.available}
         onClick={onOpenReplay}
-        className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-600"
+        className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-400"
       >
         Replay modunda aç
       </button>

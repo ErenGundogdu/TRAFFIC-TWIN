@@ -8,6 +8,7 @@ import type {
 import { useState } from "react";
 
 import type { ReplayController } from "../hooks/use-replay";
+import { getReplayAvailability } from "../lib/replay-availability";
 import { ReplayTimeline } from "./replay-timeline";
 
 interface ReplayControlsProps {
@@ -31,9 +32,7 @@ export function ReplayControls({
     .sort();
   const start = timestamps[0] ?? null;
   const end = timestamps.at(-1) ?? null;
-  const replayAvailable =
-    new Date(query.to).getTime() - new Date(query.from).getTime() <=
-      2 * 86_400_000 && timestamps.length > 0;
+  const availability = getReplayAvailability({ ...history, query });
 
   return (
     <section
@@ -46,12 +45,8 @@ export function ReplayControls({
         </span>
         <button
           type="button"
-          disabled={!replayAvailable || replay.status === "loading"}
-          title={
-            replayAvailable
-              ? undefined
-              : "Replay en fazla iki günlük, mevcut veri içeren aralıkta çalışır."
-          }
+          disabled={!availability.available || replay.status === "loading"}
+          title={availability.available ? undefined : availability.message}
           onClick={() =>
             replay.start({
               coverageAreaId,
@@ -60,6 +55,7 @@ export function ReplayControls({
               from: query.from,
               to: query.to,
               speed,
+              resolution: availability.resolution ?? "minute",
             })
           }
           className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
@@ -106,18 +102,28 @@ export function ReplayControls({
         </span>
       </div>
 
-      {!replayAvailable ? (
+      {!availability.available ? (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          Replay için gerçek veri içeren en fazla iki günlük bir aralık seçin.
+          {availability.message}
         </p>
       ) : null}
 
-      {start && end ? (
+      {replay.status === "error" && replay.errorMessage ? (
+        <p
+          role="alert"
+          className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200"
+        >
+          {replay.errorMessage}
+        </p>
+      ) : null}
+
+      {availability.available && start && end ? (
         <ReplayTimeline
           start={start}
           end={end}
           current={replay.frame?.timestamp}
           timeZone={history.timeZone}
+          resolution={availability.resolution ?? "minute"}
           disabled={
             replay.status === "idle" ||
             replay.status === "loading" ||
@@ -141,7 +147,9 @@ export function ReplayControls({
                 {value.averageSpeedKmh.toFixed(1)} km/sa
               </p>
               <p className="mt-0.5 text-[10px] text-slate-500">
-                {value.vehicleCount} araç/dk · gerçek replay karesi
+                {value.vehicleCount}{" "}
+                {availability.resolution === "hour" ? "araç/sa" : "araç/dk"} ·
+                gerçek replay karesi
               </p>
             </article>
           ))}

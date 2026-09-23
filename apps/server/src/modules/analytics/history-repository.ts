@@ -376,10 +376,11 @@ export class HistoryRepository {
   async getReplayFrames(query: {
     assetIds: string[];
     direction: 1 | 2;
+    resolution: "minute" | "hour";
     from: Date;
     to: Date;
   }) {
-    const rows = await this.database
+    const aggregateRows = await this.database
       .select({
         assetId: trafficAggregates.assetId,
         timestamp: trafficAggregates.bucketStart,
@@ -392,29 +393,100 @@ export class HistoryRepository {
         and(
           inArray(trafficAggregates.assetId, query.assetIds),
           eq(trafficAggregates.direction, query.direction),
-          eq(trafficAggregates.resolution, "minute"),
+          eq(trafficAggregates.resolution, query.resolution),
           gte(trafficAggregates.bucketStart, query.from),
           lt(trafficAggregates.bucketStart, query.to),
         ),
-      )
-      .orderBy(asc(trafficAggregates.bucketStart));
-    const byTimestamp = new Map<string, (typeof rows)[number][]>();
+      );
 
-    for (const row of rows) {
+    // Hour-resolution replay also draws on the bulk statistics import,
+    // which covers almost every station — unlike the raw-CSV pipeline
+    // behind minute resolution, which only covers a handful of manually
+    // reprocessed station/days. An inner join keeps only buckets that have
+    // both a speed and a volume reading, so every frame is complete.
+    const statisticRows =
+      query.resolution === "minute"
+        ? []
+        : await this.database
+            .select({
+              assetId: trafficVolumeStatistics.assetId,
+              timestamp: trafficVolumeStatistics.bucketStart,
+              averageSpeedKmh: trafficSpeedStatistics.averageSpeedKmh,
+              vehicleCount: trafficVolumeStatistics.vehicleCount,
+              sampleCount: trafficSpeedStatistics.detectedVehicleCount,
+            })
+            .from(trafficVolumeStatistics)
+            .innerJoin(
+              trafficSpeedStatistics,
+              and(
+                eq(
+                  trafficSpeedStatistics.assetId,
+                  trafficVolumeStatistics.assetId,
+                ),
+                eq(
+                  trafficSpeedStatistics.direction,
+                  trafficVolumeStatistics.direction,
+                ),
+                eq(
+                  trafficSpeedStatistics.resolution,
+                  trafficVolumeStatistics.resolution,
+                ),
+                eq(
+                  trafficSpeedStatistics.bucketStart,
+                  trafficVolumeStatistics.bucketStart,
+                ),
+              ),
+            )
+            .where(
+              and(
+                inArray(trafficVolumeStatistics.assetId, query.assetIds),
+                eq(trafficVolumeStatistics.direction, query.direction),
+                eq(trafficVolumeStatistics.resolution, query.resolution),
+                gte(trafficVolumeStatistics.bucketStart, query.from),
+                lt(trafficVolumeStatistics.bucketStart, query.to),
+              ),
+            );
+
+    type ReplayRow = {
+      assetId: string;
+      timestamp: Date;
+      averageSpeedKmh: number;
+      vehicleCount: number;
+      sampleCount: number;
+    };
+    const rowsByAssetBucket = new Map<string, ReplayRow>();
+    for (const row of aggregateRows) {
+      rowsByAssetBucket.set(replayRowKey(row), row);
+    }
+    // The Statistics import is the canonical broad source for hour buckets.
+    // Overwrite a matching raw aggregate instead of emitting two values for
+    // the same station in one replay frame.
+    for (const row of statisticRows) {
+      rowsByAssetBucket.set(replayRowKey(row), row);
+    }
+
+    const byTimestamp = new Map<string, ReplayRow[]>();
+    for (const row of rowsByAssetBucket.values()) {
       const timestamp = row.timestamp.toISOString();
       byTimestamp.set(timestamp, [...(byTimestamp.get(timestamp) ?? []), row]);
     }
 
-    return [...byTimestamp.entries()].map(([timestamp, values]) => ({
-      timestamp,
-      values: values.map((value) => ({
-        assetId: value.assetId,
-        averageSpeedKmh: value.averageSpeedKmh,
-        vehicleCount: value.vehicleCount,
-        sampleCount: value.sampleCount,
-      })),
-    }));
+    return [...byTimestamp.entries()]
+      .map(([timestamp, values]) => ({
+        timestamp,
+        values: values.map((value) => ({
+          assetId: value.assetId,
+          averageSpeedKmh: value.averageSpeedKmh,
+          vehicleCount: value.vehicleCount,
+          sampleCount: value.sampleCount,
+        })),
+      }))
+      .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
   }
+}
+
+function replayRowKey(row: { assetId: string; timestamp: Date }) {
+  return `${row.assetId}:${row.timestamp.toISOString()}`;
 }
 
 function summaryRowKey(row: {

@@ -335,7 +335,12 @@ export function MonitoringWorkspace({
   const replayDirection = searchParams.get("direction") === "2" ? 2 : 1;
   const mapStations =
     mode === "replay"
-      ? applyReplayFrame(stations, replay.frame, replayDirection)
+      ? applyReplayFrame(
+          stations,
+          replay.frame,
+          replayDirection,
+          replay.resolution,
+        )
       : stations;
   const visibleMapStations = filterStationsForMap(
     mapStations,

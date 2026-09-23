@@ -9,6 +9,7 @@ import {
   historyAggregateCoverage,
   ingestionArtifacts,
   trafficAggregates,
+  trafficSpeedStatistics,
   trafficStatisticsImportChunks,
   trafficVolumeStatistics,
 } from "../../infrastructure/database/schema.js";
@@ -286,6 +287,125 @@ describe("HistoryRepository", () => {
             eq(trafficVolumeStatistics.bucketStart, bucketStart),
           ),
         );
+    }
+  });
+
+  it("builds hour-resolution replay frames from the bulk statistics tables and drops incomplete pairs", async () => {
+    const completeBucket = new Date("2018-05-01T10:00:00Z");
+    const speedOnlyBucket = new Date("2018-05-01T11:00:00Z");
+    const volumeOnlyBucket = new Date("2018-05-01T12:00:00Z");
+    const artifactId = `test-replay-${randomUUID()}`;
+    const importRepository = new HistoryImportRepository(connection.db);
+
+    await importRepository.recordDownloaded({
+      id: artifactId,
+      provider: "fintraffic-tms",
+      assetId: "fintraffic-tms:20002",
+      sourceDate: "2018-05-01",
+      sourceUrl: "https://example.invalid/replay.csv",
+      storagePath: "/tmp/replay.csv.gz",
+      checksumSha256: "b".repeat(64),
+      byteSize: 128,
+      processorVersion: "integration-test-v1",
+    });
+    await connection.db.insert(trafficAggregates).values({
+      assetId: "fintraffic-tms:20002",
+      direction: 1,
+      resolution: "hour",
+      bucketStart: completeBucket,
+      averageSpeedKmh: 10,
+      vehicleCount: 10,
+      sampleCount: 10,
+      artifactId,
+    });
+
+    await connection.db.insert(trafficVolumeStatistics).values([
+      {
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        resolution: "hour",
+        bucketStart: completeBucket,
+        vehicleCount: 900,
+      },
+      {
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        resolution: "hour",
+        bucketStart: volumeOnlyBucket,
+        vehicleCount: 700,
+      },
+    ]);
+    await connection.db.insert(trafficSpeedStatistics).values([
+      {
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        resolution: "hour",
+        bucketStart: completeBucket,
+        averageSpeedKmh: 87.5,
+        detectedVehicleCount: 890,
+      },
+      {
+        assetId: "fintraffic-tms:20002",
+        direction: 1,
+        resolution: "hour",
+        bucketStart: speedOnlyBucket,
+        averageSpeedKmh: 90,
+        detectedVehicleCount: 400,
+      },
+    ]);
+
+    try {
+      const repository = new HistoryRepository(connection.db);
+      const frames = await repository.getReplayFrames({
+        assetIds: ["fintraffic-tms:20002"],
+        direction: 1,
+        resolution: "hour",
+        from: new Date("2018-05-01T00:00:00Z"),
+        to: new Date("2018-05-02T00:00:00Z"),
+      });
+
+      // Only the bucket with both a speed and a volume reading becomes a
+      // frame; a volume-only or speed-only hour is never invented into one.
+      // Statistics also replace the matching raw aggregate rather than
+      // duplicating the station inside the frame.
+      expect(frames).toEqual([
+        {
+          timestamp: completeBucket.toISOString(),
+          values: [
+            {
+              assetId: "fintraffic-tms:20002",
+              averageSpeedKmh: 87.5,
+              vehicleCount: 900,
+              sampleCount: 890,
+            },
+          ],
+        },
+      ]);
+    } finally {
+      await connection.db
+        .delete(trafficAggregates)
+        .where(eq(trafficAggregates.artifactId, artifactId));
+      await connection.db
+        .delete(trafficVolumeStatistics)
+        .where(
+          and(
+            eq(trafficVolumeStatistics.assetId, "fintraffic-tms:20002"),
+            eq(trafficVolumeStatistics.direction, 1),
+            eq(trafficVolumeStatistics.resolution, "hour"),
+          ),
+        );
+      await connection.db
+        .delete(trafficSpeedStatistics)
+        .where(
+          and(
+            eq(trafficSpeedStatistics.assetId, "fintraffic-tms:20002"),
+            eq(trafficSpeedStatistics.direction, 1),
+            eq(trafficSpeedStatistics.resolution, "hour"),
+          ),
+        );
+      await connection.db
+        .delete(ingestionArtifacts)
+        .where(eq(ingestionArtifacts.id, artifactId));
     }
   });
 

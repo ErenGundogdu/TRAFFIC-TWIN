@@ -124,7 +124,7 @@ export const roadFlowLayer: LayerProps = {
   },
 };
 
-export const roadFlowArrowLayer: LayerProps = {
+export const roadFlowArrowLayer = {
   id: "traffic-road-flow-arrows",
   type: "symbol",
   filter: ["!=", ["get", "direction"], 0],
@@ -133,6 +133,7 @@ export const roadFlowArrowLayer: LayerProps = {
     "symbol-spacing": 90,
     "text-field": ["concat", ["get", "directionLabel"], "  ▶"],
     "text-size": 12,
+    "text-font": ["Noto Sans Bold"],
     "text-rotation-alignment": "map",
     "text-keep-upright": false,
   },
@@ -149,7 +150,7 @@ export const roadFlowArrowLayer: LayerProps = {
     "text-halo-color": "#ffffff",
     "text-halo-width": 2,
   },
-};
+} satisfies LayerProps;
 
 export const trafficVolumeLayer: LayerProps = {
   id: "traffic-volume-columns",

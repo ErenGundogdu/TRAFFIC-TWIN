@@ -6,6 +6,7 @@ import {
   replayStartAcknowledgementSchema,
   type ReplayControl,
   type ReplayFrame,
+  type ReplayResolution,
   type ReplaySpeed,
   type ReplayStart,
   type ClientToServerEvents,
@@ -27,6 +28,8 @@ export function useReplay() {
   const [status, setStatus] = useState<ReplayStatus>("idle");
   const [frame, setFrame] = useState<ReplayFrame | null>(null);
   const [frameCount, setFrameCount] = useState(0);
+  const [resolution, setResolution] = useState<ReplayResolution>("minute");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
@@ -50,11 +53,15 @@ export function useReplay() {
     const socket = socketRef.current;
     if (!socket?.connected) {
       setStatus("error");
+      setErrorMessage("Canlı bağlantı kurulamadığı için Replay başlatılamadı.");
       return;
     }
 
     setFrame(null);
+    setFrameCount(0);
+    setErrorMessage(null);
     setStatus("loading");
+    setResolution(command.resolution);
     socket
       .timeout(8_000)
       .emit(
@@ -63,11 +70,18 @@ export function useReplay() {
         (error: Error | null, payload: unknown) => {
           if (error) {
             setStatus("error");
+            setErrorMessage("Replay isteği zaman aşımına uğradı.");
             return;
           }
           const result = replayStartAcknowledgementSchema.safeParse(payload);
-          if (!result.success || !result.data.ok) {
+          if (!result.success) {
             setStatus("error");
+            setErrorMessage("Sunucudan geçerli bir Replay yanıtı alınamadı.");
+            return;
+          }
+          if (!result.data.ok) {
+            setStatus("error");
+            setErrorMessage(result.data.error.message);
             return;
           }
           setFrameCount(result.data.frameCount);
@@ -86,6 +100,8 @@ export function useReplay() {
     if (command.action === "stop") {
       setStatus("idle");
       setFrame(null);
+      setFrameCount(0);
+      setErrorMessage(null);
     }
   }, []);
 
@@ -99,7 +115,17 @@ export function useReplay() {
     [control],
   );
 
-  return { status, frame, frameCount, start, control, setSpeed, seek };
+  return {
+    status,
+    frame,
+    frameCount,
+    resolution,
+    errorMessage,
+    start,
+    control,
+    setSpeed,
+    seek,
+  };
 }
 
 export type ReplayController = ReturnType<typeof useReplay>;

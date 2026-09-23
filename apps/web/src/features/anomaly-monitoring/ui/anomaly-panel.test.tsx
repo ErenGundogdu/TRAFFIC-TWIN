@@ -38,7 +38,11 @@ describe("AnomalyPanel", () => {
     );
 
     expect(screen.getByText("Aktif anomali")).toBeInTheDocument();
-    expect(screen.getByText(/8\/6 örnek/)).toBeInTheDocument();
-    expect(screen.getByText(/Ardışık sapma: 2\/2/)).toBeInTheDocument();
+    expect(screen.getByText(/8 gerçek ölçümle/)).toBeInTheDocument();
+    expect(screen.getByText(/en az 6 ölçüm gerekir/)).toBeInTheDocument();
+    expect(screen.getByText("Orta güven")).toBeInTheDocument();
+    expect(
+      screen.getByText("2 ardışık ölçümde sınır dışında"),
+    ).toBeInTheDocument();
   });
 });

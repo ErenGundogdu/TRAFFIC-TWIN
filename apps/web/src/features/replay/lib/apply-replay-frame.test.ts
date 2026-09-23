@@ -52,7 +52,7 @@ const station: StationSummary = {
 
 describe("applyReplayFrame", () => {
   it("removes live measurements before the first historical frame", () => {
-    const [projected] = applyReplayFrame([station], null, 1);
+    const [projected] = applyReplayFrame([station], null, 1, "minute");
 
     expect(projected?.directions).toEqual(
       station.directions.map((direction) => ({
@@ -83,7 +83,7 @@ describe("applyReplayFrame", () => {
       ],
     };
 
-    const [projected] = applyReplayFrame([station], frame, 2);
+    const [projected] = applyReplayFrame([station], frame, 2, "minute");
 
     expect(projected?.directions).toEqual([
       {
@@ -113,5 +113,23 @@ describe("applyReplayFrame", () => {
         },
       },
     ]);
+  });
+
+  it("treats an hour frame's vehicle count as already hourly, without scaling it up", () => {
+    const frame: ReplayFrame = {
+      timestamp: "2026-09-03T08:00:00.000Z",
+      values: [
+        {
+          assetId: station.id,
+          averageSpeedKmh: 72,
+          vehicleCount: 840,
+          sampleCount: 820,
+        },
+      ],
+    };
+
+    const [projected] = applyReplayFrame([station], frame, 1, "hour");
+
+    expect(projected?.directions[0]?.flowVehiclesPerHour).toBe(840);
   });
 });
