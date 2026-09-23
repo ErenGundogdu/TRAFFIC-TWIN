@@ -7,7 +7,7 @@ import type {
 } from "@traffic-twin/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { InlineQueryError } from "@/shared/ui";
+import { InlineQueryError, TrafficAssetIcon } from "@/shared/ui";
 
 interface AssetSelectionBarProps {
   stations: StationSummary[];
@@ -177,12 +177,26 @@ export function AssetSelectionBar({
           }
           className="flex min-w-0 flex-1 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-left transition hover:border-sky-300 hover:bg-sky-50/60 sm:max-w-xl dark:border-slate-700 dark:bg-slate-800 dark:hover:border-sky-700 dark:hover:bg-sky-950/40"
         >
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-              {selectionName ?? "İstasyon veya kavşak seç"}
+          <span className="flex min-w-0 items-center gap-3">
+            <span
+              className={`grid size-9 shrink-0 place-items-center rounded-xl ${
+                selectedJunction
+                  ? "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                  : "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+              }`}
+            >
+              <TrafficAssetIcon
+                kind={selectedJunction ? "junction" : "station"}
+                className="size-5"
+              />
             </span>
-            <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
-              {selectionMeta}
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {selectionName ?? "İstasyon veya kavşak seç"}
+              </span>
+              <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
+                {selectionMeta}
+              </span>
             </span>
           </span>
           <span
@@ -206,6 +220,7 @@ export function AssetSelectionBar({
                 : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
             }`}
           >
+            <TrafficAssetIcon kind="station" className="mr-1 inline size-3.5" />
             İstasyonlar{" "}
             <span className="ml-1 opacity-70">{stations.length}</span>
           </button>
@@ -221,6 +236,10 @@ export function AssetSelectionBar({
                 : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
             }`}
           >
+            <TrafficAssetIcon
+              kind="junction"
+              className="mr-1 inline size-3.5"
+            />
             Kavşaklar{" "}
             <span className="ml-1 opacity-70">{junctions.length}</span>
           </button>
@@ -313,12 +332,30 @@ export function AssetSelectionBar({
                           : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800"
                       }`}
                     >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {station.name}
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <span
+                          className={`grid size-8 shrink-0 place-items-center rounded-lg ${
+                            station.freshness === "FRESH"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                              : station.freshness === "STALE"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                                : station.freshness === "OUTDATED"
+                                  ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
+                        >
+                          <TrafficAssetIcon
+                            kind="station"
+                            className="size-4.5"
+                          />
                         </span>
-                        <span className="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400">
-                          TMS {station.tmsNumber}
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {station.name}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400">
+                            TMS {station.tmsNumber}
+                          </span>
                         </span>
                       </span>
                       {showHistoryAvailability ? (
@@ -361,12 +398,21 @@ export function AssetSelectionBar({
                             : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800"
                         }`}
                       >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {junction.name}
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                            <TrafficAssetIcon
+                              kind="junction"
+                              className="size-4.5"
+                            />
                           </span>
-                          <span className="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-400">
-                            {junction.roadRefs.join(" · ") || "Yol bilgisi yok"}
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                              {junction.name}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-400">
+                              {junction.roadRefs.join(" · ") ||
+                                "Yol bilgisi yok"}
+                            </span>
                           </span>
                         </span>
                         <span className="shrink-0 text-right text-[11px] text-slate-500 dark:text-slate-400">

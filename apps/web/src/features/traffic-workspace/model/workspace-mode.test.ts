@@ -21,4 +21,16 @@ describe("workspace mode URL state", () => {
     expect(live.get("mode")).toBeNull();
     expect(live.get("metric")).toBe("vehicle-count");
   });
+
+  it("keeps filters when opening the replay workspace", () => {
+    const current = new URLSearchParams(
+      "station=fintraffic-tms%3A20002&from=2026-09-03&to=2026-09-03",
+    );
+    const replay = setWorkspaceMode(current, "replay");
+
+    expect(parseWorkspaceMode(replay.get("mode"))).toBe("replay");
+    expect(replay.get("station")).toBe("fintraffic-tms:20002");
+    expect(replay.get("from")).toBe("2026-09-03");
+    expect(replay.get("to")).toBe("2026-09-03");
+  });
 });

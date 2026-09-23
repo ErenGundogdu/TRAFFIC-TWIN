@@ -3,6 +3,8 @@ import type {
   ResolvedHistoryResolution,
 } from "@traffic-twin/contracts";
 
+import { TrafficCompositionPanel } from "./traffic-composition-panel";
+
 interface HistorySummaryPanelProps {
   summaries: HistorySummary[];
   resolution: ResolvedHistoryResolution;
@@ -27,11 +29,11 @@ export function HistorySummaryPanel({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 id="history-summary-title" className="text-sm font-semibold">
-            Dönem özeti
+            İstasyon ayrıntıları
           </h3>
           <p className="mt-0.5 text-[11px] text-slate-500">
-            Seçilen yöndeki gerçek {bucketLabel} agregalarından sunucuda
-            hesaplandı.
+            Karşılaştırılabilir dönem istatistikleri gerçek {bucketLabel}{" "}
+            agregalarından sunucuda hesaplandı.
           </p>
         </div>
         <span className="text-[10px] text-slate-400">{timeZone}</span>
@@ -66,29 +68,11 @@ export function HistorySummaryPanel({
 
             {summary.bucketCount > 0 ? (
               <>
-                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-3">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <MetricCard
-                    label="Ağırlıklı ortalama hız"
-                    value={formatSpeed(summary.averageSpeedKmh)}
-                    detail={`Medyan ${formatSpeed(summary.medianSpeedKmh)}`}
-                  />
-                  <MetricCard
-                    label="Toplam geçiş"
-                    value={`${formatInteger(summary.totalVehicleCount)} araç`}
-                    detail={`${bucketLabel} başına ${formatNumber(summary.averageVehicleCountPerBucket)}`}
-                  />
-                  <MetricCard
-                    label="En yoğun dilim"
-                    value={
-                      summary.peakVehicleCount === null
-                        ? "Yetersiz veri"
-                        : `${formatInteger(summary.peakVehicleCount)} araç`
-                    }
-                    detail={formatMoment(
-                      summary.peakVehicleAt,
-                      timeZone,
-                      resolution,
-                    )}
+                    label="Medyan hız"
+                    value={formatSpeed(summary.medianSpeedKmh)}
+                    detail={`Ağırlıklı ortalama ${formatSpeed(summary.averageSpeedKmh)}`}
                   />
                   <MetricCard
                     label="En düşük hız"
@@ -114,6 +98,7 @@ export function HistorySummaryPanel({
                 <p className="mt-2 rounded-lg bg-white px-3 py-2 text-[11px] leading-5 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
                   {buildObservation(summary, timeZone, resolution)}
                 </p>
+                <TrafficCompositionPanel composition={summary.composition} />
                 <p className="mt-1.5 text-[10px] text-slate-400">
                   Veri temeli: {formatInteger(summary.sampleCount)} geçerli
                   örnek. Ortalama hız örnek sayısıyla ağırlıklandırılır; medyan,

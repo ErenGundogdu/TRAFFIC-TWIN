@@ -1,63 +1,55 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  type HistoryAssetAvailability,
-  type HistoryQuery,
-  type HistoryResponse,
-  type ReplaySpeed,
-  type StationCatalogResponse,
+import type {
+  HistoryAssetAvailability,
+  HistoryResponse,
+  StationCatalogResponse,
 } from "@traffic-twin/contracts";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
-import { useForm, type UseFormRegisterReturn } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
-import { ReplayTimeline, type ReplayController } from "@/features/replay";
-import { InlineQueryError } from "@/shared/ui";
-import { formatTrafficDirectionLabel } from "@/shared/traffic";
+import type { ReplayController } from "@/features/replay";
 import { dateLabelAt, shiftDateLabel } from "@/shared/time/zoned-date";
+import { InlineQueryError } from "@/shared/ui";
 
 import { useTrafficHistory } from "../hooks/use-traffic-history";
 import {
   commonAvailableDates,
   findAssetAvailability,
 } from "../lib/history-availability";
-import {
-  createDirectionSeriesLabels,
-  formatStationDirectionLabel,
-} from "../lib/direction-series-labels";
+import { createDirectionSeriesLabels } from "../lib/direction-series-labels";
 import {
   analyticsFilterSchema,
-  createInclusiveHistoryRange,
   parseAnalyticsUrlFilters,
   type AnalyticsFilterValues,
 } from "../lib/analytics-filters";
+import { createAnalyticsHistoryQuery } from "../lib/analytics-query";
+import { AnalysisKpiStrip } from "./analysis-kpi-strip";
+import { AnalysisCoveragePanel } from "./analysis-coverage-panel";
+import { AnalysisInsightGrid } from "./analysis-insight-grid";
+import { AnalyticsFilterPanel } from "./analytics-filter-panel";
 import { HistoryChart } from "./history-chart";
-import { HistoryImportControl } from "./history-import-control";
 import { HistorySummaryPanel } from "./history-summary-panel";
+import { IndependentComparisonPanel } from "./independent-comparison-panel";
+import { TimeHighlightsCard } from "./time-highlights-card";
+import { TimePatternCard } from "./time-pattern-card";
 
 interface AnalyticsPanelProps {
   catalog: StationCatalogResponse;
   selectedStationId: string;
   onReturnLive: () => void;
+  onOpenReplay: () => void;
   availability: HistoryAssetAvailability[];
   availabilityStatus: "loading" | "error" | "ready";
   replay: ReplayController;
 }
 
-const FILTER_PARAMETER_LABELS: Record<string, string> = {
-  compare: "karşılaştırma istasyonu",
-  direction: "yön",
-  from: "başlangıç tarihi",
-  metric: "metrik",
-  resolution: "çözünürlük",
-  to: "bitiş tarihi",
-};
-
 export function AnalyticsPanel({
   catalog,
   selectedStationId,
   onReturnLive,
+  onOpenReplay,
   availability,
   availabilityStatus,
   replay,
@@ -65,6 +57,7 @@ export function AnalyticsPanel({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const comparisonView = searchParams.get("analysisView") === "comparison";
   const today = dateLabelAt(new Date(), catalog.coverageArea.timeZone);
   const requestedComparison = searchParams.get("compare") ?? "";
   const compareAssetId = catalog.stations.some(
@@ -86,53 +79,32 @@ export function AnalyticsPanel({
     resolver: zodResolver(analyticsFilterSchema),
     values,
   });
-  const historyRange = createInclusiveHistoryRange(
-    values.fromDate,
-    values.toDate,
-    catalog.coverageArea.timeZone,
+  const query = createAnalyticsHistoryQuery({
+    selectedStationId,
+    filters: values,
+    timeZone: catalog.coverageArea.timeZone,
+  });
+  const history = useTrafficHistory(
+    catalog.coverageArea.id,
+    query,
+    !comparisonView,
   );
-  const query: HistoryQuery = {
-    assetIds: [selectedStationId, values.compareAssetId].filter(Boolean),
-    metric: values.metric,
-    direction: Number(values.direction) as 1 | 2,
-    resolution: values.resolution,
-    from: historyRange.from,
-    to: historyRange.to,
-  };
-  const history = useTrafficHistory(catalog.coverageArea.id, query);
-  const [replaySpeed, setReplaySpeed] = useState<ReplaySpeed>(8);
   const selectedStation = catalog.stations.find(
     (station) => station.id === selectedStationId,
   );
-  const directionNumber = Number(values.direction) as 1 | 2;
   const comparisonStation = catalog.stations.find(
     (station) => station.id === values.compareAssetId,
   );
-  const analyzedStations = [selectedStation, comparisonStation].filter(
-    (station): station is NonNullable<typeof station> => Boolean(station),
-  );
   const directionSeriesLabels = createDirectionSeriesLabels(
-    analyzedStations,
-    directionNumber,
-  );
-  const selectedAvailability = findAssetAvailability(
-    availability,
-    selectedStationId,
+    [selectedStation, comparisonStation].filter(
+      (station): station is NonNullable<typeof station> => Boolean(station),
+    ),
+    Number(values.direction) as 1 | 2,
   );
   const availableStationIds = new Set(availability.map((item) => item.assetId));
   const suggestedStations = catalog.stations.filter((station) =>
     availableStationIds.has(station.id),
   );
-  const replayAvailable =
-    new Date(query.to).getTime() - new Date(query.from).getTime() <=
-      2 * 86_400_000 &&
-    Boolean(history.data?.series.some((series) => series.points.length));
-  const replayTimestamps =
-    history.data?.series
-      .flatMap((series) => series.points.map((point) => point.timestamp))
-      .sort() ?? [];
-  const replayStart = replayTimestamps[0] ?? null;
-  const replayEnd = replayTimestamps.at(-1) ?? null;
 
   function submit(next: AnalyticsFilterValues) {
     replay.control({ action: "stop" });
@@ -168,7 +140,7 @@ export function AnalyticsPanel({
       ...form.getValues(),
       fromDate: lastSharedDate,
       toDate: lastSharedDate,
-      resolution: "minute",
+      resolution: "auto",
     });
   }
 
@@ -184,451 +156,214 @@ export function AnalyticsPanel({
     params.delete("compare");
     params.set("from", assetAvailability.lastDate);
     params.set("to", assetAvailability.lastDate);
-    params.set("resolution", "minute");
+    params.set("resolution", "auto");
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  function changeAnalysisView(view: "history" | "comparison") {
+    replay.control({ action: "stop" });
+    const params = new URLSearchParams(searchParams.toString());
+    if (view === "comparison") params.set("analysisView", "comparison");
+    else params.delete("analysisView");
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   return (
     <section
       aria-label="Trafik analizi"
-      className="min-h-0 overflow-y-auto border-t border-slate-200 bg-slate-100 p-3 dark:border-slate-800 dark:bg-slate-950"
+      className="min-h-0 overflow-y-auto border-t border-slate-200 bg-slate-100 p-3 xl:border-t-0 xl:border-l xl:p-4 dark:border-slate-800 dark:bg-slate-950"
     >
-      <div className="grid gap-3 xl:grid-cols-[270px_minmax(0,1fr)]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-sky-700 uppercase dark:text-sky-300">
-                Analiz modu
-              </p>
-              <h2 className="mt-1 truncate text-sm font-semibold">
-                {selectedStation?.name ?? selectedStationId}
-              </h2>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {availabilityStatus === "loading"
-                  ? "Geçmiş veri tarihleri kontrol ediliyor…"
-                  : selectedAvailability
-                    ? `${selectedAvailability.availableDayCount} verili gün · ${formatDate(selectedAvailability.firstDate)}–${formatDate(selectedAvailability.lastDate)}`
-                    : availabilityStatus === "error"
-                      ? "Geçmiş bilgisi şu anda alınamadı."
-                      : "Bu istasyon için geçmiş veri içeri alınmamış."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onReturnLive}
-              className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-            >
-              Canlıya dön
-            </button>
-          </div>
-
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {[
-              [1, "Son gün"],
-              [30, "Son ay"],
-              [365, "Son yıl"],
-            ].map(([days, label]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => applyRange(Number(days))}
-                disabled={
-                  availabilityStatus === "ready" && sharedDates.length === 0
-                }
-                className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {availabilityStatus === "ready" ? (
-            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950">
-              {sharedDates.length > 0 ? (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                        {values.compareAssetId
-                          ? `${sharedDates.length} ortak verili gün`
-                          : `${sharedDates.length} verili gün`}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-slate-500">
-                        En son: {formatDate(lastSharedDate!)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={openLatestAvailableDay}
-                      className="rounded-lg bg-emerald-100 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-200"
-                    >
-                      En son günü aç
-                    </button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {sharedDates.slice(-6).map((date) => (
-                      <span
-                        key={date}
-                        className="rounded-md bg-white px-1.5 py-1 text-[10px] text-slate-500 dark:bg-slate-900 dark:text-slate-400"
-                      >
-                        {formatDate(date)}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs leading-5 text-amber-700 dark:text-amber-300">
-                  {values.compareAssetId
-                    ? "Seçilen iki istasyonun ortak geçmiş günü bulunmuyor."
-                    : "Bu istasyon için geçmiş veri bulunmuyor."}
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          <HistoryImportControl
-            key={`${selectedStationId}:${values.fromDate}:${values.toDate}`}
-            coverageAreaId={catalog.coverageArea.id}
-            assetId={selectedStationId}
-            from={values.fromDate}
-            to={values.toDate}
+      <div
+        className="sticky top-0 z-20 -mx-3 -mt-3 mb-3 flex flex-wrap items-center gap-2 border-b border-slate-200/80 bg-slate-100/95 px-3 py-3 backdrop-blur xl:-mx-4 xl:-mt-4 xl:px-4 xl:py-4 dark:border-slate-800 dark:bg-slate-950/95"
+        aria-label="Analiz görünümü"
+      >
+        <button
+          type="button"
+          onClick={() => changeAnalysisView("history")}
+          aria-pressed={!comparisonView}
+          className={`rounded-lg px-3 py-2 text-xs font-semibold ${!comparisonView ? "bg-slate-950 text-white dark:bg-sky-600" : "border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900"}`}
+        >
+          Dönem analizi
+        </button>
+        <button
+          type="button"
+          onClick={() => changeAnalysisView("comparison")}
+          aria-pressed={comparisonView}
+          className={`rounded-lg px-3 py-2 text-xs font-semibold ${comparisonView ? "bg-slate-950 text-white dark:bg-sky-600" : "border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900"}`}
+        >
+          Esnek karşılaştırma
+        </button>
+      </div>
+      {comparisonView ? (
+        <IndependentComparisonPanel
+          catalog={catalog}
+          selectedStationId={selectedStationId}
+          availability={availability}
+          today={today}
+        />
+      ) : (
+        <div className="grid items-start gap-4 2xl:grid-cols-[320px_minmax(0,1fr)]">
+          <AnalyticsFilterPanel
+            catalog={catalog}
+            selectedStationId={selectedStationId}
+            availability={availability}
+            availabilityStatus={availabilityStatus}
+            sharedDates={sharedDates}
+            firstSharedDate={firstSharedDate}
+            lastSharedDate={lastSharedDate}
+            ignoredParameters={ignoredParameters}
+            form={form}
+            values={values}
+            onSubmit={submit}
+            onApplyRange={applyRange}
+            onOpenLatest={openLatestAvailableDay}
+            onReturnLive={onReturnLive}
           />
 
-          <form
-            onSubmit={form.handleSubmit(submit)}
-            noValidate
-            className="mt-3 space-y-2.5"
-          >
-            {ignoredParameters.length > 0 ? (
-              <p
-                role="status"
-                className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] leading-4 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
-              >
-                Paylaşılan bağlantıdaki geçersiz filtreler uygulanmadı:{" "}
-                {ignoredParameters
-                  .map((parameter) => FILTER_PARAMETER_LABELS[parameter])
-                  .join(", ")}
-                .
-              </p>
-            ) : null}
-            <FilterSelect
-              label="Karşılaştırma istasyonu"
-              registration={form.register("compareAssetId")}
-            >
-              <option value="">Karşılaştırma yok</option>
-              {[...catalog.stations]
-                .filter((station) => station.id !== selectedStationId)
-                .sort(
-                  (left, right) =>
-                    Number(availableStationIds.has(right.id)) -
-                    Number(availableStationIds.has(left.id)),
-                )
-                .map((station) => (
-                  <option key={station.id} value={station.id}>
-                    {station.name}
-                    {availableStationIds.has(station.id)
-                      ? ` · ${findAssetAvailability(availability, station.id)!.availableDayCount} gün geçmiş`
-                      : " · geçmiş yok"}
-                  </option>
-                ))}
-            </FilterSelect>
-            <div className="grid grid-cols-2 gap-2">
-              <FilterSelect
-                label="Metrik"
-                registration={form.register("metric")}
-              >
-                <option value="average-speed-kmh">Ortalama hız</option>
-                <option value="vehicle-count">Araç sayısı</option>
-              </FilterSelect>
-              <FilterSelect
-                label="Yön"
-                registration={form.register("direction")}
-              >
-                {selectedStation?.directions.map((direction) => (
-                  <option key={direction.direction} value={direction.direction}>
-                    {formatTrafficDirectionLabel(direction)}
-                  </option>
-                )) ?? (
-                  <>
-                    <option value="1">Yön 1</option>
-                    <option value="2">Yön 2</option>
-                  </>
-                )}
-              </FilterSelect>
-            </div>
-            {comparisonStation && selectedStation ? (
-              <p className="rounded-lg bg-sky-50 px-2.5 py-2 text-[11px] leading-4 text-sky-800 dark:bg-sky-950 dark:text-sky-200">
-                İki istasyon aynı tarih aralığı ve metrikte karşılaştırılır.
-                <br />
-                {formatStationDirectionLabel(selectedStation, directionNumber)}
-                <br />
-                {formatStationDirectionLabel(
-                  comparisonStation,
-                  directionNumber,
-                )}
-                <br />
-                Yön numarası her istasyonun kendi doğrultusunu ifade eder.
-              </p>
-            ) : null}
-            <FilterSelect
-              label="Çözünürlük"
-              registration={form.register("resolution")}
-            >
-              <option value="auto">Otomatik</option>
-              <option value="minute">Dakika</option>
-              <option value="hour">Saat</option>
-              <option value="day">Gün</option>
-            </FilterSelect>
-            <div className="grid grid-cols-2 gap-2">
-              <FilterInput
-                label="Başlangıç (dahil)"
-                registration={form.register("fromDate")}
-                min={firstSharedDate ?? undefined}
-                max={lastSharedDate ?? undefined}
-                error={form.formState.errors.fromDate?.message}
-              />
-              <FilterInput
-                label="Bitiş (dahil)"
-                registration={form.register("toDate")}
-                min={firstSharedDate ?? undefined}
-                max={lastSharedDate ?? undefined}
-                error={form.formState.errors.toDate?.message}
-              />
-            </div>
-            <button className="w-full rounded-xl bg-slate-950 px-3 py-2 text-sm font-semibold text-white dark:bg-sky-700">
-              Analizi uygula
-            </button>
-          </form>
-        </aside>
-
-        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">
-                {values.metric === "average-speed-kmh"
-                  ? "Ortalama hız"
-                  : "Araç sayısı"}
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                {history.data?.resolution ?? values.resolution} çözünürlük · Yön{" "}
-                {values.direction} · {catalog.coverageArea.timeZone}
-              </p>
-            </div>
-            {history.data ? <CoverageBadge history={history.data} /> : null}
-          </div>
-
-          {history.data && history.data.coverage.status !== "NO_DATA" ? (
-            <HistorySummaryPanel
-              summaries={history.data.summaries}
-              resolution={history.data.resolution}
-              timeZone={history.data.timeZone}
-            />
-          ) : null}
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-950">
-            <button
-              type="button"
-              disabled={!replayAvailable}
-              title={
-                replayAvailable
-                  ? undefined
-                  : "Replay en fazla iki günlük, mevcut veri içeren aralıkta çalışır."
-              }
-              onClick={() =>
-                replay.start({
-                  coverageAreaId: catalog.coverageArea.id,
-                  assetIds: query.assetIds,
-                  direction: query.direction,
-                  from: query.from,
-                  to: query.to,
-                  speed: replaySpeed,
-                })
-              }
-              className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-semibold text-white disabled:bg-slate-300 dark:disabled:bg-slate-700"
-            >
-              Baştan oynat
-            </button>
-            {replay.status === "playing" ? (
-              <button
-                type="button"
-                onClick={() => replay.control({ action: "pause" })}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-              >
-                Duraklat
-              </button>
-            ) : replay.status === "paused" ? (
-              <button
-                type="button"
-                onClick={() => replay.control({ action: "resume" })}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-              >
-                Sürdür
-              </button>
-            ) : null}
-            {replay.status !== "idle" ? (
-              <button
-                type="button"
-                onClick={() => replay.control({ action: "stop" })}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold dark:border-slate-700 dark:bg-slate-900"
-              >
-                Replay&apos;i durdur
-              </button>
-            ) : null}
-            <select
-              value={replaySpeed}
-              onChange={(event) => {
-                const speed = Number(event.target.value) as ReplaySpeed;
-                setReplaySpeed(speed);
-                replay.setSpeed(speed);
-              }}
-              aria-label="Replay hızı"
-              className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs dark:border-slate-700 dark:bg-slate-900"
-            >
-              {[1, 2, 4, 8, 16, 32].map((speed) => (
-                <option key={speed} value={speed}>
-                  {speed}×
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-slate-500">
-              {query.assetIds.length} istasyon · Yön {values.direction} ·{" "}
-              {replay.frame
-                ? new Intl.DateTimeFormat("tr-TR", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                    timeZone: catalog.coverageArea.timeZone,
-                  }).format(new Date(replay.frame.timestamp))
-                : replay.status === "error"
-                  ? "Replay başlatılamadı"
-                  : `${replay.frameCount} kare`}
-            </span>
-          </div>
-
-          {replayStart && replayEnd ? (
-            <ReplayTimeline
-              start={replayStart}
-              end={replayEnd}
-              current={replay.frame?.timestamp}
+          <main className="min-w-0 space-y-4">
+            <AnalysisHeading
+              metric={values.metric}
+              direction={values.direction}
+              resolution={history.data?.resolution ?? values.resolution}
               timeZone={catalog.coverageArea.timeZone}
-              disabled={
-                replay.status === "idle" ||
-                replay.status === "loading" ||
-                replay.status === "error"
-              }
-              onSeek={replay.seek}
+              history={history.data}
             />
-          ) : null}
 
-          {replay.frame ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {replay.frame.values.map((value) => (
-                <span
-                  key={value.assetId}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300"
-                >
-                  {directionSeriesLabels[value.assetId] ?? value.assetId}:{" "}
-                  {value.averageSpeedKmh.toFixed(1)} km/sa ·{" "}
-                  {value.vehicleCount} araç/dk
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="mt-3">
-            {history.isPending ? (
-              <div className="grid h-80 place-items-center text-sm text-slate-500">
-                Gerçek geçmiş verisi sorgulanıyor…
-              </div>
-            ) : history.isError || !history.data ? (
-              <div className="grid h-80 place-items-center">
-                <InlineQueryError
-                  className="w-full max-w-md text-center text-sm"
-                  message="Geçmiş verisi alınamadı."
-                  onRetry={() => void history.refetch()}
-                />
-              </div>
-            ) : history.data.coverage.status === "NO_DATA" ? (
-              <HistoryDiscoveryEmptyState
-                suggestedStations={suggestedStations}
-                availability={availability}
-                onSelect={openAvailableStation}
-                onOpenLatest={
-                  lastSharedDate ? openLatestAvailableDay : undefined
-                }
-              />
-            ) : (
-              <HistoryChart
+            {history.data ? (
+              <AnalysisCoveragePanel
                 history={history.data}
-                cursorTimestamp={replay.frame?.timestamp}
-                seriesLabels={directionSeriesLabels}
+                stations={catalog.stations}
               />
-            )}
-          </div>
+            ) : null}
+
+            {history.data && history.data.coverage.status !== "NO_DATA" ? (
+              <>
+                <AnalysisKpiStrip history={history.data} />
+                <AnalysisInsightGrid history={history.data} />
+              </>
+            ) : null}
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold">Zaman serisi</h2>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    Boş aralıklar birleştirilmez; yalnız gerçek ölçüm dilimleri
+                    çizilir.
+                  </p>
+                </div>
+                {history.data?.series.length ? (
+                  <span className="text-[10px] text-slate-400">
+                    {history.data.series.length} seri
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-3">
+                {history.isPending ? (
+                  <div className="grid h-96 place-items-center text-sm text-slate-500">
+                    Gerçek geçmiş verisi sorgulanıyor…
+                  </div>
+                ) : history.isError || !history.data ? (
+                  <div className="grid h-96 place-items-center">
+                    <InlineQueryError
+                      className="w-full max-w-md text-center text-sm"
+                      message="Geçmiş verisi alınamadı."
+                      onRetry={() => void history.refetch()}
+                    />
+                  </div>
+                ) : history.data.coverage.status === "NO_DATA" ? (
+                  <HistoryDiscoveryEmptyState
+                    suggestedStations={suggestedStations}
+                    availability={availability}
+                    onSelect={openAvailableStation}
+                    onOpenLatest={
+                      lastSharedDate ? openLatestAvailableDay : undefined
+                    }
+                  />
+                ) : (
+                  <HistoryChart
+                    history={history.data}
+                    cursorTimestamp={replay.frame?.timestamp}
+                    seriesLabels={directionSeriesLabels}
+                  />
+                )}
+              </div>
+            </section>
+
+            {history.data && history.data.coverage.status !== "NO_DATA" ? (
+              <>
+                <TimeHighlightsCard history={history.data} />
+                <TimePatternCard history={history.data} />
+                <ReplayModeCallout onOpenReplay={onOpenReplay} />
+                <HistorySummaryPanel
+                  summaries={history.data.summaries}
+                  resolution={history.data.resolution}
+                  timeZone={history.data.timeZone}
+                />
+              </>
+            ) : null}
+          </main>
         </div>
-      </div>
+      )}
     </section>
   );
 }
 
-function FilterSelect({
-  label,
-  registration,
-  children,
-}: {
-  label: string;
-  registration: UseFormRegisterReturn;
-  children: ReactNode;
-}) {
+function ReplayModeCallout({ onOpenReplay }: { onOpenReplay: () => void }) {
   return (
-    <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
-      {label}
-      <select
-        {...registration}
-        className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950">
+      <div>
+        <h2 className="text-sm font-semibold text-sky-950 dark:text-sky-100">
+          Bu aralığı haritada oynat
+        </h2>
+        <p className="mt-0.5 text-[11px] text-sky-700 dark:text-sky-300">
+          Seçili istasyonlar, yön ve tarih aralığı Replay moduna taşınır.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenReplay}
+        className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-600"
       >
-        {children}
-      </select>
-    </label>
+        Replay modunda aç
+      </button>
+    </section>
   );
 }
 
-function FilterInput({
-  label,
-  registration,
-  min,
-  max,
-  error,
+function AnalysisHeading({
+  metric,
+  direction,
+  resolution,
+  timeZone,
+  history,
 }: {
-  label: string;
-  registration: UseFormRegisterReturn;
-  min?: string;
-  max?: string;
-  error?: string;
+  metric: AnalyticsFilterValues["metric"];
+  direction: AnalyticsFilterValues["direction"];
+  resolution: string;
+  timeZone: string;
+  history?: HistoryResponse;
 }) {
-  const errorId = `${registration.name}-error`;
-
   return (
-    <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
-      {label}
-      <input
-        type="date"
-        min={min}
-        max={max}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
-        {...registration}
-        className={`mt-1 w-full rounded-lg border bg-white px-2 py-1.5 text-xs dark:bg-slate-950 dark:text-slate-100 ${
-          error
-            ? "border-rose-400 dark:border-rose-700"
-            : "border-slate-200 dark:border-slate-700"
-        }`}
-      />
-      {error ? (
-        <span id={errorId} className="mt-1 block text-[11px] text-rose-600">
-          {error}
-        </span>
-      ) : null}
-    </label>
+    <header className="relative flex flex-wrap items-start justify-between gap-3 overflow-hidden rounded-[20px] border border-slate-200/80 bg-white px-5 py-4 shadow-[0_12px_32px_-26px_rgba(15,23,42,0.5)] dark:border-slate-800 dark:bg-slate-900">
+      <span className="absolute inset-y-0 left-0 w-1 bg-sky-500" />
+      <div className="pl-1">
+        <p className="text-[10px] font-semibold tracking-[0.14em] text-sky-700 uppercase dark:text-sky-300">
+          Geçmiş trafik analizi
+        </p>
+        <h1 className="mt-1 text-xl font-semibold tracking-[-0.025em]">
+          {metric === "average-speed-kmh"
+            ? "Hız karşılaştırması"
+            : "Araç hacmi karşılaştırması"}
+        </h1>
+        <p className="mt-1 text-xs text-slate-500">
+          {formatResolution(resolution)} çözünürlük · Yön {direction} ·{" "}
+          {timeZone}
+        </p>
+      </div>
+      {history ? <CoverageBadge history={history} /> : null}
+    </header>
   );
 }
 
@@ -644,7 +379,7 @@ function HistoryDiscoveryEmptyState({
   onOpenLatest?: () => void;
 }) {
   return (
-    <div className="grid min-h-80 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
+    <div className="grid min-h-96 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-950">
       <div className="max-w-xl">
         <p className="font-semibold text-slate-800 dark:text-slate-100">
           Bu seçimde geçmiş veri yok
@@ -698,6 +433,17 @@ function formatDate(date: string) {
   }).format(new Date(`${date}T12:00:00Z`));
 }
 
+function formatResolution(resolution: string) {
+  return (
+    {
+      auto: "otomatik",
+      minute: "dakika",
+      hour: "saat",
+      day: "gün",
+    }[resolution] ?? resolution
+  );
+}
+
 function CoverageBadge({ history }: { history: HistoryResponse }) {
   const label =
     history.coverage.status === "COMPLETE"
@@ -714,7 +460,7 @@ function CoverageBadge({ history }: { history: HistoryResponse }) {
             ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
             : "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
       }`}
-      title={`${history.coverage.availableDays}/${history.coverage.requestedDays} gün mevcut`}
+      title={`${history.coverage.availableDays}/${history.coverage.requestedDays} gün mevcut · sunucudaki gün agregalarından hesaplanır, şerit/araç sınıfı kaynağından bağımsızdır`}
     >
       {label} · {history.coverage.availableDays}/
       {history.coverage.requestedDays} gün

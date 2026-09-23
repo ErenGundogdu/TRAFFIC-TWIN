@@ -20,6 +20,24 @@ describe("analytics filters", () => {
     ).toBe(true);
   });
 
+  it("accepts five daily years but rejects an oversized minute range", () => {
+    const filters = {
+      compareAssetId: "",
+      metric: "average-speed-kmh",
+      direction: "1",
+      resolution: "day",
+      fromDate: "2021-09-01",
+      toDate: "2026-08-31",
+    };
+    expect(analyticsFilterSchema.safeParse(filters).success).toBe(true);
+    expect(
+      analyticsFilterSchema.safeParse({
+        ...filters,
+        resolution: "minute",
+      }).success,
+    ).toBe(false);
+  });
+
   it("converts the inclusive UI end date to the exclusive API boundary", () => {
     expect(
       createInclusiveHistoryRange(

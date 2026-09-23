@@ -69,7 +69,25 @@ export function useRealtimeSync(coverageAreaId: string) {
                   updatedAt: result.data.sourceUpdatedAt,
                   fetchedAt: result.data.emittedAt,
                 },
-                stations: result.data.stations,
+                stations: result.data.stations.map((station) => {
+                  const previous = current.stations.find(
+                    (item) => item.id === station.id,
+                  );
+                  const knownDirections = new Map(
+                    previous?.lanes.map((lane) => [lane.lane, lane.direction]),
+                  );
+                  return {
+                    ...station,
+                    lanes: station.lanes.map((lane) => ({
+                      ...lane,
+                      // Live payloads do not carry the historical lane-direction evidence.
+                      direction:
+                        lane.direction ??
+                        knownDirections.get(lane.lane) ??
+                        null,
+                    })),
+                  };
+                }),
               }
             : current,
       );

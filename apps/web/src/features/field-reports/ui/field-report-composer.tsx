@@ -28,6 +28,7 @@ interface FieldReportComposerProps {
   onCancel: () => void;
   onCreated: (reportId: string) => void;
   onRetryCatalog: () => void;
+  embedded?: boolean;
 }
 
 export function FieldReportComposer({
@@ -41,6 +42,7 @@ export function FieldReportComposer({
   onCancel,
   onCreated,
   onRetryCatalog,
+  embedded = false,
 }: FieldReportComposerProps) {
   const form = useForm<CreateFieldReport>({
     resolver: zodResolver(createFieldReportSchema),
@@ -60,7 +62,9 @@ export function FieldReportComposer({
 
   if (!active) {
     return (
-      <div className="absolute bottom-24 left-3 z-20 flex items-center gap-2">
+      <div
+        className={`${embedded ? "relative" : "absolute bottom-24 left-3 z-20"} flex items-center gap-2`}
+      >
         <button
           type="button"
           onClick={onStart}
@@ -87,7 +91,9 @@ export function FieldReportComposer({
 
   if (!location) {
     return (
-      <section className="absolute bottom-24 left-3 z-20 w-72 rounded-2xl border border-amber-200 bg-white/95 p-4 shadow-2xl backdrop-blur dark:border-amber-800 dark:bg-slate-900/95">
+      <section
+        className={`${embedded ? "relative" : "absolute bottom-24 left-3 z-20"} w-72 rounded-2xl border border-amber-200 bg-white/95 p-4 shadow-2xl backdrop-blur dark:border-amber-800 dark:bg-slate-900/95`}
+      >
         <p className="text-[10px] font-semibold tracking-wider text-amber-700 uppercase dark:text-amber-300">
           Saha bildirimi
         </p>
@@ -135,7 +141,7 @@ export function FieldReportComposer({
     <form
       noValidate
       onSubmit={form.handleSubmit(submit)}
-      className="absolute bottom-4 left-3 z-30 w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95"
+      className={`${embedded ? "relative" : "absolute bottom-4 left-3 z-30"} w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>

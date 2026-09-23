@@ -39,24 +39,63 @@ body {
   height: 100%;
 }
 
+.maplibregl-canvas {
+  filter: saturate(0.9) contrast(1.025);
+}
+
+html[data-theme="dark"] .maplibregl-canvas {
+  filter: saturate(0.82) brightness(0.9) contrast(1.08);
+}
+
+.traffic-map-marker {
+  cursor: pointer;
+  isolation: isolate;
+  will-change: transform;
+}
+
+.traffic-map-marker::after {
+  position: absolute;
+  inset: -7px;
+  z-index: -1;
+  border-radius: inherit;
+  content: "";
+}
+
+.traffic-map-marker:hover::after,
+.traffic-map-marker:focus-visible::after {
+  background: rgb(255 255 255 / 24%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 55%);
+}
+
 .maplibregl-ctrl-group,
 .maplibregl-ctrl-scale {
   border-color: rgb(255 255 255 / 75%) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgb(15 23 42 / 14%) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 16%) !important;
+  backdrop-filter: blur(10px);
 }
 
 .maplibregl-ctrl-group button:first-child,
 .maplibregl-ctrl-group button:last-child {
-  border-radius: 10px !important;
+  border-radius: 12px !important;
+}
+
+.maplibregl-ctrl-group button {
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.maplibregl-ctrl-attrib {
+  border-radius: 8px 0 0 !important;
+  font-size: 10px !important;
 }
 
 .traffic-map-popup .maplibregl-popup-content {
   min-width: 210px;
   border: 1px solid rgb(226 232 240);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 12px 14px;
-  box-shadow: 0 18px 45px rgb(15 23 42 / 20%);
+  box-shadow: 0 22px 52px rgb(15 23 42 / 22%);
 }
 
 .traffic-map-popup .maplibregl-popup-tip {

@@ -1,218 +1,169 @@
-import type { StationSummary } from "@traffic-twin/contracts";
-import type { ReactNode } from "react";
+"use client";
 
-import { formatTrafficDirectionLabel } from "@/shared/traffic";
+import type { StationSummary } from "@traffic-twin/contracts";
+import { useRef, useState, type ReactNode } from "react";
+
+import type { StationDetailView } from "../model/station-detail-view";
+import { compareStationLanes } from "../model/lane-imbalance";
+import { LaneComparisonOverview } from "./lane-comparison-overview";
+import { StationDetailTabs } from "./station-detail-tabs";
+import { StationDirectionCard } from "./station-direction-card";
+import { StationLaneOverview } from "./station-lane-overview";
 
 interface StationDetailPanelProps {
-  station: StationSummary | null;
+  station: StationSummary;
   timeZone: string;
-  footer?: ReactNode;
+  context?: ReactNode;
+  insights?: ReactNode;
+  laneHistory?: ReactNode;
+  notes?: ReactNode;
 }
 
-const freshnessLabels = {
-  FRESH: "Güncel",
-  STALE: "Gecikmeli",
-  OUTDATED: "Eski veri",
-  UNAVAILABLE: "Veri yok",
+const freshnessPresentation = {
+  FRESH: { label: "Güncel", className: "bg-emerald-500" },
+  STALE: { label: "Gecikmeli", className: "bg-amber-500" },
+  OUTDATED: { label: "Eski veri", className: "bg-rose-500" },
+  UNAVAILABLE: { label: "Veri yok", className: "bg-slate-400" },
 } as const;
 
-const flowStatusPresentation = {
-  FREE_FLOW: {
-    label: "Akıcı",
-    className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-  },
-  PLATOONING: {
-    label: "Yoğun akış",
-    className: "bg-lime-100 text-lime-800 dark:bg-lime-950 dark:text-lime-200",
-  },
-  SLOW: {
-    label: "Yavaş",
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  },
-  QUEUING: {
-    label: "Kuyruklanma",
-    className:
-      "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200",
-  },
-  STATIONARY: {
-    label: "Durma noktasında",
-    className: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
-  },
-  INSUFFICIENT_DATA: {
-    label: "Yetersiz veri",
-    className:
-      "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  },
-} as const;
-
-function formatMeasurementTime(value: string | null, timeZone: string) {
-  if (!value) {
-    return "Ölçüm yok";
-  }
-
-  return new Intl.DateTimeFormat("tr-TR", {
-    dateStyle: "medium",
-    timeStyle: "medium",
-    timeZone,
-  }).format(new Date(value));
-}
-
-function formatMetric(value: number | null, unit: string) {
-  return value === null
-    ? "Veri yok"
-    : `${value.toLocaleString("tr-TR")} ${unit}`;
-}
-
-function formatPercentage(value: number | null) {
-  return value === null ? "Hesaplanamadı" : `%${value.toLocaleString("tr-TR")}`;
+interface ViewState {
+  stationId: string | null;
+  view: StationDetailView;
 }
 
 export function StationDetailPanel({
   station,
   timeZone,
-  footer,
+  context,
+  insights,
+  laneHistory,
+  notes,
 }: StationDetailPanelProps) {
-  if (!station) {
-    return (
-      <aside className="flex h-full items-center justify-center p-7 text-center">
-        <div>
-          <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-slate-100 text-xl">
-            ↖
-          </span>
-          <h2 className="mt-4 font-semibold text-slate-900 dark:text-slate-100">
-            İstasyon seçilmedi
-          </h2>
-          <p className="mt-2 max-w-56 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Gerçek hız ve geçiş oranını incelemek için haritadaki bir noktayı
-            seçin.
-          </p>
-        </div>
-      </aside>
-    );
+  const [viewState, setViewState] = useState<ViewState>({
+    stationId: station.id,
+    view: "overview",
+  });
+  const activeView =
+    viewState.stationId === station.id ? viewState.view : "overview";
+
+  const freshness = freshnessPresentation[station.freshness];
+
+  function changeView(view: StationDetailView) {
+    setViewState({ stationId: station.id, view });
   }
 
   return (
     <aside
-      className="h-full overflow-y-auto p-5"
+      className="flex h-full min-h-0 flex-col bg-slate-50 dark:bg-slate-950"
       aria-labelledby="station-title"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold tracking-[0.16em] text-sky-700 uppercase">
-            Sensör istasyonu
-          </p>
-          <h2
-            id="station-title"
-            className="mt-2 break-words text-lg font-semibold text-slate-950 dark:text-slate-50"
-          >
-            {station.name}
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            TMS {station.tmsNumber} · Fintraffic
-          </p>
-        </div>
-        <span className="mt-1 inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-          <span
-            className={`size-2.5 rounded-full ${
-              station.freshness === "FRESH"
-                ? "bg-emerald-500"
-                : station.freshness === "STALE"
-                  ? "bg-amber-500"
-                  : station.freshness === "OUTDATED"
-                    ? "bg-rose-500"
-                    : "bg-slate-400"
-            }`}
-            aria-hidden="true"
-          />
-          {freshnessLabels[station.freshness]}
-        </span>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {station.directions.map((direction) => (
-          <section
-            key={direction.direction}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {formatTrafficDirectionLabel(direction)}
-              </h3>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <span
-                  className={`rounded-full px-2 py-1 text-[10px] font-semibold ${flowStatusPresentation[direction.trafficFlow.status].className}`}
-                >
-                  {flowStatusPresentation[direction.trafficFlow.status].label}
-                </span>
-                <span className="text-[11px] font-medium text-slate-400">
-                  5 dk. kayan pencere
-                </span>
-              </div>
-            </div>
-            <dl className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-sky-50 p-3 dark:bg-sky-950">
-                <dt className="text-[11px] font-medium text-sky-700">
-                  Ortalama hız
-                </dt>
-                <dd className="mt-1 text-base font-semibold text-slate-950 dark:text-slate-50">
-                  {formatMetric(direction.averageSpeedKmh, "km/sa")}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-violet-50 p-3 dark:bg-violet-950">
-                <dt className="text-[11px] font-medium text-violet-700">
-                  Geçiş oranı
-                </dt>
-                <dd className="mt-1 text-base font-semibold text-slate-950 dark:text-slate-50">
-                  {formatMetric(direction.flowVehiclesPerHour, "araç/sa")}
-                </dd>
-                <p className="mt-1 text-[10px] leading-4 text-violet-600 dark:text-violet-300">
-                  Son 5 dk. temposunun saatlik karşılığı
-                </p>
-              </div>
-            </dl>
-            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-[11px] dark:border-slate-800">
-              <div>
-                <dt className="text-slate-500">Serbest akışa göre hız</dt>
-                <dd className="mt-0.5 font-semibold text-slate-800 dark:text-slate-200">
-                  {formatPercentage(
-                    direction.trafficFlow.speedPercentOfFreeFlow,
-                  )}
-                </dd>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  Referans:{" "}
-                  {formatMetric(
-                    direction.trafficFlow.freeFlowSpeedKmh,
-                    "km/sa",
-                  )}
-                </p>
-              </div>
-              <div>
-                <dt className="text-slate-500">Kapasite kullanımı</dt>
-                <dd className="mt-0.5 font-semibold text-slate-800 dark:text-slate-200">
-                  {formatPercentage(
-                    direction.trafficFlow.flowPercentOfCapacity,
-                  )}
-                </dd>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  Referans:{" "}
-                  {formatMetric(
-                    direction.trafficFlow.maximumFlowVehiclesPerHour,
-                    "araç/sa",
-                  )}
-                </p>
-              </div>
-            </dl>
-            <p className="mt-3 text-[11px] leading-5 text-slate-500">
-              Ölçüm: {formatMeasurementTime(direction.measuredAt, timeZone)} ·{" "}
-              {timeZone}
+      <header className="shrink-0 border-b border-slate-200 bg-white px-5 pt-5 pb-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-start justify-between gap-3 pr-8 xl:pr-0">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-sky-700 uppercase dark:text-sky-300">
+              Sensör istasyonu
             </p>
-          </section>
-        ))}
-      </div>
+            <h2
+              id="station-title"
+              className="mt-1.5 break-words text-lg font-semibold text-slate-950 dark:text-white"
+            >
+              {station.name}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              TMS {station.tmsNumber} · Fintraffic
+            </p>
+          </div>
+          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <span
+              className={`size-2.5 rounded-full ${freshness.className}`}
+              aria-hidden="true"
+            />
+            {freshness.label}
+          </span>
+        </div>
+        <div className="mt-4">
+          <StationDetailTabs value={activeView} onChange={changeView} />
+        </div>
+      </header>
 
-      <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-200 pt-5 text-xs dark:border-slate-800">
+      <DetailPanel view="overview" activeView={activeView}>
+        <Overview
+          station={station}
+          timeZone={timeZone}
+          laneHistory={laneHistory}
+        />
+      </DetailPanel>
+      <DetailPanel view="context" activeView={activeView}>
+        <SlotContent view="context">{context}</SlotContent>
+      </DetailPanel>
+      <DetailPanel view="insights" activeView={activeView}>
+        <SlotContent view="insights">{insights}</SlotContent>
+      </DetailPanel>
+      <DetailPanel view="notes" activeView={activeView}>
+        <SlotContent view="notes">{notes}</SlotContent>
+      </DetailPanel>
+    </aside>
+  );
+}
+
+function DetailPanel({
+  view,
+  activeView,
+  children,
+}: {
+  view: StationDetailView;
+  activeView: StationDetailView;
+  children: ReactNode;
+}) {
+  const active = view === activeView;
+  return (
+    <div
+      id={`station-detail-panel-${view}`}
+      role="tabpanel"
+      aria-labelledby={`station-detail-tab-${view}`}
+      hidden={!active}
+      className={`min-h-0 flex-1 overflow-y-auto p-4 ${active ? "block" : "hidden"}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Overview({
+  station,
+  timeZone,
+  laneHistory,
+}: {
+  station: StationSummary;
+  timeZone: string;
+  laneHistory?: ReactNode;
+}) {
+  const laneOverviewRef = useRef<HTMLDivElement>(null);
+  const comparisons = compareStationLanes(station);
+
+  return (
+    <div className="space-y-3">
+      {comparisons.length > 0 && (
+        <LaneComparisonOverview
+          comparisons={comparisons}
+          timeZone={timeZone}
+          onInspect={() =>
+            laneOverviewRef.current?.scrollIntoView({ block: "start" })
+          }
+        />
+      )}
+      <div ref={laneOverviewRef}>
+        <StationLaneOverview lanes={station.lanes} timeZone={timeZone} />
+      </div>
+      {laneHistory}
+      {station.directions.map((direction) => (
+        <StationDirectionCard
+          key={direction.direction}
+          direction={direction}
+          timeZone={timeZone}
+        />
+      ))}
+      <dl className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div>
           <dt className="text-slate-500">Enlem</dt>
           <dd className="mt-1 font-medium text-slate-800 dark:text-slate-200">
@@ -226,7 +177,30 @@ export function StationDetailPanel({
           </dd>
         </div>
       </dl>
-      {footer}
-    </aside>
+    </div>
+  );
+}
+
+function SlotContent({
+  view,
+  children,
+}: {
+  view: Exclude<StationDetailView, "overview">;
+  children: ReactNode;
+}) {
+  if (children) {
+    return (
+      <div className="[&>section]:mt-0 [&>section]:border-t-0 [&>section]:pt-0">
+        {children}
+      </div>
+    );
+  }
+
+  const label =
+    view === "context" ? "Bağlam" : view === "insights" ? "İçgörü" : "Not";
+  return (
+    <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+      {label} içeriği bu istasyon için kullanılamıyor.
+    </p>
   );
 }

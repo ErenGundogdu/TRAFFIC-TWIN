@@ -1,7 +1,7 @@
-export type WorkspaceMode = "live" | "analysis";
+export type WorkspaceMode = "live" | "analysis" | "replay";
 
 export function parseWorkspaceMode(value: string | null): WorkspaceMode {
-  return value === "analysis" ? "analysis" : "live";
+  return value === "analysis" || value === "replay" ? value : "live";
 }
 
 export function setWorkspaceMode(
@@ -9,8 +9,8 @@ export function setWorkspaceMode(
   mode: WorkspaceMode,
 ) {
   const next = new URLSearchParams(current.toString());
-  if (mode === "analysis") {
-    next.set("mode", "analysis");
+  if (mode !== "live") {
+    next.set("mode", mode);
   } else {
     next.delete("mode");
   }

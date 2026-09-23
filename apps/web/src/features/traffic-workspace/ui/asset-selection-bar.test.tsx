@@ -50,6 +50,7 @@ const stations = [
         trafficFlow: unknownTrafficFlow,
       },
     ],
+    lanes: [],
   },
   {
     id: "fintraffic-tms:20004",
@@ -78,6 +79,7 @@ const stations = [
         trafficFlow: unknownTrafficFlow,
       },
     ],
+    lanes: [],
   },
 ];
 

@@ -56,7 +56,7 @@ export function HistoryChart({
 
   return (
     <div
-      className="h-80 w-full"
+      className="h-96 w-full"
       role="img"
       aria-label={`Trafik geçmiş grafiği, ${history.series.length} seri, ${data.length} zaman noktası`}
     >
@@ -64,7 +64,7 @@ export function HistoryChart({
         <LineChart
           accessibilityLayer
           data={data}
-          margin={{ top: 12, right: 12, left: 0, bottom: 8 }}
+          margin={{ top: 12, right: 18, left: 4, bottom: 8 }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -93,6 +93,11 @@ export function HistoryChart({
               fill: theme === "dark" ? "#cbd5e1" : "#475569",
             }}
             width={48}
+            tickFormatter={(value: number) =>
+              new Intl.NumberFormat("tr-TR", {
+                maximumFractionDigits: 0,
+              }).format(value)
+            }
           />
           <Tooltip
             contentStyle={{
@@ -107,8 +112,18 @@ export function HistoryChart({
                 timeZone: history.timeZone,
               }).format(new Date(String(value)))
             }
+            formatter={(value) => [
+              new Intl.NumberFormat("tr-TR", {
+                maximumFractionDigits: 1,
+              }).format(Number(value)),
+              history.query.metric === "average-speed-kmh" ? "km/sa" : "araç",
+            ]}
           />
-          <Legend />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            wrapperStyle={{ fontSize: 11 }}
+          />
           {cursorTimestamp ? (
             <ReferenceLine
               x={cursorTimestamp}

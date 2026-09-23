@@ -11,6 +11,7 @@ import type {
   TrafficEvent,
 } from "@traffic-twin/contracts";
 import type {
+  GeoJSONSource,
   Map as MapLibreMap,
   MapStyleImageMissingEvent,
 } from "maplibre-gl";
@@ -26,10 +27,8 @@ import {
 import type { MapLayerMouseEvent, MapRef } from "react-map-gl/maplibre";
 
 import { useTheme } from "@/shared/theme";
-import { formatTrafficDirectionLabel } from "@/shared/traffic";
 import { TrafficEventDetailCard } from "@/features/traffic-events";
 import {
-  FIELD_REPORT_LAYER_ID,
   FieldReportDetailCard,
   FieldReportMapLayer,
 } from "@/features/field-reports";
@@ -38,6 +37,7 @@ import {
   createAnomalyGeoJson,
   createJunctionGeoJson,
   createStationGeoJson,
+  createTrafficEventAnchorGeoJson,
   createTrafficEventGeoJson,
   getTrafficEventAnchor,
 } from "../lib/traffic-map-data";
@@ -49,6 +49,12 @@ import {
 import { provideTransparentStyleImageFallback } from "../lib/map-style-image-fallback";
 import type { MapVisualizationMode } from "../model/map-visualization-mode";
 import { MapVisualizationSwitcher } from "./map-visualization-switcher";
+import { MapVisualizationLegend } from "./map-visualization-legend";
+import {
+  JunctionMapMarkers,
+  StationMapMarkers,
+  TrafficEventMapMarkers,
+} from "./traffic-map-markers";
 import {
   roadFlowArrowLayer,
   roadFlowCasingLayer,
@@ -59,11 +65,13 @@ import {
 } from "./traffic-flow-layers";
 import {
   anomalyLayer,
-  junctionHaloLayer,
-  junctionLayer,
-  selectedStationLabelLayer,
-  stationHaloLayer,
-  stationLayer,
+  eventClusterCountLayer,
+  eventClusterLayer,
+  junctionClusterCountLayer,
+  junctionClusterLayer,
+  stationClusterCountLayer,
+  stationClusterLayer,
+  stationOverviewLayer,
   trafficEventAreaLayer,
   trafficEventLineLayer,
   trafficEventPointLayer,
@@ -92,6 +100,7 @@ interface TrafficMapProps {
   roadContextStatus?: "idle" | "loading" | "error" | "ready";
   visualizationMode: MapVisualizationMode;
   onVisualizationModeChange: (mode: MapVisualizationMode) => void;
+  showLegend?: boolean;
 }
 
 interface HoveredAsset {
@@ -133,6 +142,7 @@ export function TrafficMap({
   roadContextStatus = "idle",
   visualizationMode,
   onVisualizationModeChange,
+  showLegend = true,
 }: TrafficMapProps) {
   const { theme } = useTheme();
   const mapRef = useRef<MapRef>(null);
@@ -140,15 +150,22 @@ export function TrafficMap({
   const [styleFailed, setStyleFailed] = useState(false);
   const [hoveredAsset, setHoveredAsset] = useState<HoveredAsset | null>(null);
   const [minLongitude, minLatitude, maxLongitude, maxLatitude] = bbox;
-  const stationGeoJson = createStationGeoJson(stations, selectedStationId);
-  const junctionGeoJson = createJunctionGeoJson(junctions, selectedJunctionId);
+  const stationGeoJson = createStationGeoJson(
+    stations,
+    selectedStationId,
+    anomalies,
+  );
   const densityGeoJson = createTrafficDensityGeoJson(stations);
   const volumeGeoJson = createTrafficVolumeGeoJson(stations);
+  const junctionGeoJson = createJunctionGeoJson(junctions, selectedJunctionId);
   const selectedStation = selectedStationId
     ? (stations.find((station) => station.id === selectedStationId) ?? null)
     : null;
+  const [currentZoom, setCurrentZoom] = useState(selectedStation ? 12 : 9.2);
   const roadFlowGeoJson = createRoadFlowGeoJson(roadContext, selectedStation);
   const trafficEventGeoJson = createTrafficEventGeoJson(trafficEvents);
+  const trafficEventAnchorGeoJson =
+    createTrafficEventAnchorGeoJson(trafficEvents);
   const selectedTrafficEvent = selectedTrafficEventId
     ? (trafficEvents.find((event) => event.id === selectedTrafficEventId) ??
       null)
@@ -238,7 +255,11 @@ export function TrafficMap({
       essential: false,
     });
   }, [selectedFieldReport]);
-  const anomalyGeoJson = createAnomalyGeoJson(stations, anomalies);
+  const anomalyGeoJson = createAnomalyGeoJson(
+    stations,
+    anomalies,
+    selectedStationId,
+  );
 
   function handleMapClick(event: MapLayerMouseEvent) {
     if (fieldReportPickMode) {
@@ -252,6 +273,20 @@ export function TrafficMap({
     const feature = event.features?.[0];
     const assetId = feature?.properties?.id as string | undefined;
     const kind = feature?.properties?.kind as string | undefined;
+
+    if (
+      feature?.properties?.cluster &&
+      feature.geometry.type === "Point" &&
+      typeof feature.properties.cluster_id === "number" &&
+      feature.source
+    ) {
+      expandCluster(
+        feature.source,
+        feature.properties.cluster_id,
+        feature.geometry.coordinates as [number, number],
+      );
+      return;
+    }
 
     if (kind === "field-report" && assetId) {
       onSelectFieldReport?.(assetId);
@@ -273,10 +308,60 @@ export function TrafficMap({
     }
   }
 
+  function expandCluster(
+    sourceId: string,
+    clusterId: number,
+    coordinates: [number, number],
+  ) {
+    const source = subscribedMapRef.current?.getSource(sourceId) as
+      GeoJSONSource | undefined;
+    if (!source) return;
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    source
+      .getClusterExpansionZoom(clusterId)
+      .then((zoom) => {
+        mapRef.current?.easeTo({
+          center: coordinates,
+          zoom,
+          duration: reduceMotion ? 0 : 500,
+        });
+      })
+      .catch(() => {
+        // Zoom seviyesi alınamazsa harita mevcut konumda kalır.
+      });
+  }
+
   function handlePointerMove(event: MapLayerMouseEvent) {
     const feature = event.features?.[0];
     const coordinates =
       feature?.geometry.type === "Point" ? feature.geometry.coordinates : null;
+
+    if (feature?.properties.cluster && coordinates) {
+      const count = feature.properties.point_count;
+      const clusterLabel = clusterHoverLabel(feature.layer?.id);
+      const activeAnomalyCount = Number(
+        feature.properties.activeAnomalyCount ?? 0,
+      );
+      const candidateAnomalyCount = Number(
+        feature.properties.candidateAnomalyCount ?? 0,
+      );
+      const anomalyDetail =
+        feature.layer?.id === "traffic-station-clusters" &&
+        (activeAnomalyCount > 0 || candidateAnomalyCount > 0)
+          ? ` ${activeAnomalyCount} aktif, ${candidateAnomalyCount} aday anomali işareti içeriyor.`
+          : "";
+      setHoveredAsset({
+        longitude: coordinates[0],
+        latitude: coordinates[1],
+        name: `${count} ${clusterLabel.unit}`,
+        category: clusterLabel.category,
+        detail: `Ayrı ayrı görmek için tıklayın veya yakınlaştırın.${anomalyDetail}`,
+      });
+      return;
+    }
 
     if (!feature || !coordinates) {
       if (feature?.properties.kind === "traffic-event") {
@@ -349,18 +434,19 @@ export function TrafficMap({
             selectedStation?.latitude ?? (minLatitude + maxLatitude) / 2,
           zoom: selectedStation ? 12 : 9.2,
         }}
-        mapStyle={`https://tiles.openfreemap.org/styles/${theme === "dark" ? "dark" : "liberty"}`}
+        mapStyle={`https://tiles.openfreemap.org/styles/${theme === "dark" ? "dark" : "bright"}`}
         interactiveLayerIds={[
-          "traffic-stations",
-          "traffic-junctions",
-          "traffic-event-points",
+          "traffic-station-overview",
+          "traffic-station-clusters",
+          "traffic-junction-clusters",
+          "traffic-event-clusters",
           "traffic-event-lines",
           "traffic-event-areas",
-          FIELD_REPORT_LAYER_ID,
         ]}
         onClick={handleMapClick}
         onMouseMove={handlePointerMove}
         onMouseLeave={() => setHoveredAsset(null)}
+        onZoomEnd={(event) => setCurrentZoom(event.viewState.zoom)}
         onError={() => setStyleFailed(true)}
         onLoad={() => setStyleFailed(false)}
         cursor={
@@ -415,20 +501,62 @@ export function TrafficMap({
           <Layer {...trafficEventLineLayer} />
           <Layer {...trafficEventPointLayer} />
         </Source>
+        <Source
+          id="traffic-event-cluster-source"
+          type="geojson"
+          data={trafficEventAnchorGeoJson}
+          cluster
+          clusterMaxZoom={13}
+          clusterRadius={50}
+        >
+          <Layer {...eventClusterLayer} />
+          <Layer {...eventClusterCountLayer} />
+        </Source>
+        {currentZoom >= 13 || selectedTrafficEventId ? (
+          <TrafficEventMapMarkers
+            events={trafficEvents}
+            selectedEventId={selectedTrafficEventId}
+            onSelect={onSelectTrafficEvent}
+            onHover={setHoveredAsset}
+          />
+        ) : null}
         <FieldReportMapLayer
           reports={fieldReports}
           selectedReportId={selectedFieldReportId}
           draftLocation={fieldReportDraftLocation}
+          onSelect={onSelectFieldReport}
         />
         <Source
-          id="traffic-stations-source"
+          id="traffic-station-overview-source"
           type="geojson"
           data={stationGeoJson}
+          cluster
+          clusterMaxZoom={10}
+          clusterRadius={44}
+          clusterProperties={{
+            activeAnomalyCount: [
+              "+",
+              ["case", ["==", ["get", "anomalyStatus"], "ACTIVE"], 1, 0],
+            ],
+            candidateAnomalyCount: [
+              "+",
+              ["case", ["==", ["get", "anomalyStatus"], "CANDIDATE"], 1, 0],
+            ],
+          }}
         >
-          <Layer {...stationHaloLayer} />
-          <Layer {...stationLayer} />
-          <Layer {...selectedStationLabelLayer} />
+          <Layer {...stationClusterLayer} />
+          <Layer {...stationClusterCountLayer} />
+          <Layer {...stationOverviewLayer} />
         </Source>
+        {currentZoom >= 10.5 ? (
+          <StationMapMarkers
+            stations={stations}
+            selectedStationId={selectedStationId}
+            onSelect={onSelect}
+            onHover={setHoveredAsset}
+            showDirection
+          />
+        ) : null}
         <Source
           id="traffic-anomalies-source"
           type="geojson"
@@ -437,13 +565,24 @@ export function TrafficMap({
           <Layer {...anomalyLayer} />
         </Source>
         <Source
-          id="traffic-junctions-source"
+          id="traffic-junction-overview-source"
           type="geojson"
           data={junctionGeoJson}
+          cluster
+          clusterMaxZoom={10}
+          clusterRadius={50}
         >
-          <Layer {...junctionHaloLayer} />
-          <Layer {...junctionLayer} />
+          <Layer {...junctionClusterLayer} />
+          <Layer {...junctionClusterCountLayer} />
         </Source>
+        {currentZoom >= 10.5 || selectedJunctionId ? (
+          <JunctionMapMarkers
+            junctions={junctions}
+            selectedJunctionId={selectedJunctionId}
+            onSelect={onSelectJunction}
+            onHover={setHoveredAsset}
+          />
+        ) : null}
         {selectedFieldReport ? (
           <Popup
             longitude={selectedFieldReport.location.longitude}
@@ -504,14 +643,16 @@ export function TrafficMap({
         value={visualizationMode}
         onChange={onVisualizationModeChange}
       />
-      <MapVisualizationLegend
-        mode={visualizationMode}
-        timeZone={timeZone}
-        selectedStationId={selectedStationId}
-        selectedStation={selectedStation}
-        roadContext={roadContext}
-        roadContextStatus={roadContextStatus}
-      />
+      {showLegend ? (
+        <MapVisualizationLegend
+          mode={visualizationMode}
+          timeZone={timeZone}
+          selectedStationId={selectedStationId}
+          selectedStation={selectedStation}
+          roadContext={roadContext}
+          roadContextStatus={roadContextStatus}
+        />
+      ) : null}
       {styleFailed ? (
         <p
           role="status"
@@ -523,6 +664,16 @@ export function TrafficMap({
       ) : null}
     </div>
   );
+}
+
+function clusterHoverLabel(layerId: string | undefined) {
+  if (layerId === "traffic-junction-clusters") {
+    return { unit: "kavşak", category: "Yakın kavşak grubu" };
+  }
+  if (layerId === "traffic-event-clusters") {
+    return { unit: "yol olayı", category: "Yakın yol olayı grubu" };
+  }
+  return { unit: "istasyon", category: "Yakın istasyon grubu" };
 }
 
 function formatTrafficEventCategory(
@@ -539,85 +690,4 @@ function formatTrafficEventCategory(
         ? "Aktif"
         : "Sona ermiş";
   return `${categoryLabel} · ${statusLabel} · Kaynak dili: ${language.toUpperCase()}`;
-}
-
-function MapVisualizationLegend({
-  mode,
-  timeZone,
-  selectedStationId,
-  selectedStation,
-  roadContext,
-  roadContextStatus,
-}: {
-  mode: MapVisualizationMode;
-  timeZone: string;
-  selectedStationId: string | null;
-  selectedStation: StationSummary | null;
-  roadContext?: StationRoadContext;
-  roadContextStatus: "idle" | "loading" | "error" | "ready";
-}) {
-  const title =
-    mode === "overview"
-      ? "Canlı trafik yoğunluğu"
-      : mode === "volume-3d"
-        ? "Göreli 3B trafik hacmi"
-        : "Seçili istasyonun yol akışı";
-  const description =
-    mode === "overview"
-      ? "Renk alanı, gerçek iki yön toplam araç/saat değerini gösterir."
-      : mode === "volume-3d"
-        ? "Sütun yüksekliği fiziksel değildir; istasyonlar arasındaki göreli araç/saat hacmidir."
-        : !selectedStationId
-          ? "Gerçek OSM yol bağlamını görmek için bir ölçüm istasyonu seçin."
-          : roadContextStatus === "loading"
-            ? "Gerçek OSM yol geometrisi yükleniyor…"
-            : roadContextStatus === "error"
-              ? "OSM yolu alınamadı; gerçek istasyon ölçümü korunuyor."
-              : roadContext?.freshness === "STALE"
-                ? roadContext.status === "MATCHED"
-                  ? `OpenStreetMap geçici olarak yenilenemedi; ${formatRoadContextFetchedAt(roadContext.source.fetchedAt, timeZone)} tarihinde alınan son gerçek yol geometrisi gösteriliyor.`
-                  : `OpenStreetMap geçici olarak yenilenemedi; ${formatRoadContextFetchedAt(roadContext.source.fetchedAt, timeZone)} tarihli son kontrolde eşleşen yol bulunmamıştı.`
-                : roadContext?.status === "NO_MATCH"
-                  ? "Yol referansıyla eşleşen OSM geometrisi bulunamadı."
-                  : "Gerçek OSM çizgisi: kalınlık araç/saat, iç renk istasyona özgü serbest akış oranı, renkli kenar ve ok ölçüm yönüdür.";
-
-  return (
-    <div className="pointer-events-none absolute bottom-8 left-3 max-w-80 rounded-xl border border-white/80 bg-white/95 px-3 py-2.5 text-[10px] leading-4 text-slate-600 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-300">
-      <p className="font-semibold text-slate-900 dark:text-white">{title}</p>
-      <p className="mt-0.5">{description}</p>
-      {mode !== "flow" ? (
-        <div className="mt-2 flex items-center gap-2">
-          <span>Düşük</span>
-          <span className="h-1.5 flex-1 rounded-full bg-gradient-to-r from-sky-400 via-emerald-500 via-50% to-rose-600" />
-          <span>Yüksek</span>
-        </div>
-      ) : selectedStation && roadContext?.status === "MATCHED" ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {selectedStation.directions.map((direction) => (
-            <span
-              key={direction.direction}
-              className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-1 dark:bg-slate-800"
-            >
-              <span
-                className={`size-2 rounded-full ${
-                  direction.direction === 1 ? "bg-sky-600" : "bg-violet-600"
-                }`}
-              />
-              {formatTrafficDirectionLabel(direction)}:{" "}
-              {formatMetric(direction.averageSpeedKmh, "km/sa")} ·{" "}
-              {formatMetric(direction.flowVehiclesPerHour, "araç/sa")}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function formatRoadContextFetchedAt(value: string, timeZone: string) {
-  return new Intl.DateTimeFormat("tr-TR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone,
-  }).format(new Date(value));
 }

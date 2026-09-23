@@ -47,9 +47,29 @@ const station: StationSummary = {
       trafficFlow,
     },
   ],
+  lanes: [],
 };
 
 describe("applyReplayFrame", () => {
+  it("removes live measurements before the first historical frame", () => {
+    const [projected] = applyReplayFrame([station], null, 1);
+
+    expect(projected?.directions).toEqual(
+      station.directions.map((direction) => ({
+        ...direction,
+        averageSpeedKmh: null,
+        flowVehiclesPerHour: null,
+        measuredAt: null,
+        trafficFlow: {
+          ...direction.trafficFlow,
+          status: "INSUFFICIENT_DATA",
+          speedPercentOfFreeFlow: null,
+          flowPercentOfCapacity: null,
+        },
+      })),
+    );
+  });
+
   it("projects only the selected historical direction onto map stations", () => {
     const frame: ReplayFrame = {
       timestamp: "2026-09-03T08:25:00.000Z",

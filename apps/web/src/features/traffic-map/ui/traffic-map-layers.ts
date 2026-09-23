@@ -1,131 +1,147 @@
 import type { LayerProps } from "react-map-gl/maplibre";
 import type { ExpressionSpecification } from "maplibre-gl";
 
-export const stationLayer: LayerProps = {
-  id: "traffic-stations",
+function stationFreshnessColor(): ExpressionSpecification {
+  return [
+    "match",
+    ["get", "freshness"],
+    "FRESH",
+    "#059669",
+    "STALE",
+    "#f59e0b",
+    "OUTDATED",
+    "#e11d48",
+    "#64748b",
+  ];
+}
+
+export const stationOverviewLayer: LayerProps = {
+  id: "traffic-station-overview",
   type: "circle",
+  maxzoom: 10.5,
+  filter: ["!", ["has", "point_count"]],
   paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 9, 6],
-    "circle-color": [
-      "match",
-      ["get", "freshness"],
-      "FRESH",
-      "#059669",
-      "STALE",
-      "#d97706",
-      "OUTDATED",
-      "#e11d48",
-      "#64748b",
-    ],
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 3.5, 10, 6],
+    "circle-color": stationFreshnessColor(),
     "circle-stroke-color": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      "#0c4a6e",
+      "match",
+      ["get", "anomalyStatus"],
+      "ACTIVE",
+      "#e11d48",
+      "CANDIDATE",
+      "#f59e0b",
       "#ffffff",
     ],
     "circle-stroke-width": [
       "case",
-      ["boolean", ["get", "selected"], false],
+      ["==", ["get", "anomalyStatus"], "NONE"],
+      1.5,
       3,
-      2,
     ],
     "circle-opacity": 0.94,
   },
 };
 
-export const stationHaloLayer: LayerProps = {
-  id: "traffic-station-halos",
+export const stationClusterLayer: LayerProps = {
+  id: "traffic-station-clusters",
   type: "circle",
+  maxzoom: 10.5,
+  filter: ["has", "point_count"],
   paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 17, 11],
+    "circle-radius": ["step", ["get", "point_count"], 14, 5, 18, 15, 22],
     "circle-color": [
-      "match",
-      ["get", "freshness"],
-      "FRESH",
-      "#10b981",
-      "STALE",
-      "#f59e0b",
-      "OUTDATED",
-      "#f43f5e",
-      "#94a3b8",
-    ],
-    "circle-opacity": [
       "case",
-      ["boolean", ["get", "selected"], false],
-      0.32,
-      0.14,
-    ],
-    "circle-blur": 0.35,
-  },
-};
-
-export const selectedStationLabelLayer: LayerProps = {
-  id: "selected-station-label",
-  type: "symbol",
-  filter: ["==", ["get", "selected"], true],
-  layout: {
-    "text-field": ["get", "shortLabel"],
-    "text-size": 11,
-    "text-font": ["Noto Sans Regular"],
-    "text-offset": [0, 1.7],
-    "text-anchor": "top",
-    "text-allow-overlap": true,
-  },
-  paint: {
-    "text-color": "#0f172a",
-    "text-halo-color": "#ffffff",
-    "text-halo-width": 2,
-  },
-};
-
-export const junctionLayer: LayerProps = {
-  id: "traffic-junctions",
-  type: "circle",
-  paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 11, 8],
-    "circle-color": [
-      "match",
-      ["get", "coverage"],
-      "FULL",
-      "#7c3aed",
-      "PARTIAL",
-      "#2563eb",
-      "#64748b",
+      [">", ["get", "activeAnomalyCount"], 0],
+      "#9f1239",
+      [">", ["get", "candidateAnomalyCount"], 0],
+      "#b45309",
+      "#334155",
     ],
     "circle-stroke-color": "#ffffff",
-    "circle-stroke-width": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      4,
-      2,
-    ],
+    "circle-stroke-width": 2,
+    "circle-opacity": 0.9,
   },
 };
 
-export const junctionHaloLayer: LayerProps = {
-  id: "traffic-junction-halos",
-  type: "circle",
+export const stationClusterCountLayer: LayerProps = {
+  id: "traffic-station-cluster-counts",
+  type: "symbol",
+  maxzoom: 10.5,
+  filter: ["has", "point_count"],
+  layout: {
+    "text-field": ["get", "point_count_abbreviated"],
+    "text-size": 12,
+    "text-font": ["Noto Sans Bold"],
+  },
   paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 19, 14],
-    "circle-color": [
-      "match",
-      ["get", "coverage"],
-      "FULL",
-      "#7c3aed",
-      "PARTIAL",
-      "#2563eb",
-      "#64748b",
-    ],
-    "circle-opacity": 0.18,
-    "circle-blur": 0.25,
+    "text-color": "#ffffff",
+  },
+};
+
+export const junctionClusterLayer: LayerProps = {
+  id: "traffic-junction-clusters",
+  type: "circle",
+  maxzoom: 10.5,
+  filter: ["has", "point_count"],
+  paint: {
+    "circle-radius": ["step", ["get", "point_count"], 13, 5, 17, 15, 21],
+    "circle-color": "#4c1d95",
+    "circle-stroke-color": "#ffffff",
+    "circle-stroke-width": 2,
+    "circle-opacity": 0.9,
+  },
+};
+
+export const junctionClusterCountLayer: LayerProps = {
+  id: "traffic-junction-cluster-counts",
+  type: "symbol",
+  maxzoom: 10.5,
+  filter: ["has", "point_count"],
+  layout: {
+    "text-field": ["get", "point_count_abbreviated"],
+    "text-size": 12,
+    "text-font": ["Noto Sans Bold"],
+  },
+  paint: {
+    "text-color": "#ffffff",
+  },
+};
+
+export const eventClusterLayer: LayerProps = {
+  id: "traffic-event-clusters",
+  type: "circle",
+  maxzoom: 13,
+  filter: ["has", "point_count"],
+  paint: {
+    "circle-radius": ["step", ["get", "point_count"], 14, 5, 18, 15, 22],
+    "circle-color": "#7c2d12",
+    "circle-stroke-color": "#ffffff",
+    "circle-stroke-width": 2,
+    "circle-opacity": 0.92,
+  },
+};
+
+export const eventClusterCountLayer: LayerProps = {
+  id: "traffic-event-cluster-counts",
+  type: "symbol",
+  maxzoom: 13,
+  filter: ["has", "point_count"],
+  layout: {
+    "text-field": ["get", "point_count_abbreviated"],
+    "text-size": 12,
+    "text-font": ["Noto Sans Bold"],
+  },
+  paint: {
+    "text-color": "#ffffff",
   },
 };
 
 export const anomalyLayer: LayerProps = {
   id: "traffic-anomalies",
   type: "circle",
+  minzoom: 10.5,
   paint: {
-    "circle-radius": 12,
+    "circle-radius": ["case", ["get", "selected"], 27, 20],
     "circle-color": "rgba(0,0,0,0)",
     "circle-stroke-width": 3,
     "circle-stroke-color": [
@@ -178,15 +194,16 @@ export const trafficEventPointLayer: LayerProps = {
   type: "circle",
   filter: ["==", ["geometry-type"], "Point"],
   paint: {
-    "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 5, 13, 9],
+    "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 10, 13, 15],
     "circle-color": trafficEventColor(),
     "circle-opacity": [
       "case",
       ["==", ["get", "status"], "UPCOMING"],
-      0.6,
-      0.95,
+      0.08,
+      0.13,
     ],
-    "circle-stroke-color": "#ffffff",
-    "circle-stroke-width": 2,
+    "circle-stroke-color": trafficEventColor(),
+    "circle-stroke-opacity": 0.3,
+    "circle-stroke-width": 1,
   },
 };

@@ -1,77 +1,75 @@
 import type { FieldReport, FieldReportLocation } from "@traffic-twin/contracts";
-import { Layer, Source } from "react-map-gl/maplibre";
-import type { LayerProps } from "react-map-gl/maplibre";
+import { Marker } from "react-map-gl/maplibre";
 
-import {
-  createFieldReportDraftGeoJson,
-  createFieldReportGeoJson,
-} from "../lib/field-report-map-data";
+import { TrafficAssetIcon } from "@/shared/ui";
 
-export const FIELD_REPORT_LAYER_ID = "field-report-points";
-
-const fieldReportLayer: LayerProps = {
-  id: FIELD_REPORT_LAYER_ID,
-  type: "circle",
-  paint: {
-    "circle-radius": ["case", ["boolean", ["get", "selected"], false], 11, 8],
-    "circle-color": [
-      "match",
-      ["get", "status"],
-      "VERIFIED",
-      "#2563eb",
-      "#f59e0b",
-    ],
-    "circle-stroke-color": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      "#0f172a",
-      "#ffffff",
-    ],
-    "circle-stroke-width": [
-      "case",
-      ["boolean", ["get", "selected"], false],
-      4,
-      2,
-    ],
-  },
-};
-
-const draftLayer: LayerProps = {
-  id: "field-report-draft-point",
-  type: "circle",
-  paint: {
-    "circle-radius": 12,
-    "circle-color": "#ffffff",
-    "circle-stroke-color": "#e11d48",
-    "circle-stroke-width": 4,
-  },
-};
+const severityClassNames = {
+  LOW: "bg-amber-400",
+  MEDIUM: "bg-orange-500",
+  HIGH: "bg-rose-600",
+} as const;
 
 export function FieldReportMapLayer({
   reports,
   selectedReportId,
   draftLocation,
+  onSelect,
 }: {
   reports: FieldReport[];
   selectedReportId: string | null;
   draftLocation: FieldReportLocation | null;
+  onSelect?: (reportId: string | null) => void;
 }) {
   return (
     <>
-      <Source
-        id="field-reports-source"
-        type="geojson"
-        data={createFieldReportGeoJson(reports, selectedReportId)}
-      >
-        <Layer {...fieldReportLayer} />
-      </Source>
-      <Source
-        id="field-report-draft-source"
-        type="geojson"
-        data={createFieldReportDraftGeoJson(draftLocation)}
-      >
-        <Layer {...draftLayer} />
-      </Source>
+      {reports
+        .filter(
+          (report) =>
+            report.status !== "REJECTED" && report.status !== "RESOLVED",
+        )
+        .map((report) => {
+          const selected = report.id === selectedReportId;
+          return (
+            <Marker
+              key={report.id}
+              longitude={report.location.longitude}
+              latitude={report.location.latitude}
+              anchor="bottom"
+            >
+              <button
+                type="button"
+                aria-label={`${report.category} saha bildirimi, ${report.severity} önem`}
+                aria-pressed={selected}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect?.(report.id);
+                }}
+                className={`traffic-map-marker relative grid size-9 place-items-center rounded-t-xl rounded-br-xl border-2 border-white text-white shadow-xl transition hover:-translate-y-0.5 hover:scale-110 ${
+                  report.status === "VERIFIED"
+                    ? "bg-blue-600"
+                    : severityClassNames[report.severity]
+                } ${selected ? "-translate-y-0.5 scale-110 ring-4 ring-slate-950/25" : ""}`}
+              >
+                <TrafficAssetIcon kind="field-report" className="size-5" />
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-1.5 left-1/2 size-3 -translate-x-1/2 rotate-45 border-r-2 border-b-2 border-white bg-inherit"
+                />
+              </button>
+            </Marker>
+          );
+        })}
+      {draftLocation ? (
+        <Marker
+          longitude={draftLocation.longitude}
+          latitude={draftLocation.latitude}
+          anchor="bottom"
+        >
+          <span className="grid size-11 animate-pulse place-items-center rounded-full border-4 border-rose-500 bg-white text-rose-600 shadow-2xl dark:bg-slate-900">
+            <TrafficAssetIcon kind="field-report" className="size-5" />
+          </span>
+        </Marker>
+      ) : null}
     </>
   );
 }

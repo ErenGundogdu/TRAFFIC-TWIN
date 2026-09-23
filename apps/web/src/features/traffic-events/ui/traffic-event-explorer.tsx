@@ -21,6 +21,7 @@ interface TrafficEventExplorerProps {
   timeZone: string;
   status: "loading" | "error" | "ready";
   onRetry: () => void;
+  embedded?: boolean;
 }
 
 export function TrafficEventExplorer({
@@ -34,11 +35,14 @@ export function TrafficEventExplorer({
   timeZone,
   status,
   onRetry,
+  embedded = false,
 }: TrafficEventExplorerProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <aside className="absolute top-16 right-4 z-10 w-[min(340px,calc(100%-2rem))] overflow-hidden rounded-xl border border-white/70 bg-white/95 text-[11px] shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+    <aside
+      className={`${embedded ? "pointer-events-auto relative w-full" : "absolute top-56 right-4 left-4 z-10 w-auto sm:top-16 sm:left-auto sm:w-[min(340px,calc(100%-2rem))]"} overflow-hidden rounded-xl border border-white/70 bg-white/95 text-[11px] shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95`}
+    >
       <button
         type="button"
         aria-expanded={expanded}

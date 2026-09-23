@@ -54,6 +54,7 @@ const station: StationSummary = {
       trafficFlow,
     },
   ],
+  lanes: [],
 };
 
 const roadContext: StationRoadContext = {

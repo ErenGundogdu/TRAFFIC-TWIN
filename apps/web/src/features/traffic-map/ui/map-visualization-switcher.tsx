@@ -1,4 +1,5 @@
 import type { MapVisualizationMode } from "../model/map-visualization-mode";
+import { SegmentedControl } from "@/shared/ui";
 
 const modes: Array<{ value: MapVisualizationMode; label: string }> = [
   { value: "overview", label: "Isı haritası" },
@@ -14,26 +15,14 @@ export function MapVisualizationSwitcher({
   onChange: (value: MapVisualizationMode) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Harita görünümü"
-      className="absolute top-4 right-4 z-10 flex rounded-xl border border-white/70 bg-white/95 p-1 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95"
-    >
-      {modes.map((mode) => (
-        <button
-          key={mode.value}
-          type="button"
-          aria-pressed={value === mode.value}
-          onClick={() => onChange(mode.value)}
-          className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
-            value === mode.value
-              ? "bg-slate-950 text-white dark:bg-sky-700"
-              : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          }`}
-        >
-          {mode.label}
-        </button>
-      ))}
+    <div className="absolute top-4 right-4 z-10 rounded-xl bg-white/90 shadow-lg backdrop-blur dark:bg-slate-900/90">
+      <SegmentedControl
+        label="Harita görünümü"
+        value={value}
+        options={modes}
+        onChange={onChange}
+        size="small"
+      />
     </div>
   );
 }

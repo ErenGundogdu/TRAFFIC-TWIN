@@ -1,4 +1,5 @@
 import {
+  HISTORY_MAXIMUM_RANGE_DAYS,
   historyMetricSchema,
   historyResolutionSchema,
   type HistoryMetric,
@@ -9,7 +10,6 @@ import { z } from "zod";
 import { shiftDateLabel, zonedDateStartIso } from "@/shared/time/zoned-date";
 
 const dateSchema = z.iso.date({ error: "Geçerli bir tarih seçin." });
-const MAXIMUM_INCLUSIVE_DAYS = 370;
 
 export const analyticsFilterSchema = z
   .object({
@@ -24,10 +24,15 @@ export const analyticsFilterSchema = z
     message: "Bitiş tarihi başlangıçtan önce olamaz.",
     path: ["toDate"],
   })
-  .refine((value) => inclusiveDayCount(value.fromDate, value.toDate) <= 370, {
-    message: "En fazla 370 günlük aralık seçilebilir.",
-    path: ["toDate"],
-  });
+  .refine(
+    (value) =>
+      inclusiveDayCount(value.fromDate, value.toDate) <=
+      HISTORY_MAXIMUM_RANGE_DAYS[value.resolution],
+    {
+      message: "Seçilen çözünürlük için tarih aralığı sınırı aşıldı.",
+      path: ["toDate"],
+    },
+  );
 
 export type AnalyticsFilterValues = z.infer<typeof analyticsFilterSchema>;
 
@@ -82,7 +87,7 @@ export function parseAnalyticsUrlFilters(
 
   if (
     fromDate > toDate ||
-    inclusiveDayCount(fromDate, toDate) > MAXIMUM_INCLUSIVE_DAYS
+    inclusiveDayCount(fromDate, toDate) > HISTORY_MAXIMUM_RANGE_DAYS[resolution]
   ) {
     fromDate = options.defaultDate;
     toDate = options.defaultDate;
@@ -144,7 +149,7 @@ function parseEnumParameter<
   return fallback;
 }
 
-function inclusiveDayCount(fromDate: string, toDate: string) {
+export function inclusiveDayCount(fromDate: string, toDate: string) {
   const from = new Date(`${fromDate}T12:00:00Z`).getTime();
   const to = new Date(`${toDate}T12:00:00Z`).getTime();
   return Math.floor((to - from) / 86_400_000) + 1;

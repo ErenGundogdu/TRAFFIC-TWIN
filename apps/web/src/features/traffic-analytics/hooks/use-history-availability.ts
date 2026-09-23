@@ -8,5 +8,6 @@ export function useHistoryAvailability(coverageAreaId: string, enabled = true) {
     queryFn: () => getHistoryAvailability(coverageAreaId),
     enabled,
     staleTime: 60_000,
+    refetchInterval: 300_000,
   });
 }

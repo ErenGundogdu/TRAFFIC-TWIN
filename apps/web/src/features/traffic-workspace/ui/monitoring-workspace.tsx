@@ -5,13 +5,19 @@ import { useEffect, useState } from "react";
 
 import {
   AnalyticsPanel,
+  ReplayPanel,
   useHistoryAvailability,
 } from "@/features/traffic-analytics";
 import {
   StationDetailPanel,
   useStationCatalog,
 } from "@/features/station-monitoring";
-import { TrafficMap, type MapVisualizationMode } from "@/features/traffic-map";
+import {
+  countAnomalousAssets,
+  MapVisualizationLegend,
+  TrafficMap,
+  type MapVisualizationMode,
+} from "@/features/traffic-map";
 import { OperatorNotesPanel } from "@/features/operator-notes";
 import { FieldReportComposer, useFieldReports } from "@/features/field-reports";
 import type { FieldReportLocation } from "@traffic-twin/contracts";
@@ -23,7 +29,14 @@ import {
   useJunctionCatalog,
 } from "@/features/junction-monitoring";
 import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
-import { ThemeToggle } from "@/shared/theme";
+import {
+  CorridorInsightPanel,
+  useCorridorInsight,
+} from "@/features/corridor-insights";
+import {
+  LaneHistoryInsightPanel,
+  useLaneHistoryInsight,
+} from "@/features/lane-history-insights";
 import {
   defaultTrafficEventFilters,
   filterTrafficEvents,
@@ -37,27 +50,23 @@ import {
 } from "@/features/traffic-events";
 
 import { AssetSelectionBar } from "./asset-selection-bar";
+import { createLiveTrafficOverview } from "../lib/live-traffic-overview";
+import {
+  defaultMapLayerSettings,
+  filterStationsForMap,
+} from "../model/map-layer-settings";
 import {
   parseWorkspaceMode,
   setWorkspaceMode,
   type WorkspaceMode,
 } from "../model/workspace-mode";
+import { LiveStatusSummary } from "./live-status-summary";
+import { MapLayerControl } from "./map-layer-control";
+import { TodaySummaryPanel } from "./today-summary-panel";
+import { WorkspaceHeader } from "./workspace-header";
 
 interface MonitoringWorkspaceProps {
   coverageAreaId: string;
-}
-
-function formatSourceTime(value: string | null, timeZone: string) {
-  if (!value) {
-    return "Güncelleme zamanı yok";
-  }
-
-  return new Intl.DateTimeFormat("tr-TR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    timeZone,
-  }).format(new Date(value));
 }
 
 export function MonitoringWorkspace({
@@ -68,9 +77,17 @@ export function MonitoringWorkspace({
   const searchParams = useSearchParams();
   const [mapVisualizationMode, setMapVisualizationMode] =
     useState<MapVisualizationMode>("flow");
+  const [mapLayerSettings, setMapLayerSettings] = useState(
+    defaultMapLayerSettings,
+  );
   const [fieldReportToolActive, setFieldReportToolActive] = useState(false);
   const [fieldReportDraftLocation, setFieldReportDraftLocation] =
     useState<FieldReportLocation | null>(null);
+  // Mobile-only: lets the summary overlay be closed to reveal the map
+  // underneath, since on narrow screens it isn't a sidebar but a card that
+  // covers most of the map when nothing is selected.
+  const [isSummaryDismissedOnMobile, setIsSummaryDismissedOnMobile] =
+    useState(false);
   const mode = parseWorkspaceMode(searchParams.get("mode"));
   const trafficEventFilters = parseTrafficEventFilters(searchParams);
   const requestedStationId = searchParams.get("station");
@@ -106,7 +123,7 @@ export function MonitoringWorkspace({
     : null;
   const historyAvailabilityQuery = useHistoryAvailability(
     coverageAreaId,
-    mode === "analysis",
+    mode !== "live",
   );
   const realtime = useRealtimeSync(coverageAreaId);
   const replay = useReplay();
@@ -116,7 +133,7 @@ export function MonitoringWorkspace({
     ) ?? null;
   const selectedStationId =
     requestedStation?.id ??
-    (mode === "analysis" ? catalogQuery.data?.stations[0]?.id : null) ??
+    (mode !== "live" ? catalogQuery.data?.stations[0]?.id : null) ??
     null;
   const roadContextQuery = useStationRoadContext(
     coverageAreaId,
@@ -138,10 +155,20 @@ export function MonitoringWorkspace({
     anomalyQuery.data?.evaluations.filter(
       (evaluation) => evaluation.assetId === selectedStationId,
     ) ?? [];
+  const corridorInsightQuery = useCorridorInsight(
+    coverageAreaId,
+    selectedStationId,
+    mode === "live",
+  );
+  const laneHistoryQuery = useLaneHistoryInsight(
+    coverageAreaId,
+    selectedStationId,
+    mode === "live",
+  );
 
   useEffect(() => {
     if (
-      mode !== "analysis" ||
+      mode === "live" ||
       requestedStation ||
       !selectedStationId ||
       !catalogQuery.data
@@ -163,9 +190,15 @@ export function MonitoringWorkspace({
   ]);
 
   function selectStation(stationId: string) {
-    if (mode === "analysis") replay.control({ action: "stop" });
+    if (mode !== "live") replay.control({ action: "stop" });
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("station", stationId);
+    if (
+      mode === "analysis" &&
+      nextParams.get("analysisView") === "comparison"
+    ) {
+      nextParams.set("cmpAAsset", stationId);
+    }
     nextParams.delete("junction");
     nextParams.delete("event");
     nextParams.delete("report");
@@ -189,7 +222,7 @@ export function MonitoringWorkspace({
     nextParams.delete("station");
     nextParams.delete("junction");
     nextParams.delete("report");
-    if (mode === "analysis") {
+    if (mode !== "live") {
       nextParams.delete("mode");
     }
     const query = nextParams.toString();
@@ -246,10 +279,10 @@ export function MonitoringWorkspace({
   }
 
   function changeMode(nextMode: WorkspaceMode) {
-    if (nextMode === "live") replay.control({ action: "stop" });
+    if (nextMode !== "replay") replay.control({ action: "stop" });
     const nextParams = setWorkspaceMode(searchParams, nextMode);
     nextParams.delete("junction");
-    if (nextMode === "analysis" && !selectedStationId) {
+    if (nextMode !== "live" && !selectedStationId) {
       const firstStationId = catalogQuery.data?.stations[0]?.id;
       if (firstStationId) {
         nextParams.set("station", firstStationId);
@@ -301,90 +334,51 @@ export function MonitoringWorkspace({
   const junctions = junctionQuery.data?.junctions ?? [];
   const replayDirection = searchParams.get("direction") === "2" ? 2 : 1;
   const mapStations =
-    mode === "analysis" && replay.frame
+    mode === "replay"
       ? applyReplayFrame(stations, replay.frame, replayDirection)
       : stations;
+  const visibleMapStations = filterStationsForMap(
+    mapStations,
+    mapLayerSettings,
+    selectedStationId,
+  );
+  const visibleTrafficEvents = filteredTrafficEvents.filter(
+    (trafficEvent) =>
+      trafficEvent.id === selectedTrafficEventId ||
+      (trafficEvent.category === "ROAD_WORK"
+        ? mapLayerSettings.roadWorks
+        : mapLayerSettings.trafficAnnouncements),
+  );
+  const visibleFieldReports = mapLayerSettings.fieldReports ? fieldReports : [];
+  const visibleJunctions = mapLayerSettings.junctions ? junctions : [];
+  const liveTrafficOverview = createLiveTrafficOverview(mapStations);
+  const mapLayerCounts = {
+    stations: mapStations.length,
+    junctions: junctions.length,
+    anomalies: countAnomalousAssets(anomalyQuery.data?.evaluations ?? []),
+    roadWorks: liveTrafficEvents.filter(
+      (trafficEvent) => trafficEvent.category === "ROAD_WORK",
+    ).length,
+    trafficAnnouncements: liveTrafficEvents.filter(
+      (trafficEvent) => trafficEvent.category === "TRAFFIC_ANNOUNCEMENT",
+    ).length,
+    fieldReports: fieldReports.filter(
+      (report) => report.status !== "REJECTED" && report.status !== "RESOLVED",
+    ).length,
+  };
 
   return (
     <main className="flex h-screen min-h-[680px] flex-col overflow-hidden bg-slate-100 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
-      <header className="z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-sm font-bold text-white">
-            TT
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">Traffic Twin</p>
-            <p className="truncate text-xs text-slate-500">
-              {coverageArea.name}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div
-            className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
-            aria-label="Çalışma modu"
-          >
-            <ModeButton
-              active={mode === "live"}
-              onClick={() => changeMode("live")}
-            >
-              Canlı
-            </ModeButton>
-            <ModeButton
-              active={mode === "analysis"}
-              onClick={() => changeMode("analysis")}
-            >
-              Analiz
-            </ModeButton>
-          </div>
-          <div className="hidden items-center gap-1.5 text-[11px] text-slate-500 lg:flex">
-            <span
-              className={`size-2 rounded-full ${
-                realtime.status === "connected"
-                  ? "bg-sky-500"
-                  : realtime.status === "connecting"
-                    ? "bg-amber-400"
-                    : "bg-slate-400"
-              }`}
-            />
-            {realtime.status === "connected"
-              ? "Canlı bağlı"
-              : realtime.status === "connecting"
-                ? "Bağlanıyor"
-                : "Canlı bağlantı kesildi"}
-          </div>
-          <div className="hidden text-right sm:block">
-            <p className="text-xs font-medium text-slate-700">
-              {source.status === "AVAILABLE"
-                ? "Kaynak güncel"
-                : "Kaynak kesintili"}
-            </p>
-            <p className="text-[11px] text-slate-500">
-              {formatSourceTime(source.updatedAt, coverageArea.timeZone)} ·{" "}
-              {coverageArea.timeZone}
-            </p>
-          </div>
-          <span
-            className={`size-2.5 rounded-full ${
-              source.status === "AVAILABLE" ? "bg-emerald-500" : "bg-amber-500"
-            }`}
-            aria-label={
-              source.status === "AVAILABLE"
-                ? "Kaynak güncel"
-                : "Kaynak kesintili"
-            }
-          />
-          <button
-            type="button"
-            onClick={() => void catalogQuery.refetch()}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Yenile
-          </button>
-          <ThemeToggle />
-        </div>
-      </header>
+      <WorkspaceHeader
+        coverageAreaName={coverageArea.name}
+        timeZone={coverageArea.timeZone}
+        mode={mode}
+        onModeChange={changeMode}
+        realtimeStatus={realtime.status}
+        source={source}
+        refreshing={catalogQuery.isFetching}
+        onRefresh={() => void catalogQuery.refetch()}
+      />
 
       <AssetSelectionBar
         stations={stations}
@@ -402,7 +396,7 @@ export function MonitoringWorkspace({
               : "ready"
         }
         onRetryJunctions={() => void junctionQuery.refetch()}
-        showHistoryAvailability={mode === "analysis"}
+        showHistoryAvailability={mode !== "live"}
         historyAvailability={historyAvailabilityQuery.data?.assets}
         historyAvailabilityStatus={
           historyAvailabilityQuery.isPending
@@ -415,30 +409,38 @@ export function MonitoringWorkspace({
 
       <div
         className={`relative grid min-h-0 flex-1 grid-cols-1 ${
-          mode === "analysis"
-            ? "grid-rows-[minmax(260px,1fr)_minmax(300px,46vh)]"
+          mode !== "live"
+            ? "grid-rows-[minmax(260px,1fr)_minmax(300px,46vh)] xl:grid-cols-[minmax(440px,42vw)_minmax(0,1fr)] xl:grid-rows-1"
             : "xl:grid-cols-[minmax(0,1fr)_330px]"
         }`}
       >
         <section
-          className={`relative overflow-hidden ${mode === "live" ? "min-h-[440px]" : "min-h-[260px]"}`}
+          className={`relative overflow-hidden ${mode === "live" ? "min-h-[440px]" : "min-h-[260px] xl:min-h-0"}`}
           aria-label="Trafik haritası"
         >
           <TrafficMap
             bbox={coverageArea.bbox}
             timeZone={coverageArea.timeZone}
-            stations={mapStations}
+            stations={visibleMapStations}
             selectedStationId={selectedStationId}
             onSelect={selectStation}
-            junctions={junctions}
+            junctions={visibleJunctions}
             selectedJunctionId={selectedJunctionId}
             onSelectJunction={selectJunction}
-            anomalies={anomalyQuery.data?.evaluations}
-            trafficEvents={filteredTrafficEvents}
-            selectedTrafficEventId={selectedTrafficEventId}
+            anomalies={
+              mode === "replay" || !mapLayerSettings.anomalies
+                ? []
+                : anomalyQuery.data?.evaluations
+            }
+            trafficEvents={mode === "replay" ? [] : visibleTrafficEvents}
+            selectedTrafficEventId={
+              mode === "replay" ? null : selectedTrafficEventId
+            }
             onSelectTrafficEvent={selectTrafficEvent}
-            fieldReports={fieldReports}
-            selectedFieldReportId={selectedFieldReportId}
+            fieldReports={mode === "replay" ? [] : visibleFieldReports}
+            selectedFieldReportId={
+              mode === "replay" ? null : selectedFieldReportId
+            }
             onSelectFieldReport={selectFieldReport}
             fieldReportPickMode={fieldReportToolActive}
             fieldReportDraftLocation={fieldReportDraftLocation}
@@ -455,46 +457,96 @@ export function MonitoringWorkspace({
                     ? "error"
                     : "ready"
             }
+            showLegend={false}
           />
-          <TrafficEventExplorer
-            events={filteredTrafficEvents}
-            allEvents={liveTrafficEvents}
-            filters={trafficEventFilters}
-            onFiltersChange={changeTrafficEventFilters}
-            selectedEventId={selectedTrafficEventId}
-            onSelectEvent={selectTrafficEvent}
-            source={trafficEventQuery.data?.source}
-            timeZone={coverageArea.timeZone}
-            status={
-              trafficEventQuery.isPending
-                ? "loading"
-                : trafficEventQuery.isError
-                  ? "error"
-                  : "ready"
-            }
-            onRetry={() => void trafficEventQuery.refetch()}
-          />
-          <FieldReportComposer
-            coverageAreaId={coverageAreaId}
-            active={fieldReportToolActive}
-            location={fieldReportDraftLocation}
-            realtimeConnected={realtime.status === "connected"}
-            catalogStatus={
-              fieldReportsQuery.isPending
-                ? "loading"
-                : fieldReportsQuery.isError
-                  ? "error"
-                  : "ready"
-            }
-            createReport={realtime.createFieldReport}
-            onStart={startFieldReport}
-            onCancel={cancelFieldReport}
-            onCreated={(reportId) => {
-              cancelFieldReport();
-              selectFieldReport(reportId);
-            }}
-            onRetryCatalog={() => void fieldReportsQuery.refetch()}
-          />
+          {mode !== "replay" ? (
+            <div className="pointer-events-none absolute top-16 right-4 left-4 z-20 flex flex-col items-stretch gap-2 md:top-4 md:flex-row md:items-start md:justify-between">
+              <div className="w-full md:w-[min(360px,calc(100%-22rem))] md:min-w-72">
+                <MapLayerControl
+                  value={mapLayerSettings}
+                  counts={mapLayerCounts}
+                  visibleStationCount={visibleMapStations.length}
+                  onChange={setMapLayerSettings}
+                  statusSummary={
+                    <LiveStatusSummary
+                      overview={liveTrafficOverview}
+                      mode={mode}
+                      activeEventCount={filteredTrafficEvents.length}
+                      junctionCount={junctions.length}
+                      timeZone={coverageArea.timeZone}
+                      embedded
+                    />
+                  }
+                />
+              </div>
+              <div className="w-full md:mt-12 md:w-[min(340px,calc(100%-20rem))] md:min-w-64">
+                <TrafficEventExplorer
+                  events={filteredTrafficEvents}
+                  allEvents={liveTrafficEvents}
+                  filters={trafficEventFilters}
+                  onFiltersChange={changeTrafficEventFilters}
+                  selectedEventId={selectedTrafficEventId}
+                  onSelectEvent={selectTrafficEvent}
+                  source={trafficEventQuery.data?.source}
+                  timeZone={coverageArea.timeZone}
+                  status={
+                    trafficEventQuery.isPending
+                      ? "loading"
+                      : trafficEventQuery.isError
+                        ? "error"
+                        : "ready"
+                  }
+                  onRetry={() => void trafficEventQuery.refetch()}
+                  embedded
+                />
+              </div>
+            </div>
+          ) : null}
+          <div className="pointer-events-none absolute right-14 bottom-4 left-16 z-20 flex flex-col-reverse items-start gap-2 sm:flex-row sm:items-end">
+            {mode !== "replay" ? (
+              <div className="pointer-events-auto shrink-0">
+                <FieldReportComposer
+                  coverageAreaId={coverageAreaId}
+                  active={fieldReportToolActive}
+                  location={fieldReportDraftLocation}
+                  realtimeConnected={realtime.status === "connected"}
+                  catalogStatus={
+                    fieldReportsQuery.isPending
+                      ? "loading"
+                      : fieldReportsQuery.isError
+                        ? "error"
+                        : "ready"
+                  }
+                  createReport={realtime.createFieldReport}
+                  onStart={startFieldReport}
+                  onCancel={cancelFieldReport}
+                  onCreated={(reportId) => {
+                    cancelFieldReport();
+                    selectFieldReport(reportId);
+                  }}
+                  onRetryCatalog={() => void fieldReportsQuery.refetch()}
+                  embedded
+                />
+              </div>
+            ) : null}
+            <MapVisualizationLegend
+              mode={mapVisualizationMode}
+              timeZone={coverageArea.timeZone}
+              selectedStationId={selectedStationId}
+              selectedStation={selectedStation}
+              roadContext={roadContextQuery.data}
+              roadContextStatus={
+                mapVisualizationMode !== "flow" || !selectedStationId
+                  ? "idle"
+                  : roadContextQuery.isPending
+                    ? "loading"
+                    : roadContextQuery.isError
+                      ? "error"
+                      : "ready"
+              }
+              embedded
+            />
+          </div>
           {realtime.status === "disconnected" ? (
             <div
               role="status"
@@ -503,35 +555,16 @@ export function MonitoringWorkspace({
               Canlı bağlantı kesildi · son bilinen gerçek ölçümler gösteriliyor
             </div>
           ) : null}
-          <div className="pointer-events-none absolute top-4 left-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-[11px] text-slate-600 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300">
-            <span className="font-semibold text-slate-900 dark:text-white">
-              {mode === "analysis" ? "Analiz bağlamı" : "Canlı trafik"}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
-              Güncel
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-200" />
-              Gecikmeli
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-rose-500 ring-2 ring-rose-200" />
-              Eski
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-violet-600 ring-2 ring-violet-200" />
-              Kavşak
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full border-2 border-rose-500" />
-              Anomali
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-amber-500 ring-2 ring-white" />
-              Saha bildirimi
-            </span>
-          </div>
+          {mode === "replay" ? (
+            <LiveStatusSummary
+              overview={liveTrafficOverview}
+              mode={mode}
+              activeEventCount={filteredTrafficEvents.length}
+              junctionCount={junctions.length}
+              replayFrame={replay.frame}
+              timeZone={coverageArea.timeZone}
+            />
+          ) : null}
           <a
             href={source.licenseUrl}
             target="_blank"
@@ -550,6 +583,7 @@ export function MonitoringWorkspace({
               replay.control({ action: "stop" });
               changeMode("live");
             }}
+            onOpenReplay={() => changeMode("replay")}
             availability={historyAvailabilityQuery.data?.assets ?? []}
             availabilityStatus={
               historyAvailabilityQuery.isPending
@@ -560,31 +594,78 @@ export function MonitoringWorkspace({
             }
             replay={replay}
           />
+        ) : mode === "replay" && selectedStationId ? (
+          <ReplayPanel
+            catalog={catalogQuery.data}
+            selectedStationId={selectedStationId}
+            availability={historyAvailabilityQuery.data?.assets ?? []}
+            replay={replay}
+            onOpenAnalysis={() => changeMode("analysis")}
+            onReturnLive={() => changeMode("live")}
+          />
         ) : (
-          <div
-            className={`absolute inset-y-4 right-4 z-20 w-[min(330px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
-              selectedStation || selectedJunction ? "block" : "hidden"
-            }`}
-          >
-            {selectedStation || selectedJunction ? (
-              <button
-                type="button"
-                onClick={clearSelection}
-                aria-label="Detay panelini kapat"
-                className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-600 shadow-sm xl:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-            ) : null}
-            {selectedJunction ? (
-              <JunctionDetailPanel junction={selectedJunction} />
-            ) : (
-              <StationDetailPanel
-                station={selectedStation}
-                timeZone={coverageArea.timeZone}
-                footer={
-                  selectedStation ? (
-                    <>
+          <>
+            <div
+              className={`absolute inset-y-4 right-4 z-20 w-[min(330px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
+                selectedStation ||
+                selectedJunction ||
+                !isSummaryDismissedOnMobile
+                  ? "block"
+                  : "hidden"
+              }`}
+            >
+              {selectedStation || selectedJunction ? (
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  aria-label="Detay panelini kapat"
+                  className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-600 shadow-sm xl:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsSummaryDismissedOnMobile(true)}
+                  aria-label="Özeti kapat"
+                  className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-600 shadow-sm xl:hidden dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+              {selectedJunction ? (
+                <JunctionDetailPanel junction={selectedJunction} />
+              ) : !selectedStation ? (
+                <TodaySummaryPanel
+                  overview={liveTrafficOverview}
+                  anomalies={anomalyQuery.data?.evaluations ?? []}
+                  trafficEvents={liveTrafficEvents}
+                  stations={catalogQuery.data?.stations ?? []}
+                  onSelectStation={selectStation}
+                  onSelectEvent={selectTrafficEvent}
+                />
+              ) : (
+                <StationDetailPanel
+                  station={selectedStation}
+                  timeZone={coverageArea.timeZone}
+                  laneHistory={
+                    selectedStation ? (
+                      <LaneHistoryInsightPanel
+                        insight={laneHistoryQuery.data}
+                        directions={selectedStation.directions}
+                        status={
+                          laneHistoryQuery.isPending
+                            ? "loading"
+                            : laneHistoryQuery.isError
+                              ? "error"
+                              : "ready"
+                        }
+                        onRetry={() => void laneHistoryQuery.refetch()}
+                      />
+                    ) : null
+                  }
+                  context={
+                    selectedStation ? (
                       <StationTrafficEventContextPanel
                         context={trafficEventContextQuery.data}
                         timeZone={coverageArea.timeZone}
@@ -598,18 +679,40 @@ export function MonitoringWorkspace({
                         onRetry={() => void trafficEventContextQuery.refetch()}
                         onSelectEvent={(eventId) => selectTrafficEvent(eventId)}
                       />
-                      <AnomalyPanel
-                        evaluations={selectedAnomalies}
-                        directions={selectedStation.directions}
-                        status={
-                          anomalyQuery.isPending
-                            ? "loading"
-                            : anomalyQuery.isError
-                              ? "error"
-                              : "ready"
-                        }
-                        onRetry={() => void anomalyQuery.refetch()}
-                      />
+                    ) : null
+                  }
+                  insights={
+                    selectedStation ? (
+                      <>
+                        <CorridorInsightPanel
+                          insight={corridorInsightQuery.data}
+                          status={
+                            corridorInsightQuery.isPending
+                              ? "loading"
+                              : corridorInsightQuery.isError
+                                ? "error"
+                                : "ready"
+                          }
+                          onRetry={() => void corridorInsightQuery.refetch()}
+                          onSelectStation={selectStation}
+                        />
+                        <AnomalyPanel
+                          evaluations={selectedAnomalies}
+                          directions={selectedStation.directions}
+                          status={
+                            anomalyQuery.isPending
+                              ? "loading"
+                              : anomalyQuery.isError
+                                ? "error"
+                                : "ready"
+                          }
+                          onRetry={() => void anomalyQuery.refetch()}
+                        />
+                      </>
+                    ) : null
+                  }
+                  notes={
+                    selectedStation ? (
                       <OperatorNotesPanel
                         key={selectedStation.id}
                         assetId={selectedStation.id}
@@ -617,39 +720,25 @@ export function MonitoringWorkspace({
                         createNote={realtime.createNote}
                         realtimeConnected={realtime.status === "connected"}
                       />
-                    </>
-                  ) : null
-                }
-              />
-            )}
-          </div>
+                    ) : null
+                  }
+                />
+              )}
+            </div>
+            {isSummaryDismissedOnMobile &&
+            !selectedStation &&
+            !selectedJunction ? (
+              <button
+                type="button"
+                onClick={() => setIsSummaryDismissedOnMobile(false)}
+                className="absolute bottom-24 right-3 z-20 rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-semibold text-white shadow-xl xl:hidden dark:bg-sky-700 dark:hover:bg-sky-600"
+              >
+                Bugünün özeti
+              </button>
+            ) : null}
+          </>
         )}
       </div>
     </main>
-  );
-}
-
-function ModeButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "bg-white text-sky-700 shadow-sm dark:bg-slate-700 dark:text-sky-300"
-          : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

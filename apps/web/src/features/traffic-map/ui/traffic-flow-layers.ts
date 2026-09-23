@@ -156,11 +156,16 @@ export const trafficVolumeLayer: LayerProps = {
   type: "fill-extrusion",
   paint: {
     "fill-extrusion-height": ["get", "heightMeters"],
+    // Animates column height when the source refreshes (live poll or
+    // realtime update) instead of snapping instantly to the new value.
+    "fill-extrusion-height-transition": { duration: 800, delay: 0 },
     "fill-extrusion-base": 0,
     "fill-extrusion-opacity": 0.84,
     "fill-extrusion-color": [
-      "step",
+      "interpolate",
+      ["linear"],
       ["get", "relativeFlowPercent"],
+      0,
       "#38bdf8",
       25,
       "#22c55e",
@@ -169,5 +174,6 @@ export const trafficVolumeLayer: LayerProps = {
       75,
       "#e11d48",
     ],
+    "fill-extrusion-color-transition": { duration: 800, delay: 0 },
   },
 };

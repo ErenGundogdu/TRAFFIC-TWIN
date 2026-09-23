@@ -96,14 +96,18 @@ export function HistoryImportControl({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-            Geçmiş veri kapsamı
+            Şerit ve araç sınıfı kaynağı
           </p>
           <p className="mt-1 text-[11px] leading-4 text-slate-500">
             {plan.isPending
-              ? "Artifact manifesti kontrol ediliyor…"
+              ? "Şerit ve araç sınıfı kaynağı kontrol ediliyor…"
               : plan.data
                 ? `${plan.data.range.requestedDayCount} günün ${plan.data.summary.availableDayCount} günü hazır.`
                 : "Kapsam planı alınamadı."}
+          </p>
+          <p className="mt-1 text-[10px] leading-4 text-slate-400">
+            Bu, aşağıdaki hız/geçiş grafiğini değil; sadece şerit ve araç sınıfı
+            dökümünü etkiler.
           </p>
         </div>
         {plan.data && importableDayCount > 0 && !jobId ? (

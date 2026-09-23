@@ -2,11 +2,11 @@ import type { ReplayFrame, StationSummary } from "@traffic-twin/contracts";
 
 export function applyReplayFrame(
   stations: StationSummary[],
-  frame: ReplayFrame,
+  frame: ReplayFrame | null,
   direction: 1 | 2,
 ) {
   const valuesByAsset = new Map(
-    frame.values.map((value) => [value.assetId, value]),
+    (frame?.values ?? []).map((value) => [value.assetId, value]),
   );
 
   return stations.map((station): StationSummary => {
@@ -22,7 +22,9 @@ export function applyReplayFrame(
             ? value.vehicleCount * 60
             : null,
         measuredAt:
-          value && item.direction === direction ? frame.timestamp : null,
+          value && item.direction === direction && frame
+            ? frame.timestamp
+            : null,
         trafficFlow: {
           ...item.trafficFlow,
           status: "INSUFFICIENT_DATA",

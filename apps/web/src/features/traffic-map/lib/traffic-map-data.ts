@@ -8,7 +8,10 @@ import type {
 export function createStationGeoJson(
   stations: StationSummary[],
   selectedStationId: string | null,
+  anomalies: AnomalyEvaluation[] = [],
 ) {
+  const anomalyStatusByAsset = createAnomalyStatusByAsset(anomalies);
+
   return {
     type: "FeatureCollection" as const,
     features: stations.map((station) => ({
@@ -24,7 +27,14 @@ export function createStationGeoJson(
         tmsNumber: station.tmsNumber,
         freshness: station.freshness,
         selected: station.id === selectedStationId,
+        anomalyStatus: anomalyStatusByAsset.get(station.id) ?? "NONE",
         shortLabel: `TMS ${station.tmsNumber}`,
+        bearing:
+          station.directions[0]?.heading?.degrees ?? station.bearing ?? -1,
+        directionOneFlowStatus:
+          station.directions[0]?.trafficFlow.status ?? "INSUFFICIENT_DATA",
+        directionTwoFlowStatus:
+          station.directions[1]?.trafficFlow.status ?? "INSUFFICIENT_DATA",
         directionOneSpeed: station.directions[0]?.averageSpeedKmh ?? null,
         directionTwoSpeed: station.directions[1]?.averageSpeedKmh ?? null,
       },
@@ -50,6 +60,7 @@ export function createJunctionGeoJson(
         name: junction.name,
         coverage: junction.coverage,
         sensorCount: junction.sensors.length,
+        roadRefCount: junction.roadRefs.length,
         selected: junction.id === selectedJunctionId,
       },
     })),
@@ -59,19 +70,9 @@ export function createJunctionGeoJson(
 export function createAnomalyGeoJson(
   stations: StationSummary[],
   anomalies: AnomalyEvaluation[],
+  selectedStationId: string | null = null,
 ) {
-  const statusByAsset = new Map<string, "ACTIVE" | "CANDIDATE">();
-
-  for (const anomaly of anomalies) {
-    if (anomaly.status === "ACTIVE") {
-      statusByAsset.set(anomaly.assetId, "ACTIVE");
-    } else if (
-      anomaly.status === "CANDIDATE" &&
-      statusByAsset.get(anomaly.assetId) !== "ACTIVE"
-    ) {
-      statusByAsset.set(anomaly.assetId, "CANDIDATE");
-    }
-  }
+  const statusByAsset = createAnomalyStatusByAsset(anomalies);
 
   return {
     type: "FeatureCollection" as const,
@@ -85,12 +86,37 @@ export function createAnomalyGeoJson(
                 type: "Point" as const,
                 coordinates: [station.longitude, station.latitude],
               },
-              properties: { assetId: station.id, status },
+              properties: {
+                assetId: station.id,
+                status,
+                selected: station.id === selectedStationId,
+              },
             },
           ]
         : [];
     }),
   };
+}
+
+function createAnomalyStatusByAsset(anomalies: AnomalyEvaluation[]) {
+  const statusByAsset = new Map<string, "ACTIVE" | "CANDIDATE">();
+
+  for (const anomaly of anomalies) {
+    if (anomaly.status === "ACTIVE") {
+      statusByAsset.set(anomaly.assetId, "ACTIVE");
+    } else if (
+      anomaly.status === "CANDIDATE" &&
+      statusByAsset.get(anomaly.assetId) !== "ACTIVE"
+    ) {
+      statusByAsset.set(anomaly.assetId, "CANDIDATE");
+    }
+  }
+
+  return statusByAsset;
+}
+
+export function countAnomalousAssets(anomalies: AnomalyEvaluation[]) {
+  return createAnomalyStatusByAsset(anomalies).size;
 }
 
 export function createTrafficEventGeoJson(events: TrafficEvent[]) {
@@ -140,6 +166,28 @@ export function getTrafficEventAnchor(event: TrafficEvent) {
   return {
     longitude: (bounds.minLongitude + bounds.maxLongitude) / 2,
     latitude: (bounds.minLatitude + bounds.maxLatitude) / 2,
+  };
+}
+
+export function createTrafficEventAnchorGeoJson(events: TrafficEvent[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: events.flatMap((event) => {
+      if (event.status === "ENDED") return [];
+      const anchor = getTrafficEventAnchor(event);
+      if (!anchor) return [];
+
+      return [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [anchor.longitude, anchor.latitude],
+          },
+          properties: { id: event.id },
+        },
+      ];
+    }),
   };
 }
 
