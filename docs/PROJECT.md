@@ -57,7 +57,7 @@ Kullanıcı varlık, metrik, yön, tarih aralığı ve çözünürlük seçerek 
 Kabul kriterleri:
 
 - Gün, ay, yıl ve iki ucu dahil özel tarih aralığı sorguları uygun veri çözünürlüğünü seçer.
-- İki varlık aynı dönem ve ortak metrik üzerinden karşılaştırılabilir. İki ayrı zaman döneminin karşılaştırılması planlı genişlemedir.
+- İki varlık aynı dönem ve ortak metrik üzerinden karşılaştırılabilir. Ek esnek karşılaştırma görünümünde iki tarafın istasyonu, yönü ve canlı/geçmiş dönemi bağımsız seçilir; aynı istasyonun farklı tarihleri de sorgulanabilir. Canlı kayan 5 dakika ile tarihsel dönem özeti bağlamsal olarak yan yana sunulur, eşdeğer dönem farkı olarak yorumlanmaz.
 - Eksik tarih aralığı için ingestion durumu görünür, boş sonuç gerçek veri gibi gösterilmez.
 - Replay oynatılabilir, durdurulabilir, hızı değiştirilebilir, zaman çizelgesinden gerçek bir ölçüm anına götürülebilir ve canlı moda dönebilir.
 - Mod, seçim ve filtreler `/monitoring` URL'sinde paylaşılabilir biçimde korunur.
@@ -67,7 +67,7 @@ Kabul kriterleri:
 
 ### 3. Açıklanabilir Anomali
 
-Sistem, yapılandırılabilir kayan baseline ile mevcut hız/hacim davranışını karşılaştırır. Varsayılan profil aynı istasyon, yön, haftanın günü ve saat için son 12 haftayı kullanır. Yeterli tarih yoksa anomali üretmez. Sonuç, kullanıcıya mevcut değer, beklenen aralık, sapma, örnek sayısı ve güven bilgisiyle açıklanır.
+Sistem, yapılandırılabilir kayan baseline ile mevcut hız/hacim davranışını karşılaştırır. Varsayılan profil aynı istasyon, yön, haftanın günü ve saat için son 26 haftayı kullanır; bu pencere resmî saatlik raporların yayın gecikmesini tolere eder. Yeterli tarih yoksa anomali üretmez. Sonuç, kullanıcıya mevcut değer, beklenen aralık, sapma, örnek sayısı ve güven bilgisiyle açıklanır.
 
 Kabul kriterleri:
 

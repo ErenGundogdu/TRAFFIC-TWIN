@@ -62,10 +62,12 @@ Kanıt: paylaşılabilir filtre URL'si, sunucu hesaplı KPI özeti, iki serili g
 
 ## 6:30–7:45 — Senkron Replay
 
+- Analiz ekranındaki `Replay modunda aç` eylemini kullanın; istasyon, karşılaştırma, yön, metrik ve tarih filtrelerinin URL'de korunduğunu gösterin.
 - En fazla iki günlük ve veri içeren aralıkta replay'i başlatın.
 - Duraklatın, hızı değiştirin ve sürdürün.
 - Zaman çizelgesini sürükleyip ardından bir dakika ileri/geri kontrolleriyle farklı gerçek ölçüm karelerine gidin; eksik zamanın uydurulmadığını açıklayın.
 - Grafik zaman imleci ile harita bağlamının aynı canonical Socket.IO replay zamanını kullandığını gösterin.
+- Replay başlamadan canlı ölçümlerin gizlendiğini; tarihsel snapshot'ı bulunmayan güncel yol olayı, anomali ve saha bildirimi katmanlarının geçmiş kareye aitmiş gibi sunulmadığını belirtin.
 - `Canlıya dön` ile replay oturumunu kapatıp aynı haritada canlı moda geçin.
 
 Kanıt: oynatma durumu, kare zamanı, hız kontrolü ve eşzamanlı harita/grafik ilerlemesi.
@@ -73,7 +75,7 @@ Kanıt: oynatma durumu, kare zamanı, hız kontrolü ve eşzamanlı harita/grafi
 ## 7:45–9:00 — Açıklanabilir Anomali
 
 - TMS 20002 ile canlı izlemeye dönün ve baseline panelini gösterin.
-- Mevcut değer, beklenen aralık, son 12 haftalık kayan pencere, örnek sayısı, güven ve politika sürümünü açıklayın.
+- Mevcut değer, beklenen aralık, son 26 haftalık kayan pencere, örnek sayısı, güven ve politika sürümünü açıklayın.
 - Tek sapmanın `CANDIDATE`, yalnız ardışık ikinci sapmanın `ACTIVE` olduğunu; yüksek yoğunluğun tek başına anomali olmadığını belirtin.
 
 Kanıt: gerçek aynı yerel gün/saat örnekleri ve açıklama girdileriyle saklanan güncel durum.

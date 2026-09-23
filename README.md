@@ -87,6 +87,8 @@ pnpm dev
 
 İlk açılışta backend Fintraffic'ten gerçek güncel istasyon kataloğunu, ölçümleri ve yol olaylarını alır. İnternet veya upstream erişimi yoksa başlangıç hatası açıkça gösterilir; daha önce kalıcılaştırılmış son gerçek snapshot korunur ve sentetik başlangıç verisi kullanılmaz.
 
+Backend ayrıca açılışta ve varsayılan olarak her 24 saatte bir Helsinki yerel saatine göre mevcut ayın düne kadarki resmî günlük hız/hacim raporlarını yeniler. Önceki ay da kontrol edilir; ayın üçüncü gününden sonra tamamlanmış kapsam olarak işaretlenir. Sunucu kapalıysa o sırada iş çalışmaz; yeniden açılınca bu iki ay yakalanır. İki aydan uzun kesinti ve iki yıllık saatlik toplu kapsam ayrı kontrollü aktarım gerektirir. Bu özet yolunda şerit veya araç sınıfı verisi üretilmez.
+
 ### Demo Verisini Hazırlama
 
 Canlı izleme temiz kurulumda kendiliğinden çalışır. Kavşak, geçmiş karşılaştırma ve anomali kanıtlarını hazırlamak için uygulama açıkken aşağıdaki gerçek veri komutları bir kez çalıştırılır:
@@ -119,7 +121,7 @@ pnpm history:import --station 20004 --date 2026-09-03
 
 Dosyalar `data/raw` altında sıkıştırılmış ve Git dışında tutulur; checksum ve işlem manifest'i PostgreSQL'e yazılır. Aynı kaynak yeniden işlendiğinde satırlar çoğaltılmaz. Gün/ay/yıl aralığına göre dakika/saat/gün özeti seçilir; indirilmeyen tarihler kullanıcıya eksik kapsama olarak gösterilir.
 
-Canlı observation ve dakika özetlerinin varsayılan saklama süresi 90 gündür. Saat/gün özetleri ile ham artifact'ler uzun dönem kalır. Yapılandırılmış temizliği elle doğrulamak için:
+Canlı observation kayıtlarının varsayılan saklama süresi 90 gün, ham artifact'ten üretilen dakika özetlerininki 7 gündür. Bu süreler yalnız bakım komutu çalışınca uygulanır; Statistics tabloları için otomatik saklama temizliği henüz yoktur. Yapılandırılmış temizliği elle çalıştırmak için:
 
 ```bash
 pnpm maintenance:retention
@@ -137,10 +139,17 @@ Senkron çalışma zamanı mock'u kullanmaz. Eşleşmeyen OSM ilişkileri trafik
 
 ## Açıklanabilir Anomali
 
-Canlı poll sonrası her istasyon–yön–metrik durumu gerçek saatlik geçmişle yeniden değerlendirilir. Varsayılan pencere son 12 hafta, minimum örnek 6 ve aktifleşme eşiği iki ardışık sapmadır; değerler `.env` üzerinden değiştirilebilir. Aynı observation idempotent kalır:
+Canlı poll sonrası her istasyon–yön–metrik durumu gerçek saatlik geçmişle yeniden değerlendirilir. Varsayılan pencere son 26 hafta, minimum örnek 6 ve aktifleşme eşiği iki ardışık sapmadır; değerler `.env` üzerinden değiştirilebilir. Pencere, resmî saatlik raporların yayın gecikmesine rağmen yeterli aynı gün/saat örneği bırakır. Aynı observation idempotent kalır:
 
 ```bash
 pnpm anomalies:evaluate --coverage helsinki
+```
+
+Baseline verisi sonradan tamamlandıysa aynı canlı ölçümü yeniden hesaplamak için
+idempotency kontrolü açıkça aşılabilir:
+
+```bash
+pnpm anomalies:evaluate --coverage helsinki --force true
 ```
 
 Sonuç `http://localhost:4000/api/coverage-areas/helsinki/anomalies` üzerinden okunur. Her kombinasyon için yalnız güncel state satırı tutulur; kullanılan baseline örnekleri ve politika snapshot'ı bu satırda korunur. Böylece canlı değerlendirme veritabanında sınırsız satır üretmez.
