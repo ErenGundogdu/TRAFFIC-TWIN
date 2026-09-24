@@ -36,15 +36,15 @@ API sağlık, katalog, geçmiş kullanılabilirliği, dakika/saat/gün/otomatik 
 | ---------------------------------------- | ---------------: | ------------------------------------------------------------------------ |
 | Katalog                                  |            76/76 | Fintraffic kaynağı `AVAILABLE`                                           |
 | En az bir yönde canlı hız                |            73/76 | 3 istasyonda hız yok                                                     |
-| İki yönde de canlı hız ve akış           |            70/76 | 3 istasyonda tek yön eksik, 3 istasyonda iki yön hız eksik               |
+| İki yönde de canlı hız ve akış           |            70/76 | 3 istasyon resmen tek yönlü; 3 istasyonda iki yön hız eksik              |
 | Canlı şerit satırı                       |            73/76 | 3 istasyonda şerit snapshot'ı yok                                        |
 | En az bir şeritte hız                    |            39/76 | 34 istasyonun şeritleri yalnız geçiş/akış veriyor                        |
 | Tüm görünen şeritleri yöne eşli          |            62/76 | 11 istasyonda toplam 22 eşlenmemiş şerit; 3 istasyonda şerit yok         |
 | En az bir yönde saatlik replay           |            76/76 | Saatlik replay aralığı en fazla 30 gün                                   |
-| İki yönde saatlik replay                 |            73/76 | Üç istasyonda bir yönün hız+hacim çifti yok                              |
+| Resmî kurulum yönlerinde saatlik replay  |            76/76 | 73 çift yönlü, 3 resmî tek yönlü istasyon                                |
 | Dakikalık replay                         |             3/76 | Yalnız TMS 5, 6 ve 20002; her birinde bir ayrıntılı gün                  |
 | En az bir yönde günlük analiz            |            76/76 | Günlük özet oynatılamaz, analiz edilir                                   |
-| İki yönde günlük analiz                  |            73/76 | Üç istasyonda bir yön eksik                                              |
+| Resmî kurulum yönlerinde günlük analiz   |            76/76 | 73 çift yönlü, 3 resmî tek yönlü istasyon                                |
 | Araç sınıfı kırılımı                     |             4/76 | TMS 5, 6, 196 ve 20002; birer gün                                        |
 | Şerit kırılımlı geçmiş                   |             4/76 | Aynı dört istasyonda birer gün                                           |
 | Kullanılabilir 12 haftalık şerit bağlamı |             0/76 | Minimum 6 benzer saat örneği hiçbir istasyonda yok                       |
@@ -67,19 +67,15 @@ Canlı hızın iki yönde de bulunmadığı istasyonlar:
 - TMS 196 `Niinisaarentie`
 - TMS 20028 `st170_Kulosaari_LML` — akış değeri gelir, hız gelmez; arayüz hız için açıkça “Şerit hız verisi yok” gösterir.
 
-Yalnız bir yönde tam canlı hız+akış bulunan istasyonlar:
+Resmî Fintraffic şerit yerleşiminde yalnız bir yönde ölçüm yapan istasyonlar:
 
-- TMS 20016 `vt1_Espoo_Säterinmetsä_2_Hki`
-- TMS 20021 `vt3_Kotamäki_HML`
-- TMS 20027 `vt3_Peräjä_Hki`
+- TMS 20016 `vt1_Espoo_Säterinmetsä_2_Hki`: yön 1'de 0, Helsinki yönü olan yön 2'de 3 şerit
+- TMS 20021 `vt3_Kotamäki_HML`: Hämeenlinna yönü olan yön 1'de 4, yön 2'de 0 şerit
+- TMS 20027 `vt3_Peräjä_Hki`: yön 1'de 0, Helsinki yönü olan yön 2'de 3 şerit
 
 Şerit snapshot'ı bulunmayanlar TMS 125, 179 ve 196'dır. Şerit satırı olup hiçbir şeritte hız bulunmayan 34 istasyonun tam listesi CSV'de `live_lanes > 0` ve `lanes_with_speed = 0` filtresiyle görülebilir.
 
-İki yönlü saatlik/günlük hız+hacim çifti eksik olanlar:
-
-- TMS 20016: yön 1 eksik
-- TMS 20021: yön 2 eksik
-- TMS 20027: yön 1 eksik
+TMS 20021 ile TMS 20027 aynı `vt3 / Hämeenlinnanväylä` otoyolunda, aynı yol kesiminde ve yaklaşık 353 metre aralıktadır. Birincisi Hämeenlinna yönünü, ikincisi Helsinki yönünü ölçen tamamlayıcı fiziksel istasyonlardır. Saatlik ve günlük kayıtlardaki yön deseni canlı ölçümler ve Fintraffic'in resmî `kaista1/kaista2` değerleriyle tutarlıdır; yeniden aktarılması gereken kayıp yön değildir.
 
 Doğrulanmış yol bağlamı bulunmayanlar:
 
@@ -89,7 +85,7 @@ Dakikalık replay'i olan üç istasyonun gerçek ayrıntılı günü 15 Eylül 2
 
 ## Veri kaynağı ile proje kapsamı ayrımı
 
-Canlı hızın, şerit hızının veya bazı yönlerin boş olması Fintraffic'in o snapshot'ta verdiği gerçek ölçüm eksikliğidir. Uygulama bunları hız `0` veya tahminî değerle doldurmuyor. Şerit yönlerinin 364'ü resmî şerit yerleşiminden, 13'ü gözlenen araç geçişlerinden geliyor; 22 şerit için yön kanıtı yok ve bunlar eşlenmiş gibi gösterilmiyor.
+Canlı hızın veya şerit hızının boş olması Fintraffic'in o snapshot'ta verdiği gerçek ölçüm eksikliği olabilir; TMS 20016, 20021 ve 20027'deki boş karşı yön ise fiziksel olarak kurulmamış yöndür. Uygulama hızı tahminî değerle doldurmuyor. Şerit yönlerinin 364'ü resmî şerit yerleşiminden, 13'ü gözlenen araç geçişlerinden geliyor; 22 şerit için yön kanıtı yok ve bunlar eşlenmiş gibi gösterilmiyor.
 
 Uzun dönem günlük/saatlik toplamlar Fintraffic Statistics verisinden gelir. Kaynak dosyada hız veya hacim günü bulunmadığında analiz bunu `SOURCE_GAP`; henüz içeri alınmadığında `NOT_IMPORTED` olarak gösterir. TMS 20002 için 2022–2026 günlük hız sorgusu örneğinde 1728 istenen günün 1627'si bulundu ve sonuç doğru biçimde `PARTIAL` döndü.
 
@@ -117,7 +113,7 @@ Yol bağlamı ve kavşak sayısı Fintraffic eksikliği değildir. Bunlar OSM ge
 
 1. Ayrıntılı saatlik şerit geçmişini en az 6 aynı gün/saat örneğine çıkarın. Bu tamamlanmadan şerit geçmiş bağlamı 76 istasyonun hiçbirinde kullanıcıya sonuç üretemez.
 2. Ham ayrıntılı importu kontrollü biçimde genişletin. Dakikalık replay ile araç sınıfı/şerit kırılımı bugün yalnız 3–4 istasyon ve bir gün seviyesindedir.
-3. TMS 20016 yön 1, TMS 20021 yön 2 ve TMS 20027 yön 1 için Statistics hız+hacim kaynak durumunu inceleyin; kaynakta varsa yeniden içeri alın, yoksa kaynak boşluğunu koruyun.
+3. Resmî şerit sayısı sıfır olan fiziksel olarak kurulmamış yönleri arayüzde “0 araç/sa” veya genel “yetersiz veri” gibi göstermeyin; “Bu istasyon bu yönü ölçmüyor” olarak ayırın. TMS 20021/20027 gibi tamamlayıcı karşı yön istasyonlarının ilişkisini kullanıcıya açıklayın.
 4. Dokuz eksik yol bağlamını ve beş kavşağın üç kısmi/yetersiz eşleşmesini gözden geçirin.
 5. Canlı şerit hızı vermeyen 34 istasyonu akış temelli görünüm olarak etiketlemeye devam edin; kullanıcıya hız kıyası vaat etmeyin.
 
@@ -128,6 +124,8 @@ Tüm 76 istasyonun satır bazlı sonucu [station-feature-coverage-2026-09-24.csv
 - `live_speed_directions`, `live_flow_directions`, `current_complete_directions`: canlı yön kapsamı
 - `live_lanes`, `lanes_with_speed`, `mapped_lane_count`, `unmapped_lane_count`: canlı şerit kapsamı
 - `minute_replay_directions`, `hour_replay_directions`, `daily_analysis_directions`: analiz/replay kullanılabilirliği
+- `official_direction_1_lanes`, `official_direction_2_lanes`, `official_expected_directions`: Fintraffic'in resmî fiziksel şerit/yön kurulumu
+- `expected_hourly_coverage`, `expected_daily_coverage`: yalnız resmen kurulu yönler esas alınarak geçmiş kapsamı
 - `history_days_visible`, `first_available_date`, `last_available_date`: genel geçmiş günleri
 - `vehicle_class_days`, `lane_detail_days`, `lane_history_ready_evaluations`: ayrıntılı veri ve şerit geçmişi
 - `road_context_status`, `corridor_station_count`, `corridor_ready_directions`: yol/koridor kapsamı
