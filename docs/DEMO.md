@@ -63,9 +63,9 @@ Kanıt: paylaşılabilir filtre URL'si, sunucu hesaplı KPI özeti, iki serili g
 ## 6:30–7:45 — Senkron Replay
 
 - Analiz ekranındaki `Replay modunda aç` eylemini kullanın; istasyon, karşılaştırma, yön, metrik ve tarih filtrelerinin URL'de korunduğunu gösterin.
-- En fazla iki günlük ve veri içeren aralıkta replay'i başlatın.
+- Dakika çözünürlüğünde en fazla iki günlük ya da saat çözünürlüğünde en fazla 30 günlük, en az iki gerçek ölçüm içeren bir aralıkta replay'i başlatın. Günlük özetin analiz edilebildiğini fakat haritada oynatılamadığını gösterin.
 - Duraklatın, hızı değiştirin ve sürdürün.
-- Zaman çizelgesini sürükleyip ardından bir dakika ileri/geri kontrolleriyle farklı gerçek ölçüm karelerine gidin; eksik zamanın uydurulmadığını açıklayın.
+- Zaman çizelgesini sürükleyip çözünürlüğe göre bir dakika veya bir saat ileri/geri kontrolleriyle farklı gerçek ölçüm karelerine gidin; eksik zamanın uydurulmadığını açıklayın.
 - Grafik zaman imleci ile harita bağlamının aynı canonical Socket.IO replay zamanını kullandığını gösterin.
 - Replay başlamadan canlı ölçümlerin gizlendiğini; tarihsel snapshot'ı bulunmayan güncel yol olayı, anomali ve saha bildirimi katmanlarının geçmiş kareye aitmiş gibi sunulmadığını belirtin.
 - `Canlıya dön` ile replay oturumunu kapatıp aynı haritada canlı moda geçin.

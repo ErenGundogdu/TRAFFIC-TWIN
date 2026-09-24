@@ -6,7 +6,11 @@ import type {
 } from "@traffic-twin/contracts";
 import { useSearchParams } from "next/navigation";
 
-import { ReplayControls, type ReplayController } from "@/features/replay";
+import {
+  getReplayAvailability,
+  ReplayControls,
+  type ReplayController,
+} from "@/features/replay";
 import { dateLabelAt } from "@/shared/time/zoned-date";
 import { InlineQueryError } from "@/shared/ui";
 
@@ -60,6 +64,9 @@ export function ReplayPanel({
     timeZone: catalog.coverageArea.timeZone,
   });
   const history = useTrafficHistory(catalog.coverageArea.id, query);
+  const replayAvailability = history.data
+    ? getReplayAvailability({ ...history.data, query })
+    : null;
   const selectedStation = catalog.stations.find(
     (station) => station.id === selectedStationId,
   );
@@ -180,8 +187,20 @@ export function ReplayPanel({
           <ReplayContextCard
             title="Harita senkronu"
             rows={[
-              ["Durum", statusLabel(replay.status)],
-              ["Kare", replay.frame ? "Gerçek ölçüm" : "Henüz başlamadı"],
+              [
+                "Durum",
+                replayAvailability?.available === false
+                  ? "Kullanılamıyor"
+                  : statusLabel(replay.status),
+              ],
+              [
+                "Kare",
+                replayAvailability?.available === false
+                  ? "Oynatma yok"
+                  : replay.frame
+                    ? "Gerçek ölçüm"
+                    : "Henüz başlamadı",
+              ],
               [
                 "Zaman",
                 formatFrameTime(
