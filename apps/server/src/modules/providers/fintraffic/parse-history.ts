@@ -1,5 +1,6 @@
 import type { Readable } from "node:stream";
 import { createInterface } from "node:readline";
+import { setImmediate as yieldToEventLoop } from "node:timers/promises";
 
 import type {
   ResolvedHistoryResolution,
@@ -36,18 +37,20 @@ interface MutableAggregate {
 }
 
 const HELSINKI_TIME_ZONE = "Europe/Helsinki";
+const EVENT_LOOP_YIELD_INTERVAL = 2_000;
+const HELSINKI_TIME_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: HELSINKI_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
 
 function localTimeParts(date: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: HELSINKI_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
+  const parts = HELSINKI_TIME_FORMATTER.formatToParts(date);
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value);
 
@@ -139,6 +142,7 @@ export async function parseFintrafficHistory(
   resolutions: readonly ResolvedHistoryResolution[] = ["minute", "hour", "day"],
 ): Promise<ParsedHistory> {
   const aggregates = new Map<string, MutableAggregate>();
+  const bucketStarts = new Map<string, Date>();
   let recordCount = 0;
   let validRecordCount = 0;
   const lines = createInterface({ input, crlfDelay: Infinity });
@@ -146,6 +150,9 @@ export async function parseFintrafficHistory(
   for await (const line of lines) {
     if (!line.trim()) continue;
     recordCount += 1;
+    if (recordCount % EVENT_LOOP_YIELD_INTERVAL === 0) {
+      await yieldToEventLoop();
+    }
     const fields = line.split(";").map(Number);
     if (fields.length < 16 || fields.some((value) => !Number.isFinite(value))) {
       continue;
@@ -182,7 +189,12 @@ export async function parseFintrafficHistory(
     validRecordCount += 1;
 
     for (const resolution of resolutions) {
-      const start = bucketStart(resolution, year, ordinal!, hour!, minute!);
+      const bucketKey = `${resolution}:${year}:${ordinal}:${resolution === "day" ? 0 : hour}:${resolution === "minute" ? minute : 0}`;
+      let start = bucketStarts.get(bucketKey);
+      if (!start) {
+        start = bucketStart(resolution, year, ordinal!, hour!, minute!);
+        bucketStarts.set(bucketKey, start);
+      }
       const key = `${resolution}:${direction}:${start.toISOString()}`;
       const aggregate = aggregates.get(key) ?? {
         direction,
