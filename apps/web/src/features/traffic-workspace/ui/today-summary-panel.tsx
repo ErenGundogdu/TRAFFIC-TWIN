@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   AnomalyConfidence,
   AnomalyEvaluation,
@@ -131,6 +132,8 @@ export function TodaySummaryPanel({
   const activeAnomalies = anomalies.filter((item) => item.status === "ACTIVE");
   const worstAnomalyPerStation = pickWorstAnomalyPerStation(activeAnomalies);
   const listedAnomalies = worstAnomalyPerStation.slice(0, MAX_LISTED_ANOMALIES);
+  const remainingAnomalies = worstAnomalyPerStation.slice(MAX_LISTED_ANOMALIES);
+  const [showRemaining, setShowRemaining] = useState(false);
   const stationById = new Map(
     stations.map((station) => [station.id, station] as const),
   );
@@ -158,7 +161,7 @@ export function TodaySummaryPanel({
           Bugünün özeti
         </h2>
         <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-          Ayrıntılı ölçümler için haritadan bir istasyon veya kavşak seçin.
+          Ayrıntı için bir istasyon, kavşak veya koridor seçin.
         </p>
       </div>
 
@@ -254,7 +257,12 @@ export function TodaySummaryPanel({
                       </span>
 
                       <span className="mt-2 flex items-center justify-between gap-2 text-[9px] text-amber-700 dark:text-amber-300">
-                        <span>{anomaly.sampleCount} geçmiş örnek</span>
+                        <span
+                          title={`Son ${anomaly.baselineWindowWeeks} haftanın ${anomaly.sampleCount} tanesinde, aynı gün ve saatte bu istasyon ve yön için ölçüm var. "Beklenen" değer bu ${anomaly.sampleCount} saatlik değerin ortancasıdır; eksik haftalar hesaba katılmaz.`}
+                        >
+                          {anomaly.sampleCount}/{anomaly.baselineWindowWeeks}{" "}
+                          hafta verisi · aynı gün ve saat
+                        </span>
                         <span className="font-semibold group-hover:underline">
                           İncele →
                         </span>
@@ -266,11 +274,48 @@ export function TodaySummaryPanel({
             })}
           </ul>
         )}
-        {worstAnomalyPerStation.length > listedAnomalies.length ? (
-          <p className="mt-1.5 text-[10px] text-slate-400">
-            +{worstAnomalyPerStation.length - listedAnomalies.length} istasyon
-            daha
-          </p>
+        {remainingAnomalies.length > 0 ? (
+          <div className="mt-3">
+            <button
+              type="button"
+              aria-expanded={showRemaining}
+              onClick={() => setShowRemaining((open) => !open)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              {showRemaining
+                ? "Diğer istasyonları gizle"
+                : `+${remainingAnomalies.length} istasyon daha göster`}
+            </button>
+            {showRemaining ? (
+              <ul
+                aria-label="Diğer olağandışı istasyonlar"
+                className="mt-2 max-h-72 space-y-1.5 overflow-y-auto pr-1"
+              >
+                {remainingAnomalies.map((anomaly) => (
+                  <li key={anomaly.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectStation(anomaly.assetId)}
+                      className="w-full rounded-lg border border-amber-200/80 bg-amber-50/60 px-2.5 py-2 text-left hover:border-amber-300 hover:bg-amber-50 dark:border-amber-900/80 dark:bg-amber-950/30 dark:hover:bg-amber-950/50"
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-[11px] font-semibold text-amber-950 dark:text-amber-50">
+                          {stationById.get(anomaly.assetId)?.name ??
+                            anomaly.assetId}
+                        </span>
+                        <span className="shrink-0 text-[9px] font-semibold text-amber-800 dark:text-amber-200">
+                          {confidenceLabel[anomaly.confidence]}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block text-[10px] text-amber-800 dark:text-amber-300">
+                        Yön {anomaly.direction} · {anomalyReading(anomaly)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : null}
       </section>
 

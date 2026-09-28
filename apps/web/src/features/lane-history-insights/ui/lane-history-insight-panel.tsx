@@ -73,8 +73,7 @@ export function LaneHistoryInsightPanel({
             Benzer saatlerle karşılaştırma
           </h3>
           <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-            Bu şeridin şimdiki değeri, geçmişte tam bu gün ve saatte ölçülen
-            değerlerle kıyaslanır
+            Şimdiki değer, aynı gün ve saatin geçmişiyle karşılaştırılır.
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-sky-50 px-2 py-1 text-[10px] font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
@@ -113,12 +112,6 @@ export function LaneHistoryInsightPanel({
               style={{ width: `${sampleProgress}%` }}
             />
           </div>
-          <p className="mt-2 text-[11px] leading-5 text-slate-500 dark:text-slate-400">
-            Bu gün-saat diliminden en fazla {maximumSamples}/
-            {insight.minimumSamples} geçmiş örnek var; güvenilir bir kıyas için
-            en az {insight.minimumSamples} gerekiyor. Yeterli referans oluşana
-            kadar yukarıdaki anlık şerit kıyasını kullanın.
-          </p>
         </div>
       ) : (
         <ul className="space-y-2 px-4 pb-4">

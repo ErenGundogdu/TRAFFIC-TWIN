@@ -82,6 +82,7 @@ interface TrafficMapProps {
   timeZone: CoverageArea["timeZone"];
   stations: StationSummary[];
   selectedStationId: string | null;
+  highlightedStationIds?: ReadonlySet<string>;
   onSelect: (stationId: string) => void;
   junctions?: JunctionSummary[];
   selectedJunctionId?: string | null;
@@ -119,11 +120,14 @@ function handleMissingStyleImage(event: MapStyleImageMissingEvent) {
   provideTransparentStyleImageFallback(event.target, event.id);
 }
 
+const EMPTY_STATION_ID_SET: ReadonlySet<string> = new Set();
+
 export function TrafficMap({
   bbox,
   timeZone,
   stations,
   selectedStationId,
+  highlightedStationIds = EMPTY_STATION_ID_SET,
   onSelect,
   junctions = [],
   selectedJunctionId = null,
@@ -147,13 +151,19 @@ export function TrafficMap({
   const { theme } = useTheme();
   const mapRef = useRef<MapRef>(null);
   const subscribedMapRef = useRef<MapLibreMap | null>(null);
+  const stationsRef = useRef(stations);
+  useEffect(() => {
+    stationsRef.current = stations;
+  }, [stations]);
   const [styleFailed, setStyleFailed] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [hoveredAsset, setHoveredAsset] = useState<HoveredAsset | null>(null);
   const [minLongitude, minLatitude, maxLongitude, maxLatitude] = bbox;
   const stationGeoJson = createStationGeoJson(
     stations,
     selectedStationId,
     anomalies,
+    highlightedStationIds,
   );
   const densityGeoJson = createTrafficDensityGeoJson(stations);
   const volumeGeoJson = createTrafficVolumeGeoJson(stations);
@@ -213,6 +223,38 @@ export function TrafficMap({
     stations,
     visualizationMode,
   ]);
+
+  useEffect(() => {
+    // A selected station/junction already owns the camera (see above); only
+    // steer the map to fit a corridor when nothing more specific is picked.
+    if (selectedStationId || selectedJunctionId) return;
+    if (!mapLoaded || highlightedStationIds.size === 0) return;
+
+    // Reads the latest stations via a ref (not a dependency) so this only
+    // re-fits when the *selection* changes — not on every live data poll,
+    // which would otherwise fight any zoom the user did in the meantime.
+    const highlighted = stationsRef.current.filter((station) =>
+      highlightedStationIds.has(station.id),
+    );
+    if (highlighted.length < 2) return;
+
+    const longitudes = highlighted.map((station) => station.longitude);
+    const latitudes = highlighted.map((station) => station.latitude);
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    mapRef.current?.fitBounds(
+      [
+        [Math.min(...longitudes), Math.min(...latitudes)],
+        [Math.max(...longitudes), Math.max(...latitudes)],
+      ],
+      {
+        padding: 96,
+        duration: reduceMotion ? 0 : 700,
+        essential: false,
+      },
+    );
+  }, [highlightedStationIds, mapLoaded, selectedJunctionId, selectedStationId]);
 
   useEffect(() => {
     const reduceMotion = window.matchMedia(
@@ -447,8 +489,24 @@ export function TrafficMap({
         onMouseMove={handlePointerMove}
         onMouseLeave={() => setHoveredAsset(null)}
         onZoomEnd={(event) => setCurrentZoom(event.viewState.zoom)}
-        onError={() => setStyleFailed(true)}
-        onLoad={() => setStyleFailed(false)}
+        // maplibre-gl can fire these synchronously while another <Layer>
+        // is still mounting/committing; queueMicrotask defers the state
+        // update past that commit so React doesn't warn about updating
+        // TrafficMap mid-render.
+        onError={() => {
+          // MapLibre also reports isolated tile, sprite and custom-layer
+          // failures here. Once the map has loaded, those errors do not mean
+          // the basemap is unavailable and must not leave a permanent banner.
+          if (!mapLoaded) {
+            queueMicrotask(() => setStyleFailed(true));
+          }
+        }}
+        onLoad={() =>
+          queueMicrotask(() => {
+            setStyleFailed(false);
+            setMapLoaded(true);
+          })
+        }
         cursor={
           fieldReportPickMode ? "crosshair" : hoveredAsset ? "pointer" : "grab"
         }
@@ -552,6 +610,7 @@ export function TrafficMap({
           <StationMapMarkers
             stations={stations}
             selectedStationId={selectedStationId}
+            highlightedStationIds={highlightedStationIds}
             onSelect={onSelect}
             onHover={setHoveredAsset}
             showDirection
@@ -656,7 +715,7 @@ export function TrafficMap({
       {styleFailed ? (
         <p
           role="status"
-          className="absolute right-3 top-3 max-w-56 rounded-lg border border-amber-300 bg-amber-50/95 px-3 py-2 text-xs font-medium text-amber-900 shadow dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100"
+          className="absolute right-3 bottom-40 z-10 max-w-56 rounded-lg border border-amber-300 bg-amber-50/95 px-3 py-2 text-xs font-medium text-amber-900 shadow dark:border-amber-700 dark:bg-amber-950/95 dark:text-amber-100"
         >
           Harita altlığı kısmen yüklenemedi. Trafik verileri çalışmaya devam
           ediyor.

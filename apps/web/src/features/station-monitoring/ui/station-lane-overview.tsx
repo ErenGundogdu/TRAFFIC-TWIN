@@ -37,8 +37,7 @@ export function StationLaneOverview({
             Canlı şerit görünümü
           </h3>
           <p className="mt-1 text-[11px] leading-4 text-slate-500">
-            Şerit hızı ve geçiş temposu ayrı kaynak ölçümleridir; eksik hız
-            tahmin edilmez.
+            Hız ve araç geçişi şerit bazında gösterilir.
           </p>
         </div>
         <span className="rounded-full bg-sky-50 px-2 py-1 text-[10px] font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300">

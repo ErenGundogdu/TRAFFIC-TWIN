@@ -83,8 +83,7 @@ export function AnomalyPanel({
         />
       ) : evaluations.length === 0 ? (
         <p className="mt-3 rounded-xl bg-slate-100 p-3 text-xs leading-5 text-slate-600">
-          Bu istasyon için henüz değerlendirme üretilmedi. Sistem eksik geçmişte
-          anomali uydurmaz.
+          Bu istasyon için henüz yeterli geçmiş veri yok.
         </p>
       ) : (
         <div className="mt-3 space-y-3">
@@ -126,10 +125,8 @@ export function AnomalyPanel({
                 </div>
               </dl>
               <p className="mt-2 text-[10px] leading-4 text-slate-500">
-                Bu değer, son {evaluation.baselineWindowWeeks} haftadaki aynı
-                gün ve saate ait {evaluation.sampleCount} gerçek ölçümle
-                karşılaştırıldı. Değerlendirme için en az{" "}
-                {evaluation.minimumSamples} ölçüm gerekir.
+                Geçmiş: {evaluation.sampleCount} ölçüm · En az{" "}
+                {evaluation.minimumSamples} gerekli
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
                 <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">

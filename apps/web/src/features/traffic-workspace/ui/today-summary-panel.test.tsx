@@ -150,7 +150,7 @@ describe("TodaySummaryPanel", () => {
     expect(screen.getByText("25 km/sa")).toBeInTheDocument();
     expect(screen.getByText("80 km/sa")).toBeInTheDocument();
     expect(screen.getByText("Yüksek güven")).toBeInTheDocument();
-    expect(screen.getByText("8 geçmiş örnek")).toBeInTheDocument();
+    expect(screen.getByText(/8\/12\s+hafta verisi/)).toBeInTheDocument();
     expect(screen.getByText(/23 Eyl 2026/)).toBeInTheDocument();
 
     fireEvent.click(
@@ -172,6 +172,7 @@ describe("TodaySummaryPanel", () => {
             expectedMedian: 2_003,
             absoluteDeviation: 253,
             sampleCount: 24,
+            baselineWindowWeeks: 26,
           }),
         ]}
         trafficEvents={[]}
@@ -186,7 +187,7 @@ describe("TodaySummaryPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("2.256 araç/sa")).toBeInTheDocument();
     expect(screen.getByText("2.003 araç/sa")).toBeInTheDocument();
-    expect(screen.getByText("24 geçmiş örnek")).toBeInTheDocument();
+    expect(screen.getByText(/24\/26\s+hafta verisi/)).toBeInTheDocument();
   });
 
   it("collapses a station's two directions into its single worst anomaly and ranks by confidence", () => {
@@ -232,6 +233,51 @@ describe("TodaySummaryPanel", () => {
     expect(screen.getAllByText("vt1_Espoo_Hirvisuo")).toHaveLength(1);
     expect(screen.getByText("vt1_Espoo_Kasavuori")).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("lets the user open the anomalies beyond the top three and inspect them", () => {
+    const onSelectStation = vi.fn();
+    const stationsList = [1, 2, 3, 4, 5].map((n) => ({
+      ...station,
+      id: `fintraffic-tms:${n}`,
+      name: `station-${n}`,
+    }));
+    render(
+      <TodaySummaryPanel
+        overview={overview}
+        anomalies={stationsList.map((item, index) =>
+          buildAnomaly({
+            id: `a${index}`,
+            assetId: item.id,
+            confidence: "HIGH",
+            // expectedMedian is 80, so station-1 deviates most and station-5 least.
+            currentValue: 20 + index * 10,
+          }),
+        )}
+        trafficEvents={[]}
+        stations={stationsList}
+        onSelectStation={onSelectStation}
+        onSelectEvent={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("station-5")).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", {
+      name: "+2 istasyon daha göster",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("station-5")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("station-5"));
+    expect(onSelectStation).toHaveBeenCalledWith("fintraffic-tms:5");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Diğer istasyonları gizle" }),
+    );
+    expect(screen.queryByText("station-5")).not.toBeInTheDocument();
   });
 
   it("highlights the highest-severity active road event", () => {

@@ -56,7 +56,7 @@ describe("LiveStatusSummary", () => {
     expect(screen.getByText("1 gerçek istasyon ölçümü")).toBeInTheDocument();
     expect(screen.queryByText("50 aktif yol olayı")).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Güncel yol olayları ve saha bildirimleri/),
+      screen.getByText("Yol olayları ve bildirimler canlıdır."),
     ).toBeInTheDocument();
   });
 });

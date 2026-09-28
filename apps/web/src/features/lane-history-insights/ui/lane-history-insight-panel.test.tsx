@@ -93,7 +93,7 @@ describe("LaneHistoryInsightPanel", () => {
     );
 
     expect(screen.getByText("Yeterli geçmiş henüz birikmedi")).toBeVisible();
-    expect(screen.getByText(/en fazla 1\/6 geçmiş örnek/)).toBeVisible();
+    expect(screen.getByText("1/6 örnek")).toBeVisible();
   });
 
   it("shows separate speed and flow readings when a baseline exists", () => {

@@ -99,8 +99,7 @@ export function FieldReportComposer({
         </p>
         <p className="mt-1 text-sm font-semibold">Haritada konum seçin</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          Bildirimin bulunduğu noktaya tıklayın. Normal harita seçimleri bu araç
-          kapanana kadar duraklatılır.
+          Bildirimin konumuna tıklayın.
         </p>
         <button
           type="button"

@@ -83,18 +83,35 @@ const stations = [
   },
 ];
 
+const corridors = [
+  {
+    id: "road:1",
+    roadRef: "1",
+    stationIds: [
+      "fintraffic-tms:20002",
+      "fintraffic-tms:20004",
+      "fintraffic-tms:20006",
+    ],
+  },
+];
+
 function renderBar(onSelectStation = vi.fn()) {
   render(
     <AssetSelectionBar
       stations={stations}
       junctions={[]}
+      corridors={[]}
       selectedStationId={null}
       selectedJunctionId={null}
+      selectedCorridorId={null}
       onSelectStation={onSelectStation}
       onSelectJunction={vi.fn()}
+      onSelectCorridor={vi.fn()}
       onClearSelection={vi.fn()}
       junctionStatus="ready"
       onRetryJunctions={vi.fn()}
+      corridorStatus="ready"
+      onRetryCorridors={vi.fn()}
     />,
   );
 }
@@ -105,11 +122,13 @@ describe("AssetSelectionBar", () => {
     renderBar(onSelectStation);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "İstasyon veya kavşak seç" }),
+      screen.getByRole("button", {
+        name: "İstasyon, kavşak veya koridor seç",
+      }),
     );
     fireEvent.change(
       screen.getByRole("searchbox", {
-        name: "İstasyon veya kavşak ara",
+        name: "İstasyon, kavşak veya koridor ara",
       }),
       { target: { value: "20004" } },
     );
@@ -119,7 +138,9 @@ describe("AssetSelectionBar", () => {
 
     expect(onSelectStation).toHaveBeenCalledWith("fintraffic-tms:20004");
     expect(
-      screen.queryByRole("searchbox", { name: "İstasyon veya kavşak ara" }),
+      screen.queryByRole("searchbox", {
+        name: "İstasyon, kavşak veya koridor ara",
+      }),
     ).not.toBeInTheDocument();
   });
 
@@ -128,13 +149,18 @@ describe("AssetSelectionBar", () => {
       <AssetSelectionBar
         stations={stations}
         junctions={[]}
+        corridors={[]}
         selectedStationId={null}
         selectedJunctionId={null}
+        selectedCorridorId={null}
         onSelectStation={vi.fn()}
         onSelectJunction={vi.fn()}
+        onSelectCorridor={vi.fn()}
         onClearSelection={vi.fn()}
         junctionStatus="ready"
         onRetryJunctions={vi.fn()}
+        corridorStatus="ready"
+        onRetryCorridors={vi.fn()}
         showHistoryAvailability
         historyAvailabilityStatus="ready"
         historyAvailability={[
@@ -150,10 +176,44 @@ describe("AssetSelectionBar", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: "İstasyon veya kavşak seç" }),
+      screen.getByRole("button", {
+        name: "İstasyon, kavşak veya koridor seç",
+      }),
     );
 
     expect(screen.getByText("Geçmiş · 1 gün")).toBeInTheDocument();
     expect(screen.getByText("Geçmiş yok")).toBeInTheDocument();
+  });
+
+  it("lists a verified corridor and selects it by road reference", () => {
+    const onSelectCorridor = vi.fn();
+    render(
+      <AssetSelectionBar
+        stations={stations}
+        junctions={[]}
+        corridors={corridors}
+        selectedStationId={null}
+        selectedJunctionId={null}
+        selectedCorridorId={null}
+        onSelectStation={vi.fn()}
+        onSelectJunction={vi.fn()}
+        onSelectCorridor={onSelectCorridor}
+        onClearSelection={vi.fn()}
+        junctionStatus="ready"
+        onRetryJunctions={vi.fn()}
+        corridorStatus="ready"
+        onRetryCorridors={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "İstasyon, kavşak veya koridor seç",
+      }),
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: /Koridorlar/ })[0]!);
+
+    fireEvent.click(screen.getByText("Yol 1 koridoru"));
+    expect(onSelectCorridor).toHaveBeenCalledWith("road:1");
   });
 });

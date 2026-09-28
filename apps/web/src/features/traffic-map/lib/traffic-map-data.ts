@@ -5,10 +5,13 @@ import type {
   TrafficEvent,
 } from "@traffic-twin/contracts";
 
+const EMPTY_STATION_ID_SET: ReadonlySet<string> = new Set();
+
 export function createStationGeoJson(
   stations: StationSummary[],
   selectedStationId: string | null,
   anomalies: AnomalyEvaluation[] = [],
+  highlightedStationIds: ReadonlySet<string> = EMPTY_STATION_ID_SET,
 ) {
   const anomalyStatusByAsset = createAnomalyStatusByAsset(anomalies);
 
@@ -27,6 +30,11 @@ export function createStationGeoJson(
         tmsNumber: station.tmsNumber,
         freshness: station.freshness,
         selected: station.id === selectedStationId,
+        highlighted: highlightedStationIds.has(station.id),
+        dimmed:
+          highlightedStationIds.size > 0 &&
+          station.id !== selectedStationId &&
+          !highlightedStationIds.has(station.id),
         anomalyStatus: anomalyStatusByAsset.get(station.id) ?? "NONE",
         shortLabel: `TMS ${station.tmsNumber}`,
         bearing:

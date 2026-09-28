@@ -107,6 +107,22 @@ describe("StationDetailPanel", () => {
     expect(screen.getByText("Yön eşleşmesi yok")).toBeInTheDocument();
   });
 
+  it("shows the station-wide direction summary before lane details", () => {
+    render(<StationDetailPanel timeZone="Europe/Helsinki" station={station} />);
+
+    const directionSummary = screen.getByRole("heading", {
+      name: "Yön 1 · Kuzeybatı (298°)",
+    });
+    const laneDetails = screen.getByRole("heading", {
+      name: "Canlı şerit görünümü",
+    });
+
+    expect(
+      directionSummary.compareDocumentPosition(laneDetails) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("labels a layout-derived lane direction differently from observed evidence", () => {
     render(
       <StationDetailPanel

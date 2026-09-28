@@ -38,21 +38,27 @@ function stopMapClick(event: React.MouseEvent<HTMLButtonElement>) {
   event.stopPropagation();
 }
 
+const EMPTY_STATION_ID_SET: ReadonlySet<string> = new Set();
+
 export function StationMapMarkers({
   stations,
   selectedStationId,
+  highlightedStationIds = EMPTY_STATION_ID_SET,
   onSelect,
   onHover,
   showDirection,
 }: {
   stations: StationSummary[];
   selectedStationId: string | null;
+  highlightedStationIds?: ReadonlySet<string>;
   onSelect: (stationId: string) => void;
   onHover: (detail: MarkerHoverDetail | null) => void;
   showDirection: boolean;
 }) {
   return stations.map((station) => {
     const selected = station.id === selectedStationId;
+    const highlighted = !selected && highlightedStationIds.has(station.id);
+    const dimmed = highlightedStationIds.size > 0 && !selected && !highlighted;
     const bearing =
       station.directions[0]?.heading?.degrees ?? station.bearing ?? null;
     const hoverDetail: MarkerHoverDetail = {
@@ -73,6 +79,7 @@ export function StationMapMarkers({
         <button
           type="button"
           aria-label={`${station.name}, TMS ${station.tmsNumber} ölçüm istasyonu`}
+          title={`${station.name} · TMS ${station.tmsNumber}`}
           aria-pressed={selected}
           onClick={(event) => {
             stopMapClick(event);
@@ -85,12 +92,14 @@ export function StationMapMarkers({
           className={`traffic-map-marker group relative grid place-items-center rounded-full border-[3px] border-white shadow-lg transition duration-200 ${
             selected
               ? "size-11 scale-110 ring-4 ring-sky-400/35"
-              : "size-8 hover:scale-110"
-          } ${freshnessClassNames[station.freshness]}`}
+              : highlighted
+                ? "size-9 scale-105 ring-4 ring-amber-400/50"
+                : "size-8 hover:scale-110"
+          } ${dimmed ? "opacity-40" : ""} ${freshnessClassNames[station.freshness]}`}
         >
           <TrafficAssetIcon
             kind="station"
-            className={selected ? "size-5" : "size-4"}
+            className={selected || highlighted ? "size-5" : "size-4"}
           />
           {bearing !== null && showDirection ? (
             <span
@@ -101,7 +110,7 @@ export function StationMapMarkers({
               <span className="absolute -top-0.5 left-1/2 size-1.5 -translate-x-1/2 rotate-45 bg-current" />
             </span>
           ) : null}
-          {selected ? (
+          {selected || highlighted ? (
             <span className="pointer-events-none absolute top-[calc(100%+7px)] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-200 bg-white/95 px-2 py-1 text-[10px] font-bold text-slate-800 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-white">
               TMS {station.tmsNumber}
             </span>

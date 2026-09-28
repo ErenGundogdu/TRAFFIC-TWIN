@@ -143,6 +143,13 @@ function Overview({
 
   return (
     <div className="space-y-3">
+      {station.directions.map((direction) => (
+        <StationDirectionCard
+          key={direction.direction}
+          direction={direction}
+          timeZone={timeZone}
+        />
+      ))}
       {comparisons.length > 0 && (
         <LaneComparisonOverview
           comparisons={comparisons}
@@ -156,13 +163,6 @@ function Overview({
         <StationLaneOverview lanes={station.lanes} timeZone={timeZone} />
       </div>
       {laneHistory}
-      {station.directions.map((direction) => (
-        <StationDirectionCard
-          key={direction.direction}
-          direction={direction}
-          timeZone={timeZone}
-        />
-      ))}
       <dl className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900">
         <div>
           <dt className="text-slate-500">Enlem</dt>

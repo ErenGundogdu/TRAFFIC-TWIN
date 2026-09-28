@@ -3,6 +3,7 @@ import type { SVGProps } from "react";
 export type TrafficAssetIconKind =
   | "station"
   | "junction"
+  | "corridor"
   | "road-work"
   | "traffic-announcement"
   | "field-report";
@@ -30,10 +31,22 @@ export function TrafficAssetIcon({
     >
       {kind === "station" ? <StationGlyph /> : null}
       {kind === "junction" ? <JunctionGlyph /> : null}
+      {kind === "corridor" ? <CorridorGlyph /> : null}
       {kind === "road-work" ? <RoadWorkGlyph /> : null}
       {kind === "traffic-announcement" ? <AnnouncementGlyph /> : null}
       {kind === "field-report" ? <FieldReportGlyph /> : null}
     </svg>
+  );
+}
+
+function CorridorGlyph() {
+  return (
+    <>
+      <circle cx="5" cy="16" r="2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="8" r="2" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="14" r="2" fill="currentColor" stroke="none" />
+      <path d="m6.4 14.6 4.2-5.1M13.7 9.1l3.7 3.8" />
+    </>
   );
 }
 

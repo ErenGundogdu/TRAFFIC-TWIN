@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   AnalyticsPanel,
@@ -30,7 +30,9 @@ import {
 } from "@/features/junction-monitoring";
 import { AnomalyPanel, useAnomalyCatalog } from "@/features/anomaly-monitoring";
 import {
+  CorridorDetailPanel,
   CorridorInsightPanel,
+  useCorridorCatalog,
   useCorridorInsight,
 } from "@/features/corridor-insights";
 import {
@@ -62,6 +64,7 @@ import {
 } from "../model/workspace-mode";
 import { LiveStatusSummary } from "./live-status-summary";
 import { MapLayerControl } from "./map-layer-control";
+import { StationRequiredPanel } from "./station-required-panel";
 import { TodaySummaryPanel } from "./today-summary-panel";
 import { WorkspaceHeader } from "./workspace-header";
 
@@ -92,8 +95,10 @@ export function MonitoringWorkspace({
   const trafficEventFilters = parseTrafficEventFilters(searchParams);
   const requestedStationId = searchParams.get("station");
   const selectedJunctionId = searchParams.get("junction");
+  const selectedCorridorId = searchParams.get("corridor");
   const catalogQuery = useStationCatalog(coverageAreaId);
   const junctionQuery = useJunctionCatalog(coverageAreaId);
+  const corridorCatalogQuery = useCorridorCatalog(coverageAreaId);
   const anomalyQuery = useAnomalyCatalog(coverageAreaId);
   const trafficEventQuery = useTrafficEventCatalog(coverageAreaId);
   const fieldReportsQuery = useFieldReports(coverageAreaId);
@@ -131,10 +136,10 @@ export function MonitoringWorkspace({
     catalogQuery.data?.stations.find(
       (station) => station.id === requestedStationId,
     ) ?? null;
-  const selectedStationId =
-    requestedStation?.id ??
-    (mode !== "live" ? catalogQuery.data?.stations[0]?.id : null) ??
-    null;
+  // Never pick a station on the user's behalf: analysis and replay without a
+  // selection show an explicit prompt instead.
+  const selectedStationId = requestedStation?.id ?? null;
+  const replayView = mode === "replay" && selectedStationId !== null;
   const roadContextQuery = useStationRoadContext(
     coverageAreaId,
     mapVisualizationMode === "flow" ? selectedStationId : null,
@@ -151,6 +156,14 @@ export function MonitoringWorkspace({
     junctionQuery.data?.junctions.find(
       (junction) => junction.id === selectedJunctionId,
     ) ?? null;
+  const selectedCorridor =
+    corridorCatalogQuery.data?.corridors.find(
+      (corridor) => corridor.id === selectedCorridorId,
+    ) ?? null;
+  const highlightedStationIds = useMemo(
+    () => new Set(selectedCorridor?.stationIds ?? []),
+    [selectedCorridor],
+  );
   const selectedAnomalies =
     anomalyQuery.data?.evaluations.filter(
       (evaluation) => evaluation.assetId === selectedStationId,
@@ -166,29 +179,6 @@ export function MonitoringWorkspace({
     mode === "live",
   );
 
-  useEffect(() => {
-    if (
-      mode === "live" ||
-      requestedStation ||
-      !selectedStationId ||
-      !catalogQuery.data
-    ) {
-      return;
-    }
-
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set("station", selectedStationId);
-    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
-  }, [
-    catalogQuery.data,
-    mode,
-    pathname,
-    requestedStation,
-    router,
-    searchParams,
-    selectedStationId,
-  ]);
-
   function selectStation(stationId: string) {
     if (mode !== "live") replay.control({ action: "stop" });
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -200,6 +190,9 @@ export function MonitoringWorkspace({
       nextParams.set("cmpAAsset", stationId);
     }
     nextParams.delete("junction");
+    if (!selectedCorridor?.stationIds.includes(stationId)) {
+      nextParams.delete("corridor");
+    }
     nextParams.delete("event");
     nextParams.delete("report");
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
@@ -210,6 +203,19 @@ export function MonitoringWorkspace({
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("junction", junctionId);
     nextParams.delete("station");
+    nextParams.delete("corridor");
+    nextParams.delete("mode");
+    nextParams.delete("event");
+    nextParams.delete("report");
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }
+
+  function selectCorridor(corridorId: string) {
+    replay.control({ action: "stop" });
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("corridor", corridorId);
+    nextParams.delete("station");
+    nextParams.delete("junction");
     nextParams.delete("mode");
     nextParams.delete("event");
     nextParams.delete("report");
@@ -221,6 +227,7 @@ export function MonitoringWorkspace({
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.delete("station");
     nextParams.delete("junction");
+    nextParams.delete("corridor");
     nextParams.delete("report");
     if (mode !== "live") {
       nextParams.delete("mode");
@@ -282,12 +289,6 @@ export function MonitoringWorkspace({
     if (nextMode !== "replay") replay.control({ action: "stop" });
     const nextParams = setWorkspaceMode(searchParams, nextMode);
     nextParams.delete("junction");
-    if (nextMode !== "live" && !selectedStationId) {
-      const firstStationId = catalogQuery.data?.stations[0]?.id;
-      if (firstStationId) {
-        nextParams.set("station", firstStationId);
-      }
-    }
     const query = nextParams.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
@@ -332,16 +333,16 @@ export function MonitoringWorkspace({
 
   const { coverageArea, source, stations } = catalogQuery.data;
   const junctions = junctionQuery.data?.junctions ?? [];
+  const corridors = corridorCatalogQuery.data?.corridors ?? [];
   const replayDirection = searchParams.get("direction") === "2" ? 2 : 1;
-  const mapStations =
-    mode === "replay"
-      ? applyReplayFrame(
-          stations,
-          replay.frame,
-          replayDirection,
-          replay.resolution,
-        )
-      : stations;
+  const mapStations = replayView
+    ? applyReplayFrame(
+        stations,
+        replay.frame,
+        replayDirection,
+        replay.resolution,
+      )
+    : stations;
   const visibleMapStations = filterStationsForMap(
     mapStations,
     mapLayerSettings,
@@ -388,10 +389,13 @@ export function MonitoringWorkspace({
       <AssetSelectionBar
         stations={stations}
         junctions={junctions}
+        corridors={corridors}
         selectedStationId={selectedStationId}
         selectedJunctionId={selectedJunctionId}
+        selectedCorridorId={selectedCorridorId}
         onSelectStation={selectStation}
         onSelectJunction={selectJunction}
+        onSelectCorridor={selectCorridor}
         onClearSelection={clearSelection}
         junctionStatus={
           junctionQuery.isPending
@@ -401,6 +405,14 @@ export function MonitoringWorkspace({
               : "ready"
         }
         onRetryJunctions={() => void junctionQuery.refetch()}
+        corridorStatus={
+          corridorCatalogQuery.isPending
+            ? "loading"
+            : corridorCatalogQuery.isError
+              ? "error"
+              : "ready"
+        }
+        onRetryCorridors={() => void corridorCatalogQuery.refetch()}
         showHistoryAvailability={mode !== "live"}
         historyAvailability={historyAvailabilityQuery.data?.assets}
         historyAvailabilityStatus={
@@ -416,7 +428,7 @@ export function MonitoringWorkspace({
         className={`relative grid min-h-0 flex-1 grid-cols-1 ${
           mode !== "live"
             ? "grid-rows-[minmax(260px,1fr)_minmax(300px,46vh)] xl:grid-cols-[minmax(440px,42vw)_minmax(0,1fr)] xl:grid-rows-1"
-            : "xl:grid-cols-[minmax(0,1fr)_330px]"
+            : "xl:grid-cols-[minmax(0,1fr)_380px]"
         }`}
       >
         <section
@@ -428,24 +440,21 @@ export function MonitoringWorkspace({
             timeZone={coverageArea.timeZone}
             stations={visibleMapStations}
             selectedStationId={selectedStationId}
+            highlightedStationIds={highlightedStationIds}
             onSelect={selectStation}
             junctions={visibleJunctions}
             selectedJunctionId={selectedJunctionId}
             onSelectJunction={selectJunction}
             anomalies={
-              mode === "replay" || !mapLayerSettings.anomalies
+              replayView || !mapLayerSettings.anomalies
                 ? []
                 : anomalyQuery.data?.evaluations
             }
-            trafficEvents={mode === "replay" ? [] : visibleTrafficEvents}
-            selectedTrafficEventId={
-              mode === "replay" ? null : selectedTrafficEventId
-            }
+            trafficEvents={replayView ? [] : visibleTrafficEvents}
+            selectedTrafficEventId={replayView ? null : selectedTrafficEventId}
             onSelectTrafficEvent={selectTrafficEvent}
-            fieldReports={mode === "replay" ? [] : visibleFieldReports}
-            selectedFieldReportId={
-              mode === "replay" ? null : selectedFieldReportId
-            }
+            fieldReports={replayView ? [] : visibleFieldReports}
+            selectedFieldReportId={replayView ? null : selectedFieldReportId}
             onSelectFieldReport={selectFieldReport}
             fieldReportPickMode={fieldReportToolActive}
             fieldReportDraftLocation={fieldReportDraftLocation}
@@ -560,7 +569,7 @@ export function MonitoringWorkspace({
               Canlı bağlantı kesildi · son bilinen gerçek ölçümler gösteriliyor
             </div>
           ) : null}
-          {mode === "replay" ? (
+          {replayView ? (
             <LiveStatusSummary
               overview={liveTrafficOverview}
               mode={mode}
@@ -608,18 +617,24 @@ export function MonitoringWorkspace({
             onOpenAnalysis={() => changeMode("analysis")}
             onReturnLive={() => changeMode("live")}
           />
+        ) : mode !== "live" ? (
+          <StationRequiredPanel
+            mode={mode}
+            onReturnLive={() => changeMode("live")}
+          />
         ) : (
           <>
             <div
-              className={`absolute inset-y-4 right-4 z-20 w-[min(330px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
+              className={`absolute inset-y-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-2xl xl:static xl:z-auto xl:block xl:w-auto xl:rounded-none xl:border-y-0 xl:border-r-0 xl:shadow-none dark:border-slate-800 dark:bg-slate-950 ${
                 selectedStation ||
                 selectedJunction ||
+                selectedCorridor ||
                 !isSummaryDismissedOnMobile
                   ? "block"
                   : "hidden"
               }`}
             >
-              {selectedStation || selectedJunction ? (
+              {selectedStation || selectedJunction || selectedCorridor ? (
                 <button
                   type="button"
                   onClick={clearSelection}
@@ -640,6 +655,12 @@ export function MonitoringWorkspace({
               )}
               {selectedJunction ? (
                 <JunctionDetailPanel junction={selectedJunction} />
+              ) : !selectedStation && selectedCorridor ? (
+                <CorridorDetailPanel
+                  corridor={selectedCorridor}
+                  stations={stations}
+                  onSelectStation={selectStation}
+                />
               ) : !selectedStation ? (
                 <TodaySummaryPanel
                   overview={liveTrafficOverview}
@@ -732,7 +753,8 @@ export function MonitoringWorkspace({
             </div>
             {isSummaryDismissedOnMobile &&
             !selectedStation &&
-            !selectedJunction ? (
+            !selectedJunction &&
+            !selectedCorridor ? (
               <button
                 type="button"
                 onClick={() => setIsSummaryDismissedOnMobile(false)}

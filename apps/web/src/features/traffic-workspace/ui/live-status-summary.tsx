@@ -69,7 +69,7 @@ export function LiveStatusSummary({
           </span>
         </div>
         <p className="mt-1.5 text-[10px] text-slate-500">
-          Güncel yol olayları ve saha bildirimleri geçmiş kareyle karıştırılmaz.
+          Yol olayları ve bildirimler canlıdır.
         </p>
       </section>
     );

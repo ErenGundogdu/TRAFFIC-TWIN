@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  CorridorSummary,
   HistoryAssetAvailability,
   JunctionSummary,
   StationSummary,
@@ -12,19 +13,24 @@ import { InlineQueryError, TrafficAssetIcon } from "@/shared/ui";
 interface AssetSelectionBarProps {
   stations: StationSummary[];
   junctions: JunctionSummary[];
+  corridors: CorridorSummary[];
   selectedStationId: string | null;
   selectedJunctionId: string | null;
+  selectedCorridorId: string | null;
   onSelectStation: (stationId: string) => void;
   onSelectJunction: (junctionId: string) => void;
+  onSelectCorridor: (corridorId: string) => void;
   onClearSelection: () => void;
   junctionStatus: "loading" | "error" | "ready";
   onRetryJunctions: () => void;
+  corridorStatus: "loading" | "error" | "ready";
+  onRetryCorridors: () => void;
   showHistoryAvailability?: boolean;
   historyAvailability?: HistoryAssetAvailability[];
   historyAvailabilityStatus?: "loading" | "error" | "ready";
 }
 
-type AssetKind = "station" | "junction";
+type AssetKind = "station" | "junction" | "corridor";
 
 const freshnessLabels = {
   FRESH: "Güncel",
@@ -46,13 +52,18 @@ function normalizeSearch(value: string) {
 export function AssetSelectionBar({
   stations,
   junctions,
+  corridors,
   selectedStationId,
   selectedJunctionId,
+  selectedCorridorId,
   onSelectStation,
   onSelectJunction,
+  onSelectCorridor,
   onClearSelection,
   junctionStatus,
   onRetryJunctions,
+  corridorStatus,
+  onRetryCorridors,
   showHistoryAvailability = false,
   historyAvailability = [],
   historyAvailabilityStatus = "ready",
@@ -61,7 +72,11 @@ export function AssetSelectionBar({
   const searchRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [assetKind, setAssetKind] = useState<AssetKind>(
-    selectedJunctionId ? "junction" : "station",
+    selectedCorridorId
+      ? "corridor"
+      : selectedJunctionId
+        ? "junction"
+        : "station",
   );
   const [query, setQuery] = useState("");
   const selectedStation = stations.find(
@@ -69,6 +84,9 @@ export function AssetSelectionBar({
   );
   const selectedJunction = junctions.find(
     (junction) => junction.id === selectedJunctionId,
+  );
+  const selectedCorridor = corridors.find(
+    (corridor) => corridor.id === selectedCorridorId,
   );
   const normalizedQuery = normalizeSearch(query);
   const historyByAsset = useMemo(
@@ -100,6 +118,22 @@ export function AssetSelectionBar({
         ).includes(normalizedQuery),
       ),
     [junctions, normalizedQuery],
+  );
+  const filteredCorridors = useMemo(
+    () =>
+      corridors.filter((corridor) => {
+        const memberNames = corridor.stationIds
+          .map(
+            (stationId) =>
+              stations.find((station) => station.id === stationId)?.name,
+          )
+          .filter(Boolean)
+          .join(" ");
+        return normalizeSearch(
+          `Yol ${corridor.roadRef} ${memberNames}`,
+        ).includes(normalizedQuery);
+      }),
+    [corridors, normalizedQuery, stations],
   );
 
   useEffect(() => {
@@ -137,12 +171,21 @@ export function AssetSelectionBar({
 
   function togglePanel() {
     if (!isOpen) {
-      setAssetKind(selectedJunctionId ? "junction" : "station");
+      setAssetKind(
+        selectedCorridorId
+          ? "corridor"
+          : selectedJunctionId
+            ? "junction"
+            : "station",
+      );
     }
     setIsOpen((open) => !open);
   }
 
-  const selectionName = selectedStation?.name ?? selectedJunction?.name;
+  const selectionName =
+    selectedStation?.name ??
+    selectedJunction?.name ??
+    (selectedCorridor ? `Yol ${selectedCorridor.roadRef} koridoru` : null);
   const selectionMeta = selectedStation
     ? `İstasyon · TMS ${selectedStation.tmsNumber}${
         showHistoryAvailability
@@ -153,11 +196,15 @@ export function AssetSelectionBar({
       }`
     : selectedJunction
       ? `Kavşak · ${coverageLabels[selectedJunction.coverage]}`
-      : "Haritada incelemek istediğiniz varlığı seçin";
+      : selectedCorridor
+        ? `Koridor · ${selectedCorridor.stationIds.length} doğrulanmış istasyon`
+        : "Haritada incelemek istediğiniz varlığı seçin";
   const visibleResultCount =
     assetKind === "station"
       ? filteredStations.length
-      : filteredJunctions.length;
+      : assetKind === "junction"
+        ? filteredJunctions.length
+        : filteredCorridors.length;
 
   return (
     <div
@@ -173,26 +220,34 @@ export function AssetSelectionBar({
           aria-label={
             selectionName
               ? `${selectionName} seçimini değiştir`
-              : "İstasyon veya kavşak seç"
+              : "İstasyon, kavşak veya koridor seç"
           }
           className="flex min-w-0 flex-1 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-left transition hover:border-sky-300 hover:bg-sky-50/60 sm:max-w-xl dark:border-slate-700 dark:bg-slate-800 dark:hover:border-sky-700 dark:hover:bg-sky-950/40"
         >
           <span className="flex min-w-0 items-center gap-3">
             <span
               className={`grid size-9 shrink-0 place-items-center rounded-xl ${
-                selectedJunction
-                  ? "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
-                  : "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                selectedCorridor && !selectedStation && !selectedJunction
+                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                  : selectedJunction
+                    ? "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                    : "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
               }`}
             >
               <TrafficAssetIcon
-                kind={selectedJunction ? "junction" : "station"}
+                kind={
+                  selectedCorridor && !selectedStation && !selectedJunction
+                    ? "corridor"
+                    : selectedJunction
+                      ? "junction"
+                      : "station"
+                }
                 className="size-5"
               />
             </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {selectionName ?? "İstasyon veya kavşak seç"}
+                {selectionName ?? "İstasyon, kavşak veya koridor seç"}
               </span>
               <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">
                 {selectionMeta}
@@ -243,6 +298,25 @@ export function AssetSelectionBar({
             Kavşaklar{" "}
             <span className="ml-1 opacity-70">{junctions.length}</span>
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAssetKind("corridor");
+              setIsOpen(true);
+            }}
+            className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+              assetKind === "corridor" && isOpen
+                ? "bg-white text-amber-700 shadow-sm dark:bg-slate-700 dark:text-amber-300"
+                : "text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white"
+            }`}
+          >
+            <TrafficAssetIcon
+              kind="corridor"
+              className="mr-1 inline size-3.5"
+            />
+            Koridorlar{" "}
+            <span className="ml-1 opacity-70">{corridors.length}</span>
+          </button>
         </div>
 
         {selectionName ? (
@@ -263,7 +337,7 @@ export function AssetSelectionBar({
           className="absolute top-[calc(100%+8px)] right-3 left-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:right-auto sm:left-5 sm:w-[min(760px,calc(100vw-2.5rem))] dark:border-slate-700 dark:bg-slate-900"
         >
           <div className="border-b border-slate-200 p-3 dark:border-slate-800">
-            <div className="flex gap-2 sm:hidden">
+            <div className="grid grid-cols-3 gap-2 sm:hidden">
               <button
                 type="button"
                 onClick={() => setAssetKind("station")}
@@ -278,10 +352,17 @@ export function AssetSelectionBar({
               >
                 Kavşaklar · {junctions.length}
               </button>
+              <button
+                type="button"
+                onClick={() => setAssetKind("corridor")}
+                className={`rounded-lg px-2 py-2 text-xs font-semibold ${assetKind === "corridor" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
+              >
+                Koridorlar · {corridors.length}
+              </button>
             </div>
             <div className="mt-2 flex items-center gap-3 sm:mt-0">
               <label htmlFor="asset-search" className="sr-only">
-                İstasyon veya kavşak ara
+                İstasyon, kavşak veya koridor ara
               </label>
               <input
                 ref={searchRef}
@@ -292,7 +373,9 @@ export function AssetSelectionBar({
                 placeholder={
                   assetKind === "station"
                     ? "İstasyon adı veya TMS numarası ara…"
-                    : "Kavşak veya yol adı ara…"
+                    : assetKind === "junction"
+                      ? "Kavşak veya yol adı ara…"
+                      : "Yol veya koridor istasyonu ara…"
                 }
                 className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
@@ -314,6 +397,20 @@ export function AssetSelectionBar({
                   className="p-4 text-center text-sm"
                   message="Kavşak kataloğu alınamadı."
                   onRetry={onRetryJunctions}
+                />
+              </li>
+            ) : null}
+            {assetKind === "corridor" && corridorStatus === "loading" ? (
+              <li className="col-span-full p-5 text-center text-sm text-slate-500 dark:text-slate-400">
+                Koridorlar yükleniyor…
+              </li>
+            ) : null}
+            {assetKind === "corridor" && corridorStatus === "error" ? (
+              <li className="col-span-full">
+                <InlineQueryError
+                  className="p-4 text-center text-sm"
+                  message="Koridor kataloğu alınamadı."
+                  onRetry={onRetryCorridors}
                 />
               </li>
             ) : null}
@@ -383,7 +480,7 @@ export function AssetSelectionBar({
                     </button>
                   </li>
                 ))
-              : junctionStatus === "ready"
+              : assetKind === "junction" && junctionStatus === "ready"
                 ? filteredJunctions.map((junction) => (
                     <li key={junction.id}>
                       <button
@@ -426,9 +523,72 @@ export function AssetSelectionBar({
                       </button>
                     </li>
                   ))
-                : null}
+                : assetKind === "corridor" && corridorStatus === "ready"
+                  ? filteredCorridors.map((corridor) => {
+                      const memberStations = corridor.stationIds
+                        .map((stationId) =>
+                          stations.find((station) => station.id === stationId),
+                        )
+                        .filter(
+                          (station): station is StationSummary =>
+                            station !== undefined,
+                        );
+                      const freshCount = memberStations.filter(
+                        (station) => station.freshness === "FRESH",
+                      ).length;
+                      return (
+                        <li key={corridor.id}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              finishSelection(() =>
+                                onSelectCorridor(corridor.id),
+                              )
+                            }
+                            aria-pressed={corridor.id === selectedCorridorId}
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition ${
+                              corridor.id === selectedCorridorId
+                                ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950"
+                                : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2.5">
+                              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                                <TrafficAssetIcon
+                                  kind="corridor"
+                                  className="size-5"
+                                />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                  Yol {corridor.roadRef} koridoru
+                                </span>
+                                <span className="mt-0.5 block truncate text-[11px] text-slate-500 dark:text-slate-400">
+                                  {memberStations
+                                    .slice(0, 3)
+                                    .map((station) => String(station.tmsNumber))
+                                    .join(" · ")}
+                                  {memberStations.length > 3
+                                    ? ` · +${memberStations.length - 3}`
+                                    : ""}
+                                </span>
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-right text-[11px] text-slate-500 dark:text-slate-400">
+                              <span className="block font-semibold text-slate-700 dark:text-slate-200">
+                                {memberStations.length} istasyon
+                              </span>
+                              <span className="block">{freshCount} güncel</span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })
+                  : null}
             {visibleResultCount === 0 &&
-            (assetKind === "station" || junctionStatus === "ready") ? (
+            (assetKind === "station" ||
+              (assetKind === "junction" && junctionStatus === "ready") ||
+              (assetKind === "corridor" && corridorStatus === "ready")) ? (
               <li className="col-span-full rounded-xl border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                 Aramanızla eşleşen bir varlık bulunamadı.
               </li>

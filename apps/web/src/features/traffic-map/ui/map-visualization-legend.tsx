@@ -46,7 +46,7 @@ export function MapVisualizationLegend({
     mode === "overview"
       ? "Renk alanı, gerçek iki yön toplam araç/saat değerini gösterir."
       : mode === "volume-3d"
-        ? "Sütun yüksekliği fiziksel değildir; istasyonlar arasındaki göreli araç/saat hacmidir."
+        ? "Sütunlar göreli trafik hacmini gösterir."
         : !selectedStationId
           ? "Gerçek OSM yol bağlamını görmek için bir ölçüm istasyonu seçin."
           : roadContextStatus === "loading"
@@ -59,7 +59,7 @@ export function MapVisualizationLegend({
                   : `OpenStreetMap geçici olarak yenilenemedi; ${formatRoadContextFetchedAt(roadContext.source.fetchedAt, timeZone)} tarihli son kontrolde eşleşen yol bulunmamıştı.`
                 : roadContext?.status === "NO_MATCH"
                   ? "Yol referansıyla eşleşen OSM geometrisi bulunamadı."
-                  : "Gerçek OSM çizgisi: kalınlık araç/saat, iç renk istasyona özgü serbest akış oranı, renkli kenar ve ok ölçüm yönüdür.";
+                  : "Kalınlık trafik hacmini, renk hız oranını gösterir.";
 
   return (
     <div

@@ -188,3 +188,30 @@ describe("createTrafficEventGeoJson", () => {
     });
   });
 });
+
+describe("corridor highlighting", () => {
+  function at(id: string, longitude: number): StationSummary {
+    return { ...station, id, tmsNumber: Number(id), longitude, latitude: 60.2 };
+  }
+  // Deliberately out of west-to-east order to prove the path follows geography,
+  // not the order (or TMS numbers) the stations arrive in.
+  const stations = [at("3", 24.9), at("1", 24.5), at("4", 25.1), at("2", 24.7)];
+
+  it("dims every other station only while a corridor is highlighted", () => {
+    const highlighted = new Set(["1", "2"]);
+    const withCorridor = createStationGeoJson(stations, null, [], highlighted);
+    expect(
+      withCorridor.features.map((feature) => feature.properties.dimmed),
+    ).toEqual([true, false, true, false]);
+
+    const without = createStationGeoJson(stations, null);
+    expect(
+      without.features.every((feature) => !feature.properties.dimmed),
+    ).toBe(true);
+  });
+
+  it("keeps a separately selected station undimmed", () => {
+    const collection = createStationGeoJson(stations, "4", [], new Set(["1"]));
+    expect(collection.features[2]?.properties.dimmed).toBe(false);
+  });
+});

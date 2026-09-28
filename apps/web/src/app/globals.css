@@ -90,6 +90,10 @@ html[data-theme="dark"] .maplibregl-canvas {
   font-size: 10px !important;
 }
 
+.traffic-map-popup {
+  pointer-events: none;
+}
+
 .traffic-map-popup .maplibregl-popup-content {
   min-width: 210px;
   border: 1px solid rgb(226 232 240);
