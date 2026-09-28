@@ -42,7 +42,7 @@ const summary: HistorySummary = {
 };
 
 describe("HistorySummaryPanel", () => {
-  it("explains the server-calculated summary and its data basis", () => {
+  it("shows the summary and its sample basis", () => {
     render(
       <HistorySummaryPanel
         summaries={[summary]}
@@ -52,9 +52,6 @@ describe("HistorySummaryPanel", () => {
     );
 
     expect(screen.getByText("İstasyon ayrıntıları")).toBeInTheDocument();
-    expect(
-      screen.getByText(/gerçek dakika agregalarından sunucuda hesaplandı/),
-    ).toBeInTheDocument();
     expect(screen.getByText("79,1 km/sa")).toBeInTheDocument();
     expect(
       screen.getByText(/Ağırlıklı ortalama 78,4 km\/sa/),
@@ -121,6 +118,12 @@ describe("HistorySummaryPanel", () => {
     expect(screen.getByText("Kamyon")).toBeInTheDocument();
     expect(screen.getByText("Şerit 1")).toBeInTheDocument();
     expect(screen.getByText("Şerit 1 · Kamyon")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Araç sınıfları dağılımı" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "Şerit kullanımı dağılımı" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/ithalat veya ihracat miktarı değildir/),
     ).toBeInTheDocument();

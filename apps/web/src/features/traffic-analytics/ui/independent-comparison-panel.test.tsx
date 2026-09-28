@@ -145,4 +145,27 @@ describe("IndependentComparisonPanel", () => {
       }),
     ).toHaveLength(2);
   });
+
+  it("blocks a live flow rate versus historical vehicle total", () => {
+    navigation.params = new URLSearchParams(
+      "mode=analysis&analysisView=comparison&cmpMetric=vehicle-count&cmpAAsset=a&cmpADirection=1&cmpAPeriod=live&cmpAFrom=2026-09-22&cmpATo=2026-09-22&cmpAResolution=auto&cmpBAsset=a&cmpBDirection=2&cmpBPeriod=historical&cmpBFrom=2026-09-21&cmpBTo=2026-09-21&cmpBResolution=day",
+    );
+
+    render(
+      <IndependentComparisonPanel
+        catalog={catalog}
+        selectedStationId="a"
+        availability={[]}
+        today="2026-09-22"
+      />,
+    );
+
+    expect(
+      screen.getByText("Bu iki değer karşılaştırılamaz"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Karşılaştırmayı uygula" }),
+    );
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
 });

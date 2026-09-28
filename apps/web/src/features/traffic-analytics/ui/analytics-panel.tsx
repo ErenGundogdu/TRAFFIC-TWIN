@@ -250,10 +250,6 @@ export function AnalyticsPanel({
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h2 className="text-sm font-semibold">Zaman serisi</h2>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    Boş aralıklar birleştirilmez; yalnız gerçek ölçüm dilimleri
-                    çizilir.
-                  </p>
                 </div>
                 {history.data?.series.length ? (
                   <span className="text-[10px] text-slate-400">

@@ -82,8 +82,7 @@ function ComparisonCard({ history }: { history: HistoryResponse }) {
             />
           </div>
           <p className="mt-3 text-[10px] leading-4 text-slate-400">
-            Farklar soldaki ana istasyondan sağdaki karşılaştırma istasyonu
-            çıkarılarak hesaplanır. Nedensellik çıkarımı yapılmaz.
+            Fark = ana istasyon − karşılaştırma istasyonu.
           </p>
         </div>
       )}

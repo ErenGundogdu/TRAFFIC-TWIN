@@ -34,8 +34,7 @@ export function AnalysisCoveragePanel({
     >
       <p className="font-semibold">Seçili metrik ve yönde eksik günler var</p>
       <p className="mt-1 text-amber-800 dark:text-amber-200">
-        Kaynak raporu işlenmiş günler ile henüz içeri alınmamış günler ayrı
-        gösterilir. Eksik ölçümler grafikte doldurulmaz.
+        Eksik günler grafikte doldurulmaz.
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {counts

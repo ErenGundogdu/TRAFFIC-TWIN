@@ -31,10 +31,6 @@ export function HistorySummaryPanel({
           <h3 id="history-summary-title" className="text-sm font-semibold">
             İstasyon ayrıntıları
           </h3>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            Karşılaştırılabilir dönem istatistikleri gerçek {bucketLabel}{" "}
-            agregalarından sunucuda hesaplandı.
-          </p>
         </div>
         <span className="text-[10px] text-slate-400">{timeZone}</span>
       </div>
@@ -43,11 +39,11 @@ export function HistorySummaryPanel({
         {summaries.map((summary) => (
           <article
             key={summary.assetId}
-            className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950"
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h4 className="truncate text-xs font-semibold">
+                <h4 className="truncate text-sm font-semibold">
                   {summary.assetName}
                 </h4>
                 <p className="mt-0.5 text-[10px] text-slate-500">
@@ -99,10 +95,8 @@ export function HistorySummaryPanel({
                   {buildObservation(summary, timeZone, resolution)}
                 </p>
                 <TrafficCompositionPanel composition={summary.composition} />
-                <p className="mt-1.5 text-[10px] text-slate-400">
-                  Veri temeli: {formatInteger(summary.sampleCount)} geçerli
-                  örnek. Ortalama hız örnek sayısıyla ağırlıklandırılır; medyan,
-                  zaman dilimi ortalamalarının medyanıdır.
+                <p className="mt-2 inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                  {formatInteger(summary.sampleCount)} geçerli örnek
                 </p>
               </>
             ) : (
@@ -128,12 +122,14 @@ function MetricCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg bg-white p-2.5 dark:bg-slate-900">
-      <p className="text-[10px] font-medium text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+    <div className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+        {label}
+      </p>
+      <p className="mt-1.5 text-lg font-bold tracking-tight text-slate-950 tabular-nums dark:text-white">
         {value}
       </p>
-      <p className="mt-0.5 truncate text-[10px] text-slate-400" title={detail}>
+      <p className="mt-1 text-[10px] leading-4 text-slate-500" title={detail}>
         {detail}
       </p>
     </div>

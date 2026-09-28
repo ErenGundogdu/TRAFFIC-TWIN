@@ -15,6 +15,7 @@ import {
   compareReadings,
   createComparisonHistoryQuery,
   createComparisonReading,
+  getComparisonConfigurationIssue,
   independentComparisonSchema,
   isComparisonHistoryRangeValid,
   readIndependentComparison,
@@ -93,6 +94,7 @@ function ComparisonContent({
     bHistory.data,
   );
   const result = compareReadings(a, b);
+  const configurationIssue = getComparisonConfigurationIssue(applied);
 
   function updateSide(key: "a" | "b", patch: Partial<ComparisonSide>) {
     setDraft((current) => ({
@@ -105,6 +107,11 @@ function ComparisonContent({
     const parsed = independentComparisonSchema.safeParse(draft);
     if (!parsed.success) {
       setFormError("İstasyon, yön ve tarih alanlarını kontrol edin.");
+      return;
+    }
+    const issue = getComparisonConfigurationIssue(draft);
+    if (issue) {
+      setFormError(issue);
       return;
     }
     for (const side of [draft.a, draft.b]) {
@@ -173,7 +180,7 @@ function ComparisonContent({
               className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-950"
             >
               <option value="average-speed-kmh">Ortalama hız</option>
-              <option value="vehicle-count">Geçiş / akış</option>
+              <option value="vehicle-count">Araç hacmi / akış</option>
             </select>
           </label>
           <button
@@ -201,6 +208,15 @@ function ComparisonContent({
           }}
         />
       ) : null}
+      {configurationIssue ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <p className="font-semibold">Bu iki değer karşılaştırılamaz</p>
+          <p className="mt-1 text-xs">{configurationIssue}</p>
+        </div>
+      ) : null}
       <div className="grid gap-3 lg:grid-cols-2">
         <ComparisonReadingCard
           label="A · İncelenen"
@@ -227,7 +243,7 @@ function ComparisonContent({
             ? `${result.difference > 0 ? "+" : ""}${formatNumber(result.difference)} ${a.unit}`
             : result.contextualDifference !== undefined
               ? `Bağlamsal fark: ${result.contextualDifference > 0 ? "+" : ""}${formatNumber(result.contextualDifference)} ${a.unit}`
-              : "Doğrudan fark hesaplanmadı"}
+              : "Karşılaştırılamaz"}
         </p>
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
           {result.reason}

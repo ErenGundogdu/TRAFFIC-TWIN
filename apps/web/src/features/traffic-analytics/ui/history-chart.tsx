@@ -46,9 +46,6 @@ export function HistoryChart({
           <p className="font-semibold text-slate-700 dark:text-slate-200">
             Bu aralıkta veri yok
           </p>
-          <p className="mt-1 text-sm text-slate-500">
-            Eksik günler gerçek ölçüm gibi doldurulmadı.
-          </p>
         </div>
       </div>
     );

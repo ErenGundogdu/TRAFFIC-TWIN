@@ -4,6 +4,7 @@ import {
   compareReadings,
   createComparisonHistoryQuery,
   createComparisonReading,
+  getComparisonConfigurationIssue,
   isComparisonHistoryRangeValid,
   readIndependentComparison,
   type ComparisonReading,
@@ -72,6 +73,31 @@ describe("independent comparison", () => {
         { ...historical(300), unit: "araç" },
       ).difference,
     ).toBeNull();
+  });
+
+  it("rejects a live-to-historical vehicle volume configuration", () => {
+    const issue = getComparisonConfigurationIssue({
+      metric: "vehicle-count",
+      a: {
+        assetId: "a",
+        direction: "1",
+        period: "live",
+        fromDate: "2026-09-24",
+        toDate: "2026-09-24",
+        resolution: "auto",
+      },
+      b: {
+        assetId: "a",
+        direction: "2",
+        period: "historical",
+        fromDate: "2026-09-24",
+        toDate: "2026-09-24",
+        resolution: "day",
+      },
+    });
+
+    expect(issue).toContain("araç/sa");
+    expect(issue).toContain("toplam araç");
   });
 
   it("keeps each historical period independent", () => {

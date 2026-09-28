@@ -146,9 +146,6 @@ export function ReplayPanel({
                     <h2 className="text-sm font-semibold">
                       Senkron geçmiş grafiği
                     </h2>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
-                      Replay imleci ve harita aynı gerçek ölçüm karesini izler.
-                    </p>
                   </div>
                   <span
                     className="text-[10px] text-slate-400"

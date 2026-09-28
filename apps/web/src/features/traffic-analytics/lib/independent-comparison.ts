@@ -28,6 +28,18 @@ export const independentComparisonSchema = z.object({
 export type IndependentComparison = z.infer<typeof independentComparisonSchema>;
 export type ComparisonSide = IndependentComparison["a"];
 
+export function getComparisonConfigurationIssue(
+  comparison: IndependentComparison,
+) {
+  if (
+    comparison.metric === "vehicle-count" &&
+    comparison.a.period !== comparison.b.period
+  ) {
+    return "Canlı akış araç/sa, geçmiş veri ise seçili dönemin toplam araç sayısıdır. Araç hacmini karşılaştırmak için iki tarafı da canlı veya iki tarafı da geçmiş seçin.";
+  }
+  return null;
+}
+
 export function readIndependentComparison(
   params: URLSearchParams,
   catalog: StationCatalogResponse,
