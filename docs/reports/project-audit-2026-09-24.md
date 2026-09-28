@@ -6,9 +6,19 @@ Kapsama alanı: Helsinki (`Europe/Helsinki`)
 
 Bu rapor kodun test sonucunu, çalışan uygulamadaki kullanıcı akışlarını ve veritabanındaki gerçek istasyon kapsamını birlikte değerlendirir. Canlı tazelik, koridor ve yol olayı eşleşmeleri anlık değerlerdir; CSV matrisi 11:14–11:21 Europe/Helsinki arasında alınan snapshot'ı içerir.
 
+## Güncelleme (24 Eylül, öğleden sonra)
+
+İlk denetimden sonra koridor özelliği tamamlandı ve haritaya bağlandı: "Koridorlar" sekmesi artık `monitoring-workspace.tsx`'e tam olarak kablolanmış durumda. Bir koridor seçildiğinde üye istasyonlar haritada büyütülüp amber halkayla vurgulanıyor (hem düşük zoom'daki GeoJSON katmanında hem yüksek zoom'daki DOM işaretçilerinde), harita görünümü otomatik olarak koridorun tamamını sığdıracak şekilde yakınlaşıyor/uzaklaşıyor ve yeni bir koridor detay paneli üye istasyonları listeleyip tek tıkla istasyon detayına geçiş sağlıyor. İstasyon noktaları gerçek yol geometrisi gibi bir çizgiyle birleştirilmiyor. Yol 50 akışı canlı tarayıcıda uçtan uca doğrulandı; koridor bağlamı istasyon detayına geçildiğinde korunuyor.
+
+Aynı çalışmada saatlik replay aralık sınırı da 30 güne çıkarıldı (önceden dakika ve saat için ortak 2 gün sınırı vardı); bu sayede saatlik toplu istatistik verisi olan istasyonlarda daha uzun aralıklar oynatılabiliyor. Test sayıları bu değişikliklerle birlikte güncellendi: sözleşme 28/28, sunucu birim 161/161, web birim/bileşen 155/155, integration 20/20, toplam 364/364.
+
+Bu güncelleme sırasında iki harita sorunu giderildi. `<Map>`'in `onError`/`onLoad` geri çağrıları maplibre-gl tarafından bazen başka bir `<Layer>` hâlâ commit edilirken eşzamanlı tetikleniyor ve React uyarısına neden oluyordu; durum güncellemeleri `queueMicrotask` ile ertelendi. Ayrıca koridor vurgusu için eklenen istasyon çemberi boyut ifadesinde MapLibre'ın kabul etmediği iki ayrı zoom interpolasyonu vardı. Bu hata istasyon katmanını düşürüyor ve genel hata dinleyicisi tarafından yanlış biçimde kalıcı “Harita altlığı kısmen yüklenemedi” mesajı olarak gösteriliyordu. İfade tek zoom interpolasyonuna dönüştürüldü ve harita başarıyla yüklendikten sonraki tali tile/sprite hatalarının kalıcı altlık uyarısı oluşturması engellendi ([traffic-map-layers.ts](../../apps/web/src/features/traffic-map/ui/traffic-map-layers.ts), [traffic-map.tsx](../../apps/web/src/features/traffic-map/ui/traffic-map.tsx)). Yol 50 koridor seçimiyle uyarının kaybolduğu ve vurgu katmanının çalıştığı canlı tarayıcıda doğrulandı.
+
+Doğrulanmış yol bağlamı olmayan dokuz istasyonun sebebi araştırıldı: eşleşme hatası değil, yol bağlamının yalnızca bir istasyon açıldığında OpenStreetMap'ten çekilmesiydi; koridor listesi yalnızca kayıtlı bağlamları okuduğu için hangi istasyonların daha önce açıldığına bağlıydı. Ayrıca herkese açık Overpass sunucusu ara sıra HTTP 504/429 döndürüyor ve kaydı olmayan istasyonda bu hata doğrudan kullanıcıya yansıyordu. Sunucu artık `RoadContextWarmer` ile açılışta ve 30 dakikada bir eksik istasyonları arka planda, sıralı ve aralıklı, artan bekleme süreli yeniden denemelerle dolduruyor. Dokuz istasyonun hepsi eşleşti (76/76) ve koridor kapsamı 72 istasyona çıktı. Üç kaydı silip sunucuyu yeniden başlatarak denedim; Overpass birkaç isteği reddetmesine rağmen üçü de kendiliğinden doldu.
+
 ## Sonuç
 
-Uygulamanın zorunlu doğrulamaları ve ana kullanıcı akışları çalışıyor. Format, lint, TypeScript, production build, 330 birim/bileşen/sözleşme testi ve gerçek PostGIS/Socket.IO kullanan 20 integration testi geçti. Tarayıcı konsolunda hata veya uyarı görülmedi.
+Uygulamanın zorunlu doğrulamaları ve ana kullanıcı akışları çalışıyor. Format, lint, TypeScript, production build, 344 birim/bileşen/sözleşme testi ve gerçek PostGIS/Socket.IO kullanan 20 integration testi geçti (bkz. yukarıdaki güncelleme).
 
 Canlı istasyon, uzun dönem günlük/saatlik analiz, anomali, yol olayı bağlamı ve saatlik replay kullanılabilir durumda. En büyük gerçek ürün açığı şerit geçmişidir: panel ve hesap motoru çalışıyor, fakat 76 istasyonun hiçbirinde 12 haftalık aynı gün/saat karşılaştırması için gereken en az 6 gerçek şerit örneği yok. Dakikalık replay ve araç sınıfı/şerit kırılımı da yalnız birkaç istasyonda bir günlük ayrıntılı içe aktarıma sahip.
 
@@ -21,41 +31,41 @@ Kritik seviyede çökme, sahte varsayılan değer veya yanlış istasyona ait ve
 | Biçim denetimi                           | Geçti         |
 | ESLint                                   | Geçti         |
 | TypeScript strict typecheck              | Geçti         |
-| Sözleşme testleri                        | 27/27 geçti   |
-| Server birim testleri                    | 154/154 geçti |
-| Web birim ve bileşen testleri            | 149/149 geçti |
+| Sözleşme testleri                        | 28/28 geçti   |
+| Server birim testleri                    | 161/161 geçti |
+| Web birim ve bileşen testleri            | 155/155 geçti |
 | Production build                         | Geçti         |
 | PostgreSQL/PostGIS/Socket.IO integration | 20/20 geçti   |
-| Toplam test                              | 350/350 geçti |
+| Toplam test                              | 364/364 geçti |
 
 API sağlık, katalog, geçmiş kullanılabilirliği, dakika/saat/gün/otomatik geçmiş sorgusu, kavşak, anomali, yol olayı, şerit geçmişi, koridor ve saha bildirimi listeleme uçları gerçek çalışan sunucuda `200` döndürdü. Var olmayan istasyon `404 HISTORY_SCOPE_NOT_FOUND`, geçersiz yön ise `400 INVALID_REQUEST` döndürdü.
 
 ## Gerçek veri kapsamı
 
-| Yetenek                                  | İstasyon kapsamı | Yorum                                                                    |
-| ---------------------------------------- | ---------------: | ------------------------------------------------------------------------ |
-| Katalog                                  |            76/76 | Fintraffic kaynağı `AVAILABLE`                                           |
-| En az bir yönde canlı hız                |            73/76 | 3 istasyonda hız yok                                                     |
-| İki yönde de canlı hız ve akış           |            70/76 | 3 istasyon resmen tek yönlü; 3 istasyonda iki yön hız eksik              |
-| Canlı şerit satırı                       |            73/76 | 3 istasyonda şerit snapshot'ı yok                                        |
-| En az bir şeritte hız                    |            39/76 | 34 istasyonun şeritleri yalnız geçiş/akış veriyor                        |
-| Tüm görünen şeritleri yöne eşli          |            62/76 | 11 istasyonda toplam 22 eşlenmemiş şerit; 3 istasyonda şerit yok         |
-| En az bir yönde saatlik replay           |            76/76 | Saatlik replay aralığı en fazla 30 gün                                   |
-| Resmî kurulum yönlerinde saatlik replay  |            76/76 | 73 çift yönlü, 3 resmî tek yönlü istasyon                                |
-| Dakikalık replay                         |             3/76 | Yalnız TMS 5, 6 ve 20002; her birinde bir ayrıntılı gün                  |
-| En az bir yönde günlük analiz            |            76/76 | Günlük özet oynatılamaz, analiz edilir                                   |
-| Resmî kurulum yönlerinde günlük analiz   |            76/76 | 73 çift yönlü, 3 resmî tek yönlü istasyon                                |
-| Araç sınıfı kırılımı                     |             4/76 | TMS 5, 6, 196 ve 20002; birer gün                                        |
-| Şerit kırılımlı geçmiş                   |             4/76 | Aynı dört istasyonda birer gün                                           |
-| Kullanılabilir 12 haftalık şerit bağlamı |             0/76 | Minimum 6 benzer saat örneği hiçbir istasyonda yok                       |
-| Yeterli anomaly baseline'ı               |            73/76 | TMS 179 ve 196'da değerlendirme yok; TMS 20028 yetersiz                  |
-| Doğrulanmış yol bağlamı                  |            67/76 | 9 istasyon eşleşmemiş/istenmemiş                                         |
-| En az 3 istasyonlu statik koridor        |            61/76 | Aynı doğrulanmış yol numarası grubuna göre                               |
-| Anlık kullanılabilir koridor             |            48/76 | Snapshot'ta en az iki güncel, yönü uyumlu komşu; canlı tazelikle değişir |
-| Kavşağa bağlı istasyon                   |            10/76 | Toplam 5 kavşak: 2 tam, 1 kısmi, 2 yetersiz                              |
-| Güncel yol olayı bağlamı bulunan         |            66/76 | 10 istasyonda o an politika mesafesinde olay yok                         |
-| Operatör notu bulunan                    |             2/76 | Kullanıcı içeriği; sıfır olması işlev arızası değildir                   |
-| Saha bildirimi bulunan                   |             0/76 | Kullanıcı içeriği; listeleme ve realtime integration testi geçti         |
+| Yetenek                                  | İstasyon kapsamı | Yorum                                                                              |
+| ---------------------------------------- | ---------------: | ---------------------------------------------------------------------------------- |
+| Katalog                                  |            76/76 | Fintraffic kaynağı `AVAILABLE`                                                     |
+| En az bir yönde canlı hız                |            73/76 | 3 istasyonda hız yok                                                               |
+| İki yönde de canlı hız ve akış           |            70/76 | 3 istasyon resmen tek yönlü; 3 istasyonda iki yön hız eksik                        |
+| Canlı şerit satırı                       |            73/76 | 3 istasyonda şerit snapshot'ı yok                                                  |
+| En az bir şeritte hız                    |            39/76 | 34 istasyonun şeritleri yalnız geçiş/akış veriyor                                  |
+| Tüm görünen şeritleri yöne eşli          |            62/76 | 11 istasyonda toplam 22 eşlenmemiş şerit; 3 istasyonda şerit yok                   |
+| En az bir yönde saatlik replay           |            76/76 | Saatlik replay aralığı en fazla 30 gün                                             |
+| Resmî kurulum yönlerinde saatlik replay  |            76/76 | 73 çift yönlü, 3 resmî tek yönlü istasyon                                          |
+| Dakikalık replay                         |             3/76 | Yalnız TMS 5, 6 ve 20002; her birinde bir ayrıntılı gün                            |
+| En az bir yönde günlük analiz            |            76/76 | Günlük özet oynatılamaz, analiz edilir                                             |
+| Resmî kurulum yönlerinde günlük analiz   |            76/76 | 73 çift yönlü, 3 resmî tek yönlü istasyon                                          |
+| Araç sınıfı kırılımı                     |             4/76 | TMS 5, 6, 196 ve 20002; birer gün                                                  |
+| Şerit kırılımlı geçmiş                   |             4/76 | Aynı dört istasyonda birer gün                                                     |
+| Kullanılabilir 12 haftalık şerit bağlamı |             0/76 | Minimum 6 benzer saat örneği hiçbir istasyonda yok                                 |
+| Yeterli anomaly baseline'ı               |            73/76 | TMS 179 ve 196'da değerlendirme yok; TMS 20028 yetersiz                            |
+| Doğrulanmış yol bağlamı                  |            76/76 | İlk denetimde 67/76'ydı; 9 istasyon hiç istenmemişti, aşağıdaki güncellemeye bakın |
+| En az 3 istasyonlu statik koridor        |            72/76 | Dokuz doğrulanmış yol referansı grubuna göre                                       |
+| Anlık kullanılabilir koridor             |            48/76 | İlk denetim snapshot'ında en az iki güncel, yönü uyumlu komşu                      |
+| Kavşağa bağlı istasyon                   |            10/76 | Toplam 5 kavşak: 2 tam, 1 kısmi, 2 yetersiz                                        |
+| Güncel yol olayı bağlamı bulunan         |            66/76 | 10 istasyonda o an politika mesafesinde olay yok                                   |
+| Operatör notu bulunan                    |             2/76 | Kullanıcı içeriği; sıfır olması işlev arızası değildir                             |
+| Saha bildirimi bulunan                   |             0/76 | Kullanıcı içeriği; listeleme ve realtime integration testi geçti                   |
 
 Geçmişte görünen gün sayısı istasyon başına 286–1849, ortanca 1806 gündür. TMS 20029 için 297, TMS 20030 için 286 gün vardır; bunlar daha yeni başlayan kaynak serileridir. “Geçmiş gün” rozeti en az bir geçmiş kayıt bulunan günü anlatır; seçili yön ve metrik için eksiksiz kapsama garantisi değildir. Analiz ekranındaki `COMPLETE/PARTIAL/NO_DATA`, mevcut gün sayısı ve eksik gün gerekçesi esas göstergedir.
 
@@ -79,7 +89,7 @@ TMS 20021 ile TMS 20027 aynı `vt3 / Hämeenlinnanväylä` otoyolunda, aynı yol
 
 Doğrulanmış yol bağlamı bulunmayanlar:
 
-- TMS 9, 102, 125, 127, 128, 159, 183, 191 ve 20024
+- TMS 9, 102, 125, 127, 128, 159, 183, 191 ve 20024 (ilk denetim anında; artık hepsi eşleşti)
 
 Dakikalık replay'i olan üç istasyonun gerçek ayrıntılı günü 15 Eylül 2026'dır. Dakika replay'i en fazla iki günlük aralık kabul eder; mevcut veride bu üç istasyon için fiilî kapsam bir gündür. Saat çözünürlüğü 76 istasyonun tamamında en az bir yönde çalışır ve en fazla 30 günlük aralık kabul eder.
 
@@ -114,7 +124,7 @@ Yol bağlamı ve kavşak sayısı Fintraffic eksikliği değildir. Bunlar OSM ge
 1. Ayrıntılı saatlik şerit geçmişini en az 6 aynı gün/saat örneğine çıkarın. Bu tamamlanmadan şerit geçmiş bağlamı 76 istasyonun hiçbirinde kullanıcıya sonuç üretemez.
 2. Ham ayrıntılı importu kontrollü biçimde genişletin. Dakikalık replay ile araç sınıfı/şerit kırılımı bugün yalnız 3–4 istasyon ve bir gün seviyesindedir.
 3. Resmî şerit sayısı sıfır olan fiziksel olarak kurulmamış yönleri arayüzde “0 araç/sa” veya genel “yetersiz veri” gibi göstermeyin; “Bu istasyon bu yönü ölçmüyor” olarak ayırın. TMS 20021/20027 gibi tamamlayıcı karşı yön istasyonlarının ilişkisini kullanıcıya açıklayın.
-4. Dokuz eksik yol bağlamını ve beş kavşağın üç kısmi/yetersiz eşleşmesini gözden geçirin.
+4. Beş kavşağın üç kısmi/yetersiz eşleşmesini gözden geçirin.
 5. Canlı şerit hızı vermeyen 34 istasyonu akış temelli görünüm olarak etiketlemeye devam edin; kullanıcıya hız kıyası vaat etmeyin.
 
 ## İstasyon matrisi
@@ -132,3 +142,5 @@ Tüm 76 istasyonun satır bazlı sonucu [station-feature-coverage-2026-09-24.csv
 - `junction_count`, `sufficient_anomaly_evaluations`, `event_context_matches`: kavşak, anomali ve olay bağlamı
 
 `current_freshness`, `corridor_ready_directions` ve `event_context_matches` snapshot değerleridir; canlı kaynak yenilendikçe değişir.
+
+Yönlerin tüm istasyonlarda resmî Fintraffic yerleşimiyle karşılaştırıldığı ayrı denetim [station-direction-audit-2026-09-24.md](./station-direction-audit-2026-09-24.md) ve satır bazlı [station-direction-audit-2026-09-24.csv](./station-direction-audit-2026-09-24.csv) dosyalarındadır.
