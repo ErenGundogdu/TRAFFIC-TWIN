@@ -26,6 +26,7 @@ import { PostgresAnomalyRepository } from "./modules/anomalies/anomaly-repositor
 import { createAnomalyPolicy } from "./modules/anomalies/anomaly-engine.js";
 import { RoadContextService } from "./modules/road-context/road-context-service.js";
 import { PostgresRoadContextRepository } from "./modules/road-context/road-context-repository.js";
+import { RoadContextWarmer } from "./modules/road-context/road-context-warmer.js";
 import { FintrafficTrafficMessageClient } from "./modules/providers/fintraffic/traffic-message-client.js";
 import { PostgresTrafficEventRepository } from "./modules/traffic-events/traffic-event-repository.js";
 import { TrafficEventService } from "./modules/traffic-events/traffic-event-service.js";
@@ -140,6 +141,22 @@ const roadContextService = new RoadContextService(
       "OpenStreetMap refresh failed; persisted road context is being served.",
       error,
     ),
+);
+const roadContextWarmer = new RoadContextWarmer(
+  "helsinki",
+  stationRepository,
+  new PostgresRoadContextRepository(db),
+  roadContextService,
+  {},
+  undefined,
+  (error) => console.error("Road context warm-up request failed.", error),
+  (result) => {
+    if (result.missingCount > 0) {
+      console.log(
+        `Road context warm-up: ${result.warmedCount}/${result.missingCount} stations filled, ${result.failedAssetIds.length} will be retried.`,
+      );
+    }
+  },
 );
 const corridorInsightService = new CorridorInsightService(
   stationCatalogService,
@@ -262,6 +279,7 @@ await historyImportWorker.start();
 httpServer.listen(env.PORT, () => {
   console.log(`Traffic Twin server listening on http://localhost:${env.PORT}`);
   recentStatisticsPoller.start();
+  roadContextWarmer.start();
 });
 
 let shuttingDown = false;
@@ -308,6 +326,7 @@ async function shutdown(signal: NodeJS.Signals) {
       recentStatisticsPoller.stop(),
       "recentStatisticsPoller.stop()",
     );
+    await withTimeout(roadContextWarmer.stop(), "roadContextWarmer.stop()");
     await withTimeout(historyImportWorker.stop(), "historyImportWorker.stop()");
     await withTimeout(realtimeServer.close(), "realtimeServer.close()");
     await withTimeout(pool.end(), "pool.end()");

@@ -50,7 +50,9 @@ describe("CorridorInsightPanel", () => {
 
     expect(screen.getByText("Yerel yavaşlama işareti")).toBeInTheDocument();
     expect(screen.getByText(/34 yüzde puan düşük/)).toBeInTheDocument();
-    expect(screen.getByText(/nedeni ileri sürmez/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Eşzamanlı hız karşılaştırmasıdır; neden göstermez."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Yol 3")).toBeInTheDocument();
   });
 

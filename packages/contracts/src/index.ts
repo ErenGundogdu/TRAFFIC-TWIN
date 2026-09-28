@@ -9,13 +9,17 @@ export {
   type LaneMetricBaseline,
 } from "./lane-history-insight.js";
 export {
+  corridorCatalogResponseSchema,
   corridorDirectionInsightSchema,
   corridorInsightResponseSchema,
   corridorInsightStatusSchema,
+  corridorSummarySchema,
+  type CorridorCatalogResponse,
   corridorStationReadingSchema,
   type CorridorDirectionInsight,
   type CorridorInsightResponse,
   type CorridorInsightStatus,
+  type CorridorSummary,
   type CorridorStationReading,
 } from "./corridor-insight.js";
 export {

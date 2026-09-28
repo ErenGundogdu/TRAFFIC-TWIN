@@ -1,11 +1,15 @@
 import type {
+  CorridorCatalogResponse,
   CorridorInsightResponse,
   StationCatalogResponse,
 } from "@traffic-twin/contracts";
 
 import { ApplicationError } from "../../common/errors/application-error.js";
 import type { StationCatalogService } from "../asset-catalog/station-catalog-service.js";
-import type { RoadContextRepository } from "../road-context/road-context-repository.js";
+import type {
+  RoadContextRepository,
+  StoredRoadContext,
+} from "../road-context/road-context-repository.js";
 import type { RoadContextService } from "../road-context/road-context-service.js";
 import { analyzeCorridorDirection } from "./corridor-analysis.js";
 
@@ -31,10 +35,22 @@ export class CorridorInsightService {
     >,
     private readonly roadContextRepository: Pick<
       RoadContextRepository,
-      "findMatchedByRoadRef"
+      "findMatchedByAssetIds" | "findMatchedByRoadRef"
     >,
     private readonly clock: () => Date = () => new Date(),
   ) {}
+
+  async getCorridorCatalog(
+    coverageAreaId: string,
+  ): Promise<CorridorCatalogResponse> {
+    const catalog =
+      await this.stationCatalogService.getCoverageStations(coverageAreaId);
+    const contexts = await this.roadContextRepository.findMatchedByAssetIds(
+      catalog.stations.map((station) => station.id),
+    );
+
+    return createCorridorCatalog(catalog, contexts, this.clock());
+  }
 
   async getStationCorridorInsight(
     coverageAreaId: string,
@@ -85,4 +101,52 @@ export class CorridorInsightService {
     );
     return catalog.stations.filter((station) => verifiedIds.has(station.id));
   }
+}
+
+export function createCorridorCatalog(
+  catalog: StationCatalogResponse,
+  contexts: StoredRoadContext[],
+  generatedAt: Date,
+): CorridorCatalogResponse {
+  const stationById = new Map(
+    catalog.stations.map((station) => [station.id, station]),
+  );
+  const stationIdsByRoadRef = new Map<string, string[]>();
+
+  for (const context of contexts) {
+    if (context.status !== "MATCHED" || !context.roadRef) continue;
+    if (!stationById.has(context.assetId)) continue;
+    const stationIds = stationIdsByRoadRef.get(context.roadRef) ?? [];
+    stationIds.push(context.assetId);
+    stationIdsByRoadRef.set(context.roadRef, stationIds);
+  }
+
+  const collator = new Intl.Collator("fi-FI", {
+    numeric: true,
+    sensitivity: "base",
+  });
+  const corridors = [...stationIdsByRoadRef.entries()]
+    .filter(([, stationIds]) => stationIds.length >= 3)
+    .sort(([left], [right]) => collator.compare(left, right))
+    .map(([roadRef, stationIds]) => ({
+      id: `road:${roadRef}`,
+      roadRef,
+      stationIds: stationIds.sort(
+        (left, right) =>
+          (stationById.get(left)?.tmsNumber ?? 0) -
+          (stationById.get(right)?.tmsNumber ?? 0),
+      ),
+    }));
+
+  return {
+    coverageAreaId: catalog.coverageArea.id,
+    generatedAt: generatedAt.toISOString(),
+    policyVersion: "verified-road-corridor-catalog-v1",
+    minimumStationCount: 3,
+    corridors,
+    source: {
+      roadNetwork: "OpenStreetMap",
+      traffic: "Fintraffic TMS",
+    },
+  };
 }

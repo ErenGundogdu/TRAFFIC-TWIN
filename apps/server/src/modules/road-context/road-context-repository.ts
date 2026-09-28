@@ -2,7 +2,7 @@ import {
   stationRoadContextSchema,
   type StationRoadContext,
 } from "@traffic-twin/contracts";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import type { Database } from "../../infrastructure/database/client.js";
 import { stationRoadContexts } from "../../infrastructure/database/schema.js";
@@ -11,7 +11,9 @@ export type StoredRoadContext = Omit<StationRoadContext, "freshness">;
 
 export interface RoadContextRepository {
   findByAssetId(assetId: string): Promise<StoredRoadContext | null>;
+  findByAssetIds(assetIds: string[]): Promise<StoredRoadContext[]>;
   findMatchedByRoadRef(roadRef: string): Promise<StoredRoadContext[]>;
+  findMatchedByAssetIds(assetIds: string[]): Promise<StoredRoadContext[]>;
   upsert(value: StoredRoadContext): Promise<void>;
 }
 
@@ -30,6 +32,17 @@ export class PostgresRoadContextRepository implements RoadContextRepository {
     return parseStoredRoadContext(row);
   }
 
+  async findByAssetIds(assetIds: string[]) {
+    if (assetIds.length === 0) return [];
+
+    const rows = await this.database
+      .select()
+      .from(stationRoadContexts)
+      .where(inArray(stationRoadContexts.assetId, assetIds));
+
+    return rows.map(parseStoredRoadContext);
+  }
+
   async findMatchedByRoadRef(roadRef: string) {
     const rows = await this.database
       .select()
@@ -38,6 +51,22 @@ export class PostgresRoadContextRepository implements RoadContextRepository {
         and(
           eq(stationRoadContexts.status, "MATCHED"),
           eq(stationRoadContexts.roadRef, roadRef),
+        ),
+      );
+
+    return rows.map(parseStoredRoadContext);
+  }
+
+  async findMatchedByAssetIds(assetIds: string[]) {
+    if (assetIds.length === 0) return [];
+
+    const rows = await this.database
+      .select()
+      .from(stationRoadContexts)
+      .where(
+        and(
+          eq(stationRoadContexts.status, "MATCHED"),
+          inArray(stationRoadContexts.assetId, assetIds),
         ),
       );
 

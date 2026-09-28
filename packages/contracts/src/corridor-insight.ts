@@ -2,6 +2,24 @@ import { z } from "zod";
 
 import { trafficDirectionHeadingSchema } from "./station-catalog.js";
 
+export const corridorSummarySchema = z.object({
+  id: z.string().min(1),
+  roadRef: z.string().min(1),
+  stationIds: z.array(z.string().min(1)).min(3),
+});
+
+export const corridorCatalogResponseSchema = z.object({
+  coverageAreaId: z.string().min(1),
+  generatedAt: z.iso.datetime(),
+  policyVersion: z.literal("verified-road-corridor-catalog-v1"),
+  minimumStationCount: z.literal(3),
+  corridors: z.array(corridorSummarySchema),
+  source: z.object({
+    roadNetwork: z.literal("OpenStreetMap"),
+    traffic: z.literal("Fintraffic TMS"),
+  }),
+});
+
 export const corridorInsightStatusSchema = z.enum([
   "BALANCED",
   "LOCAL_SLOWDOWN",
@@ -47,6 +65,10 @@ export const corridorInsightResponseSchema = z.object({
 });
 
 export type CorridorInsightStatus = z.infer<typeof corridorInsightStatusSchema>;
+export type CorridorSummary = z.infer<typeof corridorSummarySchema>;
+export type CorridorCatalogResponse = z.infer<
+  typeof corridorCatalogResponseSchema
+>;
 export type CorridorStationReading = z.infer<
   typeof corridorStationReadingSchema
 >;

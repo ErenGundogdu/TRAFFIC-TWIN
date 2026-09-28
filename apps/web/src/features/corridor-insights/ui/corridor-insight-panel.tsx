@@ -68,8 +68,7 @@ export function CorridorInsightPanel({
         ) : null}
       </div>
       <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-        Seçili istasyon, aynı doğrulanmış yolda ve aynı fiziksel yönde ilerleyen
-        en yakın güncel sensörlerle karşılaştırılır.
+        Aynı yol ve yöndeki yakın istasyonlarla karşılaştırılır.
       </p>
 
       {status === "loading" ? (
@@ -97,10 +96,7 @@ export function CorridorInsightPanel({
             />
           ))}
           <p className="text-[10px] leading-4 text-slate-500">
-            Hızlar, her yönün kendi serbest akış hızına oranlanır. Bu ekran
-            yalnız eşzamanlı farkı betimler; kaza, kapanma veya rota değişikliği
-            nedeni ileri sürmez. Kaynaklar: OpenStreetMap yol eşleşmesi ve
-            Fintraffic TMS canlı ölçümleri.
+            Eşzamanlı hız karşılaştırmasıdır; neden göstermez.
           </p>
           {insight.roadContextFreshness === "STALE" ? (
             <p className="text-[10px] font-medium text-amber-700 dark:text-amber-300">

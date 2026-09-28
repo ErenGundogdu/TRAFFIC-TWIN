@@ -1,8 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { corridorInsightResponseSchema } from "./corridor-insight.js";
+import {
+  corridorCatalogResponseSchema,
+  corridorInsightResponseSchema,
+} from "./corridor-insight.js";
 
 describe("corridor insight contract", () => {
+  it("validates a verified corridor catalog", () => {
+    const parsed = corridorCatalogResponseSchema.parse({
+      coverageAreaId: "helsinki",
+      generatedAt: "2026-09-24T09:00:00.000Z",
+      policyVersion: "verified-road-corridor-catalog-v1",
+      minimumStationCount: 3,
+      corridors: [
+        {
+          id: "road:1",
+          roadRef: "1",
+          stationIds: ["station-1", "station-2", "station-3"],
+        },
+      ],
+      source: {
+        roadNetwork: "OpenStreetMap",
+        traffic: "Fintraffic TMS",
+      },
+    });
+
+    expect(parsed.corridors[0]?.stationIds).toHaveLength(3);
+  });
+
   it("keeps verified road scope and comparable live readings explicit", () => {
     const parsed = corridorInsightResponseSchema.parse({
       assetId: "fintraffic-tms:23005",
